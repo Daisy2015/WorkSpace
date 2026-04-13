@@ -599,6 +599,14 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
 
         // 2. Workflow Card
         const workflowId = `msg-workflow-${Date.now()}`;
+        const initialSteps = [
+          { name: '产量趋势分析', details: null },
+          { name: '压力变化诊断', details: null },
+          { name: '含水率异常检测', details: null },
+          { name: '多指标联动归因', details: null },
+          { name: '诊断图件生成', details: null }
+        ];
+
         setMessages(prev => [...prev, {
           id: workflowId,
           role: 'model',
@@ -608,85 +616,125 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
           status: 'processing',
           cardType: 'workflow',
           payload: {
-            title: '产量下降诊断',
-            steps: ['产量趋势分析', '压力变化诊断', '含水率异常检测', '多指标联动归因', '诊断图件生成'],
+            title: '产量下降模版',
+            category: '异常诊断',
+            steps: initialSteps,
             currentStep: 1,
             status: '正在执行：步骤 1 / 5'
           }
         }]);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // 3. Loop 1: Trend
-        const loop1Id = `msg-loop1-${Date.now()}`;
-        setMessages(prev => [...prev, {
-          id: loop1Id,
-          role: 'model',
-          agentId: scenarioAgent.id,
-          content: '',
-          timestamp: Date.now(),
-          status: 'processing',
-          cardType: 'loop',
-          payload: {
-            title: '第1轮｜产量趋势分析',
-            status: 'running',
-            thought: '先确认近7日产量是否为持续下降。',
-            action: ['正在调用：趋势分析通用智能体'],
-            observation: '正在获取数据...',
-            plan: '确认趋势后进行压力诊断'
-          }
-        }]);
         await new Promise(resolve => setTimeout(resolve, 1500));
-        setMessages(prev => prev.map(msg => msg.id === loop1Id ? {
-          ...msg,
-          status: 'completed',
-          payload: {
-            ...msg.payload,
-            status: 'completed',
-            action: ['调用：趋势分析通用智能体', 'NL2SQL', '递减率计算工具'],
-            observation: '近7日产量由 102.3 下放至 95.9，累计下降 6.3%。',
-            plan: '下一步联合分析井底压力变化。'
-          }
-        } : msg));
 
-        // Update Workflow to step 2
+        // Update Step 1 details
         setMessages(prev => prev.map(msg => msg.id === workflowId ? {
           ...msg,
-          payload: { ...msg.payload, currentStep: 2, status: '正在执行：步骤 2 / 5' }
-        } : msg));
-
-        // 4. Loop 2: Pressure
-        const loop2Id = `msg-loop2-${Date.now()}`;
-        setMessages(prev => [...prev, {
-          id: loop2Id,
-          role: 'model',
-          agentId: scenarioAgent.id,
-          content: '',
-          timestamp: Date.now(),
-          status: 'processing',
-          cardType: 'loop',
           payload: {
-            title: '第2轮｜压力变化诊断',
-            status: 'running',
-            thought: '判断产量递减是否由供液压力下降导致。',
-            action: ['正在调用：压力诊断通用智能体'],
-            observation: '正在获取压力数据...',
-            plan: '确认压力影响后进行含水诊断'
+            ...msg.payload,
+            steps: msg.payload.steps.map((s: any, i: number) => i === 0 ? {
+              ...s,
+              details: {
+                thought: '先确认近7日产量是否为持续下降。',
+                action: ['调用：趋势分析通用智能体', 'NL2SQL', '递减率计算工具'],
+                observation: '近7日产量由 102.3 下放至 95.9，累计下降 6.3%。'
+              }
+            } : s),
+            currentStep: 2,
+            status: '正在执行：步骤 2 / 5'
           }
-        }]);
+        } : msg));
         await new Promise(resolve => setTimeout(resolve, 1500));
-        setMessages(prev => prev.map(msg => msg.id === loop2Id ? {
+
+        // Update Step 2 details
+        setMessages(prev => prev.map(msg => msg.id === workflowId ? {
+          ...msg,
+          payload: {
+            ...msg.payload,
+            steps: msg.payload.steps.map((s: any, i: number) => i === 1 ? {
+              ...s,
+              details: {
+                thought: '判断产量递减是否由供液压力下降导致。',
+                action: ['调用：压力诊断通用智能体', 'NL2CQL', '压降速率工具'],
+                observation: '井底压力近7天下降 8.1%，与产量递减同步。'
+              }
+            } : s),
+            currentStep: 3,
+            status: '正在执行：步骤 3 / 5'
+          }
+        } : msg));
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Update Step 5 details
+        setMessages(prev => prev.map(msg => msg.id === workflowId ? {
+          ...msg,
+          payload: {
+            ...msg.payload,
+            steps: msg.payload.steps.map((s: any, i: number) => i === 4 ? {
+              ...s,
+              details: {
+                thought: '将归因分析结果可视化，生成多指标联动诊断图。',
+                action: ['调用：数据成图通用智能体', 'ECharts 渲染引擎'],
+                observation: '多指标联动归因诊断图已生成，包含产量、压力、含水率三曲线对比。',
+                plan: '输出最终诊断报告。'
+              }
+            } : s),
+            currentStep: 5,
+            status: '正在执行：步骤 5 / 5'
+          }
+        } : msg));
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Complete Workflow
+        setMessages(prev => prev.map(msg => msg.id === workflowId ? {
           ...msg,
           status: 'completed',
           payload: {
             ...msg.payload,
-            status: 'completed',
-            action: ['调用：压力诊断通用智能体', 'NL2CQL', '压降速率工具', '阈值规则库'],
-            observation: '井底压力近7天下降 8.1%，与产量递减同步。',
-            plan: '继续验证含水率变化是否叠加影响。'
+            currentStep: 6,
+            status: '执行完成'
           }
         } : msg));
 
-        // 5. Final Result (Simplified for simulation)
+        // 3. Stage Result
+        const stageId = `msg-stage-${Date.now()}`;
+        setMessages(prev => [...prev, {
+          id: stageId,
+          role: 'model',
+          agentId: leaderAgent.id,
+          content: '',
+          timestamp: Date.now(),
+          status: 'completed',
+          cardType: 'stage_result',
+          payload: { 
+            title: '阶段结论', 
+            finding: 'X-1井产量下降主因为井底压力不足，次因为含水率波动。',
+            points: ['压力递减率 1.2%/天', '含水率上升 0.5%']
+          }
+        }]);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 4. Chart Card (Integrated into flow)
+        const chartId = `msg-chart-${Date.now()}`;
+        setMessages(prev => [...prev, {
+          id: chartId,
+          role: 'model',
+          agentId: agents.find(a => a.name === '数据成图')?.id || 'agent-chart',
+          content: '',
+          timestamp: Date.now(),
+          status: 'completed',
+          cardType: 'chart',
+          payload: { 
+            title: '多指标联动归因诊断图', 
+            observation: '图中清晰显示产量下降（蓝线）与压力下降（红线）的正相关性，同时含水率（绿线）呈缓慢上升趋势。',
+            data: [
+              { label: '产量 (m³/d)', values: [102, 101.5, 99.8, 98.2, 97.5, 96.8, 95.9], color: '#4f46e5' },
+              { label: '压力 (MPa)', values: [25.2, 24.8, 24.1, 23.5, 23.2, 22.8, 22.5], color: '#ef4444' },
+              { label: '含水率 (%)', values: [14.8, 15.1, 15.4, 15.9, 16.3, 16.7, 17.2], color: '#10b981' }
+            ]
+          }
+        }]);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 5. Final Result
         const finalId = `msg-final-${Date.now()}`;
         setMessages(prev => [...prev, {
           id: finalId,
@@ -698,7 +746,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
           payload: {
             conclusion: 'X-1井近7日产量下降主要由井底压力持续下降（一级主因）和含水率持续抬升（二级叠加因素）共同导致。',
             recommendations: ['调整生产压差', '关注供液能力', '优化注采参数'],
-            outputs: ['三指标联动诊断图', '原因分析摘要']
+            outputs: ['多指标联动归因诊断图', '原因分析摘要']
           }
         }]);
 
@@ -821,7 +869,12 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
           timestamp: Date.now(),
           status: 'completed',
           cardType: 'chart',
-          payload: { title: 'X-1井近7天日产量趋势图', observation: '近7日产量累计下降约 6.3%。' }
+          payload: { 
+            title: 'X-1井近7天日产量趋势图', 
+            observation: '日产量由 102.3 持续下降至 95.9，累计降幅约 6.3%。',
+            type: 'bar',
+            data: [{ label: '日产量 (m³/d)', values: [102.3, 101.8, 99.5, 98.7, 97.6, 96.8, 95.9], color: '#4f46e5' }]
+          }
         }]);
         await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -837,7 +890,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
           payload: {
             conclusion: 'X-1井近7天日产量由 102.3 → 95.9，整体呈稳定下降趋势。建议继续关注压力变化。',
             recommendations: ['继续分析含水率', '加入井底压力', '生成日报摘要'],
-            outputs: ['查询结果表', '趋势折线图']
+            outputs: ['查询结果表', '趋势柱状图']
           }
         }]);
       } catch (e) { console.error(e); } finally { setIsGenerating(false); }
@@ -870,6 +923,44 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
 
         // 2. Position Agent Task Decomposition
         const positionDecompId = `msg-pos-decomp-${Date.now()}`;
+        const initialScenarios = [
+          { 
+            name: '场景1: 产量波动归因 Agent', 
+            task: '找下降原因', 
+            status: 'processing',
+            workflow: {
+              steps: [
+                { 
+                  name: '生产数据提取', 
+                  details: {
+                    thought: '从生产日报数据库中提取 X-1 井近 7 天的产量、含水、压力数据。',
+                    action: ['调用：NL2SQL 工具', '执行：SELECT * FROM prod_daily WHERE well="X-1"'],
+                    observation: '成功提取 7 条记录，产量呈递减趋势。',
+                    plan: '进行产量递减率计算。'
+                  }
+                },
+                { name: '递减特征识别', details: null },
+                { name: '关联因素分析', details: null }
+              ],
+              currentStep: 1
+            }
+          },
+          { 
+            name: '场景2: 压力系统诊断 Agent', 
+            task: '看压力是否异常', 
+            status: 'pending',
+            workflow: {
+              steps: [
+                { name: '压力剖面分析', details: null },
+                { name: '供液能力评估', details: null }
+              ],
+              currentStep: 0
+            }
+          },
+          { name: '场景3: 措施有效性评估 Agent', task: '历史措施是否失效', status: 'pending' },
+          { name: '场景4: 未来稳产预测 Agent', task: '未来3天产量预测', status: 'pending' }
+        ];
+
         setMessages(prev => [...prev, {
           id: positionDecompId,
           role: 'model',
@@ -880,12 +971,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
           cardType: 'position',
           payload: {
             title: '生产管理专家',
-            scenarios: [
-              { name: '场景1: 产量波动归因 Agent', task: '找下降原因', status: 'processing' },
-              { name: '场景2: 压力系统诊断 Agent', task: '看压力是否异常', status: 'pending' },
-              { name: '场景3: 措施有效性评估 Agent', task: '历史措施是否失效', status: 'pending' },
-              { name: '场景4: 未来稳产预测 Agent', task: '未来3天产量预测', status: 'pending' }
-            ]
+            scenarios: initialScenarios
           }
         }]);
 
@@ -897,48 +983,16 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
             status: 'completed',
             payload: {
               ...msg.payload,
-              scenarios: msg.payload.scenarios.map((s: any) => ({ ...s, status: 'completed' }))
+              scenarios: msg.payload.scenarios.map((s: any, i: number) => ({ 
+                ...s, 
+                status: 'completed',
+                workflow: s.workflow ? { ...s.workflow, currentStep: s.workflow.steps.length } : undefined
+              }))
             }
           } : msg
         ));
 
-        // 3. Loop 1: Thought -> Action -> Observation -> Plan
-        const loop1Id = `msg-loop1-${Date.now()}`;
-        setMessages(prev => [...prev, {
-          id: loop1Id,
-          role: 'model',
-          agentId: productionAgent.id,
-          content: '',
-          timestamp: Date.now(),
-          status: 'processing',
-          cardType: 'loop',
-          payload: {
-            title: '第1轮｜产量波动归因 Agent',
-            status: 'running',
-            thought: '需要确认产量下降是地层原因还是措施衰减。',
-            action: ['正在调用：趋势分析通用智能体', '时序取数工具'],
-            observation: '正在获取近7日生产曲线...',
-            plan: '对比含水上升趋势'
-          }
-        }]);
-
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        setMessages(prev => prev.map(msg => 
-          msg.id === loop1Id ? {
-            ...msg,
-            status: 'completed',
-            payload: {
-              ...msg.payload,
-              status: 'completed',
-              action: ['调用：趋势分析通用智能体', '时序取数工具', '曲线平滑工具', '异常点检测工具', '邻井对比工具'],
-              observation: '近7日产量下降 18%，含水率同步上升 9%。',
-              plan: '进一步调用压力诊断场景智能体确认系统影响。'
-            }
-          } : msg
-        ));
-
-        // 4. Stage Result 1
+        // 3. Stage Result 1
         const stageResult1Id = `msg-stage1-${Date.now()}`;
         setMessages(prev => [...prev, {
           id: stageResult1Id,
@@ -957,7 +1011,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
 
         await new Promise(resolve => setTimeout(resolve, 1500));
 
-        // 5. Final Result
+        // 4. Final Result
         const finalResultId = `msg-final-${Date.now()}`;
         setMessages(prev => [...prev, {
           id: finalResultId,
@@ -987,6 +1041,44 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
   };
 
   const getAgent = (agentId?: string) => agents.find(a => a.id === agentId) || leaderAgent;
+
+  const getVersionSummary = () => {
+    if (workspaceVersion === 'foundation') {
+      return lang === 'zh' 
+        ? '当前为基础版空间，已连接生产数据库。支持通过自然语言进行数据查询、趋势分析及可视化成图。' 
+        : 'Current: Foundation version. Connected to production database. Supports NL data query, trend analysis, and visualization.';
+    }
+    if (workspaceVersion === 'professional') {
+      return lang === 'zh'
+        ? '当前为专业版空间，已集成生产分析、勘探评价等专业场景智能体。支持复杂业务流编排与多维度联动诊断。'
+        : 'Current: Professional version. Integrated with production analysis and exploration agents. Supports workflow orchestration and multi-dimensional diagnosis.';
+    }
+    return lang === 'zh'
+      ? '当前为企业版空间，已部署岗位数字员工。支持跨学科并行协同、岗位级业务闭环及全生命周期决策辅助。'
+      : 'Current: Enterprise version. Deployed digital employees. Supports cross-disciplinary collaboration and post-level business closure.';
+  };
+
+  const getRecommendedQuestions = () => {
+    if (workspaceVersion === 'foundation') {
+      return [
+        { text: lang === 'zh' ? '查询 X-1 井近 7 天的日产量趋势' : 'Query daily production trend of Well X-1 for last 7 days', icon: 'fa-chart-line' },
+        { text: lang === 'zh' ? '对比 A 区和 B 区上个月的产液量' : 'Compare liquid production of Area A and B last month', icon: 'fa-balance-scale' },
+        { text: lang === 'zh' ? '生成本周生产运行简报' : 'Generate weekly production operation brief', icon: 'fa-file-alt' }
+      ];
+    }
+    if (workspaceVersion === 'professional') {
+      return [
+        { text: lang === 'zh' ? '针对 X-1 井产量下降进行深度归因诊断' : 'Deep attribution diagnosis for production decline of Well X-1', icon: 'fa-stethoscope' },
+        { text: lang === 'zh' ? '评估区块-X 近期的酸化措施有效性' : 'Evaluate effectiveness of recent acidification in Block-X', icon: 'fa-vial' },
+        { text: lang === 'zh' ? '预测 A2 井未来 15 天的含水率变化' : 'Predict water cut change of Well A2 for next 15 days', icon: 'fa-crystal-ball' }
+      ];
+    }
+    return [
+      { text: lang === 'zh' ? '作为生产管理专家，请复盘本月全区稳产情况' : 'As production manager, review the monthly stable production', icon: 'fa-user-tie' },
+      { text: lang === 'zh' ? '协同勘探与钻井专家，评估区块-Y 的扩边潜力' : 'Collaborate with exploration & drilling experts to evaluate Block-Y', icon: 'fa-users-cog' },
+      { text: lang === 'zh' ? '分析当前油价波动对全生命周期开发效益的影响' : 'Analyze impact of oil price fluctuations on life-cycle benefits', icon: 'fa-chart-pie' }
+    ];
+  };
 
   return (
     <div className="flex flex-col h-full bg-[#f8f9fa] relative">
@@ -1069,11 +1161,43 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
       {/* Chat Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-gray-400">
-            <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-4 text-indigo-300">
-              <i className="fas fa-comments text-3xl"></i>
+          <div className="h-full flex flex-col items-center justify-center max-w-3xl mx-auto">
+            <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mb-6 text-indigo-500 shadow-sm">
+              <i className="fas fa-sparkles text-2xl"></i>
             </div>
-            <p className="text-sm">{lang === 'zh' ? '在下方输入框提问，可使用 @ 呼叫特定专家' : 'Ask a question below, use @ to mention specific experts'}</p>
+            
+            <div className="text-center mb-10">
+              <h2 className="text-xl font-bold text-gray-800 mb-3">
+                {lang === 'zh' ? '欢迎使用智能协作空间' : 'Welcome to AI Workspace'}
+              </h2>
+              <p className="text-sm text-gray-500 leading-relaxed px-4">
+                {getVersionSummary()}
+              </p>
+            </div>
+
+            <div className="w-full grid grid-cols-1 gap-3">
+              <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 px-1">
+                {lang === 'zh' ? '推荐问题示例' : 'Recommended Questions'}
+              </div>
+              {getRecommendedQuestions().map((q, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setInput(q.text);
+                    inputRef.current?.focus();
+                  }}
+                  className="flex items-center gap-4 p-4 bg-white border border-gray-100 rounded-2xl text-left hover:border-indigo-300 hover:shadow-md transition-all group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors">
+                    <i className={`fas ${q.icon}`}></i>
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-gray-700 group-hover:text-indigo-600 transition-colors">{q.text}</div>
+                  </div>
+                  <i className="fas fa-chevron-right text-gray-300 text-xs group-hover:text-indigo-400 transition-colors"></i>
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           groupedMessages.map((group, gIndex) => {

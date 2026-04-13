@@ -123,6 +123,55 @@ export interface NERModel {
   };
 }
 
+export interface WorkflowEntry {
+  id: string;
+  name: string;
+  type: 'Report' | 'Business' | 'SOP' | 'Collaboration' | 'Batch';
+  applicableAgent: string;
+  nodeCount: number;
+  skillRefs: number;
+  toolRefs: number;
+  successRate: string;
+  avgDuration: string;
+  workspaceRefs: number;
+  packageScope: string[];
+  status: 'Draft' | 'Testing' | 'Production';
+  description: string;
+}
+
+export interface ToolEntry {
+  id: string;
+  name: string;
+  type: 'Data' | 'Search' | 'Geo' | 'Report' | 'Notification' | 'Approval' | 'External';
+  endpoint: string;
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  authType: 'API Key' | 'OAuth2' | 'None' | 'Bearer';
+  skillRefs: number;
+  workflowRefs: number;
+  successRate: string;
+  p95Latency: string;
+  costPerCall: string;
+  status: 'Active' | 'Inactive' | 'Degraded';
+  description: string;
+}
+
+export interface SkillEntry {
+  id: string;
+  name: string;
+  domain: string;
+  category: 'Analysis' | 'Document' | 'Image' | 'SOP' | 'Collaboration' | 'Official' | 'Customer';
+  triggerConditions: string;
+  boundTools: string[];
+  reusedByAgents: number;
+  workflowRefs: number;
+  version: string;
+  runtimeSuccess: string;
+  visibility: string[];
+  updatedAt: string;
+  status: 'Draft' | 'Testing' | 'Production';
+  description: string;
+}
+
 export interface AuditLogEntry {
   id: string;
   timestamp: string;

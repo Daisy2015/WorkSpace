@@ -18,6 +18,7 @@ import { AgentsPanel } from './components/AgentsPanel';
 import { IntelligentConstruction } from './components/IntelligentConstruction';
 import { MbuExplorer } from './components/MbuExplorer';
 import { VersionComparisonModal } from './components/VersionComparisonModal';
+import { ReportTemplateModal } from './components/ReportTemplateModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESOURCE_TREE, MOCK_TEMPLATES } from './constants';
@@ -53,7 +54,7 @@ const App: React.FC = () => {
   const [constructionTreeNode, setConstructionTreeNode] = useState<ResourceNode | null>(null);
   const [constructionMbuIds, setConstructionMbuIds] = useState<Set<string>>(new Set());
   const [constructionWorkspaceName, setConstructionWorkspaceName] = useState<string>('');
-  const [isObjectScopeExpanded, setIsObjectScopeExpanded] = useState(true);
+  const [isObjectScopeExpanded, setIsObjectScopeExpanded] = useState(false);
   const [constructionObjectScope, setConstructionObjectScope] = useState([
     { id: 'filled', label: lang === 'zh' ? '填写的对象' : 'Filled Objects', items: ['A1井', 'B2井'], color: 'blue', deletable: false },
     { id: 'neighbors', label: lang === 'zh' ? '推荐邻近对象' : 'Recommended Neighbors', items: ['A2', 'A3', 'B1'], color: 'emerald', deletable: true },
@@ -67,6 +68,7 @@ const App: React.FC = () => {
   const [workspaceVersion, setWorkspaceVersion] = useState<'foundation' | 'professional' | 'enterprise' | 'flagship'>('foundation');
   const [isVersionDropdownOpen, setIsVersionDropdownOpen] = useState(false);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   const versions = useMemo(() => [
     { id: 'foundation', name: '基础版', enName: 'Foundation', desc: '通用智能助手', icon: 'fa-bolt', tagClass: 'bg-slate-100 text-slate-700' },
@@ -814,7 +816,12 @@ const App: React.FC = () => {
                     {/* Right Panel: Trace & Audit */}
                     <div className={`${isTracePanelOpen ? 'w-80 border-l' : 'w-0 border-none'} h-full flex-shrink-0 border-gray-200 z-10 bg-white transition-all duration-300 ease-in-out overflow-hidden`}>
                         <div className="w-80 h-full">
-                            <TracePanel selectedMessage={selectedMessage} resourceTree={resourceTree} lang={lang} />
+                            <TracePanel 
+                                selectedMessage={selectedMessage} 
+                                resourceTree={resourceTree} 
+                                lang={lang} 
+                                onCreateReport={() => setIsReportModalOpen(true)}
+                            />
                         </div>
                     </div>
                 </div>
@@ -1030,6 +1037,7 @@ const App: React.FC = () => {
                                             lang={lang} 
                                             onToggle={() => setIsTracePanelOpen(!isTracePanelOpen)}
                                             workspaceVersion={workspaceVersion}
+                                            onCreateReport={() => setIsReportModalOpen(true)}
                                         />
                                     </div>
                                 </div>
@@ -1177,6 +1185,13 @@ const App: React.FC = () => {
             isOpen={isVersionModalOpen}
             onClose={() => setIsVersionModalOpen(false)}
             currentVersion={workspaceVersion}
+        />
+
+        {/* Report Template Modal */}
+        <ReportTemplateModal 
+            isOpen={isReportModalOpen}
+            onClose={() => setIsReportModalOpen(false)}
+            lang={lang}
         />
       </div>
     </div>

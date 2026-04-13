@@ -340,30 +340,107 @@ export const WorkflowCard = ({ title, steps, currentStep, status }: { title: str
 };
 
 // --- ChartCard ---
-export const ChartCard = ({ title, observation }: { title: string, observation: string }) => {
+export const ChartCard = ({ title, observation, data, type = 'line' }: { title: string, observation: string, data?: { label: string, values: number[], color: string }[], type?: 'line' | 'bar' }) => {
+  const defaultData = [
+    { label: '产量 (m³/d)', values: [102, 101, 99, 98, 97, 96, 95], color: '#4f46e5' },
+    { label: '压力 (MPa)', values: [25, 24.5, 24, 23.8, 23.5, 23.2, 23], color: '#ef4444' },
+    { label: '含水率 (%)', values: [15, 15.2, 15.5, 15.8, 16.2, 16.5, 16.8], color: '#10b981' }
+  ];
+
+  const chartData = data || defaultData;
+  const days = ['04-04', '04-05', '04-06', '04-07', '04-08', '04-09', '04-10'];
+
   return (
     <div className="max-w-[720px] mx-auto p-4 md:p-6 bg-white border border-gray-200 rounded-xl mb-4 shadow-sm">
-      <div className="flex items-center gap-2 text-gray-800 font-bold text-sm mb-4">
-        <i className="fas fa-chart-line text-indigo-500"></i> {title}
-      </div>
-      <div className="w-full h-48 bg-slate-50 rounded-lg border border-slate-100 flex flex-col items-center justify-center mb-4 relative overflow-hidden">
-        {/* Mock Chart Visualization */}
-        <div className="flex items-end gap-2 h-24 w-full px-8">
-          {[60, 58, 52, 50, 48, 45, 42].map((h, i) => (
-            <div key={i} className="flex-1 bg-indigo-400 rounded-t transition-all hover:bg-indigo-500" style={{ height: `${h}%` }}></div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2 text-gray-800 font-bold text-sm">
+          <i className={`fas ${type === 'bar' ? 'fa-chart-bar' : 'fa-chart-line'} text-indigo-500`}></i> {title}
+        </div>
+        <div className="flex gap-3">
+          {chartData.map((s, i) => (
+            <div key={i} className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }}></div>
+              <span className="text-[10px] text-gray-500 font-medium">{s.label}</span>
+            </div>
           ))}
         </div>
-        <div className="w-full h-px bg-slate-200 mt-2"></div>
-        <div className="flex justify-between w-full px-8 mt-1 text-[8px] text-slate-400 font-mono">
-          <span>04-04</span>
-          <span>04-10</span>
+      </div>
+      
+      <div className="w-full h-56 bg-slate-50/50 rounded-lg border border-slate-100 p-4 mb-4 relative">
+        <svg viewBox="0 0 400 200" className="w-full h-full overflow-visible">
+          {/* Grid Lines */}
+          {[0, 50, 100, 150, 200].map(y => (
+            <line key={y} x1="0" y1={y} x2="400" y2={y} stroke="#e2e8f0" strokeWidth="1" strokeDasharray="4 4" />
+          ))}
+          
+          {/* Data Visualization */}
+          {type === 'bar' ? (
+            <g>
+              {chartData[0].values.map((v, i) => {
+                const max = Math.max(...chartData[0].values);
+                const barHeight = (v / max) * 160;
+                const x = (i / chartData[0].values.length) * 400 + 10;
+                const width = (400 / chartData[0].values.length) - 20;
+                return (
+                  <rect
+                    key={i}
+                    x={x}
+                    y={180 - barHeight}
+                    width={width}
+                    height={barHeight}
+                    fill={chartData[0].color}
+                    rx="4"
+                    className="transition-all duration-500 hover:opacity-80"
+                  />
+                );
+              })}
+            </g>
+          ) : (
+            chartData.map((series, sIdx) => {
+              const max = Math.max(...series.values);
+              const min = Math.min(...series.values);
+              const range = max - min || 1;
+              
+              const points = series.values.map((v, i) => {
+                const x = (i / (series.values.length - 1)) * 400;
+                const y = 180 - ((v - min) / range) * 160;
+                return `${x},${y}`;
+              }).join(' ');
+
+              return (
+                <g key={sIdx}>
+                  <polyline
+                    points={points}
+                    fill="none"
+                    stroke={series.color}
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="transition-all duration-500"
+                  />
+                  {series.values.map((v, i) => {
+                    const x = (i / (series.values.length - 1)) * 400;
+                    const y = 180 - ((v - min) / range) * 160;
+                    return (
+                      <circle key={i} cx={x} cy={y} r="3.5" fill="white" stroke={series.color} strokeWidth="2" />
+                    );
+                  })}
+                </g>
+              );
+            })
+          )}
+        </svg>
+        
+        <div className="flex justify-between w-full mt-2 text-[9px] text-slate-400 font-mono px-1">
+          {days.map((d, i) => <span key={i}>{d}</span>)}
         </div>
       </div>
+
       <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-100">
         <div className="text-xs font-bold text-indigo-800 mb-1 flex items-center gap-2">
           <i className="fas fa-eye"></i> 趋势识别结果
         </div>
-        <div className="text-sm text-gray-700">{observation}</div>
+        <div className="text-sm text-gray-700 leading-relaxed">{observation}</div>
       </div>
     </div>
   );
@@ -372,10 +449,46 @@ export const ChartCard = ({ title, observation }: { title: string, observation: 
 // --- UnifiedResponseCard ---
 export const UnifiedResponseCard = ({ messages, agents, version }: { messages: Message[], agents: Agent[], version: string }) => {
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
+  const [expandedSteps, setExpandedSteps] = useState<Record<string, Record<number, boolean>>>({});
+  const [expandedScenarios, setExpandedScenarios] = useState<Record<string, Record<number, boolean>>>({});
+  const [expandedScenarioSteps, setExpandedScenarioSteps] = useState<Record<string, Record<number, Record<number, boolean>>>>({});
   const [isThoughtExpanded, setIsThoughtExpanded] = useState(false);
 
   const toggleDetails = (id: string) => {
     setExpandedDetails(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleStepDetails = (msgId: string, stepIdx: number) => {
+    setExpandedSteps(prev => ({
+      ...prev,
+      [msgId]: {
+        ...(prev[msgId] || {}),
+        [stepIdx]: !(prev[msgId]?.[stepIdx])
+      }
+    }));
+  };
+
+  const toggleScenarioDetails = (msgId: string, scenarioIdx: number) => {
+    setExpandedScenarios(prev => ({
+      ...prev,
+      [msgId]: {
+        ...(prev[msgId] || {}),
+        [scenarioIdx]: !(prev[msgId]?.[scenarioIdx])
+      }
+    }));
+  };
+
+  const toggleScenarioStepDetails = (msgId: string, scenarioIdx: number, stepIdx: number) => {
+    setExpandedScenarioSteps(prev => ({
+      ...prev,
+      [msgId]: {
+        ...(prev[msgId] || {}),
+        [scenarioIdx]: {
+          ...(prev[msgId]?.[scenarioIdx] || {}),
+          [stepIdx]: !(prev[msgId]?.[scenarioIdx]?.[stepIdx])
+        }
+      }
+    }));
   };
 
   return (
@@ -419,25 +532,71 @@ export const UnifiedResponseCard = ({ messages, agents, version }: { messages: M
                       <i className="fas fa-project-diagram"></i>
                     </div>
                     <div className="text-sm font-bold text-gray-800">
-                      场景智能体｜{msg.payload?.title}
+                      {msg.payload?.category ? `${msg.payload.category}｜` : '场景智能体｜'}{msg.payload?.title}
                     </div>
                   </div>
                   <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-100">
-                    <div className="space-y-3">
-                      {msg.payload?.steps.map((step: string, idx: number) => (
-                        <div key={idx} className="flex items-center gap-3">
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                            idx + 1 < msg.payload.currentStep ? 'bg-green-500 text-white' :
-                            idx + 1 === msg.payload.currentStep ? 'bg-indigo-600 text-white animate-pulse' :
-                            'bg-gray-200 text-gray-500'
-                          }`}>
-                            {idx + 1 < msg.payload.currentStep ? <i className="fas fa-check"></i> : idx + 1}
+                    <div className="space-y-4">
+                      {msg.payload?.steps.map((step: any, idx: number) => {
+                        const stepName = typeof step === 'string' ? step : step.name;
+                        const stepDetails = typeof step === 'object' ? step.details : null;
+                        const isStepExpanded = expandedSteps[msg.id]?.[idx] || false;
+                        const isCurrent = idx + 1 === msg.payload.currentStep;
+                        const isCompleted = idx + 1 < msg.payload.currentStep;
+
+                        return (
+                          <div key={idx} className="space-y-2">
+                            <div className="flex items-center justify-between group">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                                  isCompleted ? 'bg-green-500 text-white' :
+                                  isCurrent ? 'bg-indigo-600 text-white animate-pulse' :
+                                  'bg-gray-200 text-gray-500'
+                                }`}>
+                                  {isCompleted ? <i className="fas fa-check"></i> : idx + 1}
+                                </div>
+                                <span className={`text-xs ${isCurrent ? 'text-indigo-700 font-bold' : 'text-gray-600'}`}>
+                                  {stepName}
+                                </span>
+                              </div>
+                              {(stepDetails || isCurrent) && (
+                                <button 
+                                  onClick={() => toggleStepDetails(msg.id, idx)}
+                                  className="text-[10px] font-bold text-indigo-400 hover:text-indigo-600 transition-colors flex items-center gap-1 opacity-0 group-hover:opacity-100"
+                                >
+                                  {isStepExpanded ? '收起详情' : '查看详情'}
+                                  <i className={`fas fa-chevron-${isStepExpanded ? 'up' : 'right'} text-[8px]`}></i>
+                                </button>
+                              )}
+                            </div>
+                            
+                            {isStepExpanded && stepDetails && (
+                              <div className="ml-8 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                {stepDetails.thought && (
+                                  <div className="bg-white/60 rounded-lg p-2 border border-purple-100/50">
+                                    <div className="text-[9px] font-bold text-purple-800 mb-0.5 flex items-center gap-1.5"><i className="fas fa-brain"></i> 思考</div>
+                                    <div className="text-[11px] text-gray-600">{stepDetails.thought}</div>
+                                  </div>
+                                )}
+                                {stepDetails.action && stepDetails.action.length > 0 && (
+                                  <div className="bg-white/60 rounded-lg p-2 border border-indigo-100/50">
+                                    <div className="text-[9px] font-bold text-indigo-800 mb-0.5 flex items-center gap-1.5"><i className="fas fa-bolt"></i> 行动</div>
+                                    <ul className="list-disc list-inside text-[11px] text-gray-600 space-y-0.5">
+                                      {stepDetails.action.map((a: string, i: number) => <li key={i}>{a}</li>)}
+                                    </ul>
+                                  </div>
+                                )}
+                                {stepDetails.observation && (
+                                  <div className="bg-white/60 rounded-lg p-2 border border-emerald-100/50">
+                                    <div className="text-[9px] font-bold text-emerald-800 mb-0.5 flex items-center gap-1.5"><i className="fas fa-eye"></i> 观察</div>
+                                    <div className="text-[11px] text-gray-600">{stepDetails.observation}</div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <span className={`text-xs ${idx + 1 === msg.payload.currentStep ? 'text-indigo-700 font-bold' : 'text-gray-600'}`}>
-                            {step}
-                          </span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -463,19 +622,115 @@ export const UnifiedResponseCard = ({ messages, agents, version }: { messages: M
                       岗位智能体｜{msg.payload?.title}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {msg.payload?.scenarios.map((sc: any, idx: number) => (
-                      <div key={idx} className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-between group hover:border-purple-200 transition-all">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                            sc.status === 'completed' ? 'bg-green-500' : 
-                            sc.status === 'processing' ? 'bg-blue-500 animate-pulse' : 'bg-gray-300'
-                          }`}></div>
-                          <span className="text-xs text-gray-700 truncate">{sc.name}</span>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      {msg.payload?.scenarios.map((sc: any, idx: number) => {
+                        const isScenarioExpanded = expandedScenarios[msg.id]?.[idx] || false;
+                        return (
+                          <div key={idx} className="flex flex-col gap-2">
+                            <div className={`p-3 bg-white border rounded-xl shadow-sm flex items-center justify-between group transition-all ${
+                              isScenarioExpanded ? 'border-purple-300 ring-1 ring-purple-100' : 'border-gray-100 hover:border-purple-200'
+                            }`}>
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                  sc.status === 'completed' ? 'bg-green-500' : 
+                                  sc.status === 'processing' ? 'bg-blue-500 animate-pulse' : 'bg-gray-300'
+                                }`}></div>
+                                <span className="text-xs text-gray-700 truncate font-medium">{sc.name}</span>
+                              </div>
+                              <button 
+                                onClick={() => toggleScenarioDetails(msg.id, idx)}
+                                className="text-[10px] font-bold text-purple-400 hover:text-purple-600 transition-colors flex items-center gap-1 opacity-0 group-hover:opacity-100"
+                              >
+                                {isScenarioExpanded ? '收起' : '详情'}
+                                <i className={`fas fa-chevron-${isScenarioExpanded ? 'up' : 'right'} text-[8px]`}></i>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Expanded Scenario Details */}
+                    {msg.payload?.scenarios.map((sc: any, scIdx: number) => {
+                      const isScenarioExpanded = expandedScenarios[msg.id]?.[scIdx] || false;
+                      if (!isScenarioExpanded || !sc.workflow) return null;
+
+                      return (
+                        <div key={`sc-detail-${scIdx}`} className="bg-purple-50/30 rounded-xl p-4 border border-purple-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                          <div className="flex items-center gap-2 mb-4">
+                            <i className="fas fa-project-diagram text-purple-500 text-xs"></i>
+                            <span className="text-xs font-bold text-purple-900">{sc.name} 执行流</span>
+                          </div>
+                          <div className="space-y-4">
+                            {sc.workflow.steps.map((step: any, stepIdx: number) => {
+                              const isStepExpanded = expandedScenarioSteps[msg.id]?.[scIdx]?.[stepIdx] || false;
+                              const isCurrent = stepIdx + 1 === sc.workflow.currentStep;
+                              const isCompleted = stepIdx + 1 < sc.workflow.currentStep;
+
+                              return (
+                                <div key={stepIdx} className="space-y-2">
+                                  <div className="flex items-center justify-between group">
+                                    <div className="flex items-center gap-3">
+                                      <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                                        isCompleted ? 'bg-green-500 text-white' :
+                                        isCurrent ? 'bg-purple-600 text-white animate-pulse' :
+                                        'bg-gray-200 text-gray-500'
+                                      }`}>
+                                        {isCompleted ? <i className="fas fa-check"></i> : stepIdx + 1}
+                                      </div>
+                                      <span className={`text-[11px] ${isCurrent ? 'text-purple-700 font-bold' : 'text-gray-600'}`}>
+                                        {step.name}
+                                      </span>
+                                    </div>
+                                    {(step.details || isCurrent) && (
+                                      <button 
+                                        onClick={() => toggleScenarioStepDetails(msg.id, scIdx, stepIdx)}
+                                        className="text-[9px] font-bold text-purple-400 hover:text-purple-600 transition-colors flex items-center gap-1 opacity-0 group-hover:opacity-100"
+                                      >
+                                        {isStepExpanded ? '收起详情' : '查看详情'}
+                                        <i className={`fas fa-chevron-${isStepExpanded ? 'up' : 'right'} text-[7px]`}></i>
+                                      </button>
+                                    )}
+                                  </div>
+                                  
+                                  {isStepExpanded && step.details && (
+                                    <div className="ml-7 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                      {step.details.thought && (
+                                        <div className="bg-white/80 rounded-lg p-2 border border-purple-100/50">
+                                          <div className="text-[9px] font-bold text-purple-800 mb-0.5 flex items-center gap-1.5"><i className="fas fa-brain"></i> 思考</div>
+                                          <div className="text-[10px] text-gray-600 leading-relaxed">{step.details.thought}</div>
+                                        </div>
+                                      )}
+                                      {step.details.action && step.details.action.length > 0 && (
+                                        <div className="bg-white/80 rounded-lg p-2 border border-indigo-100/50">
+                                          <div className="text-[9px] font-bold text-indigo-800 mb-0.5 flex items-center gap-1.5"><i className="fas fa-bolt"></i> 行动</div>
+                                          <ul className="list-disc list-inside text-[10px] text-gray-600 space-y-0.5">
+                                            {step.details.action.map((a: string, i: number) => <li key={i}>{a}</li>)}
+                                          </ul>
+                                        </div>
+                                      )}
+                                      {step.details.observation && (
+                                        <div className="bg-white/80 rounded-lg p-2 border border-emerald-100/50">
+                                          <div className="text-[9px] font-bold text-emerald-800 mb-0.5 flex items-center gap-1.5"><i className="fas fa-eye"></i> 观察</div>
+                                          <div className="text-[10px] text-gray-600 leading-relaxed">{step.details.observation}</div>
+                                        </div>
+                                      )}
+                                      {step.details.plan && (
+                                        <div className="bg-white/80 rounded-lg p-2 border border-amber-100/50">
+                                          <div className="text-[9px] font-bold text-amber-800 mb-0.5 flex items-center gap-1.5"><i className="fas fa-arrow-right"></i> 下一步计划</div>
+                                          <div className="text-[10px] text-gray-600 leading-relaxed">{step.details.plan}</div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                        <i className="fas fa-chevron-right text-[8px] text-gray-300 group-hover:text-purple-400"></i>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               );

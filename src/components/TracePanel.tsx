@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Message, ResourceNode, Language } from '../types';
 import { translations } from '../i18n';
+import { ReportTemplateModal } from './ReportTemplateModal';
 
 interface TracePanelProps {
   selectedMessage: Message | null;
@@ -8,9 +9,17 @@ interface TracePanelProps {
   lang: Language;
   onToggle?: () => void;
   workspaceVersion?: string;
+  onCreateReport?: () => void;
 }
 
-export const TracePanel: React.FC<TracePanelProps> = ({ selectedMessage, resourceTree, lang, onToggle, workspaceVersion = 'foundation' }) => {
+export const TracePanel: React.FC<TracePanelProps> = ({ 
+  selectedMessage, 
+  resourceTree, 
+  lang, 
+  onToggle, 
+  workspaceVersion = 'foundation',
+  onCreateReport
+}) => {
   const t = translations[lang];
 
   const isPro = workspaceVersion === 'professional';
@@ -132,7 +141,17 @@ export const TracePanel: React.FC<TracePanelProps> = ({ selectedMessage, resourc
                               </button>
                           </div>
                       ) : (
-                          <button className="absolute top-1 right-1 text-slate-300 hover:text-indigo-600 p-1 rounded-full hover:bg-slate-50 transition-colors opacity-0 group-hover:opacity-100">
+                          <button 
+                            className="absolute top-1 right-1 text-slate-300 hover:text-indigo-600 p-1 rounded-full hover:bg-slate-50 transition-colors opacity-0 group-hover:opacity-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (tool.id === 'pro_report') {
+                                onCreateReport?.();
+                              } else {
+                                handleEdit(e);
+                              }
+                            }}
+                          >
                               <i className="fas fa-pencil-alt text-xs"></i>
                           </button>
                       )}

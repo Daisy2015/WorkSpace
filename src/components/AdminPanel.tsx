@@ -8,6 +8,10 @@ import { AdminLLMManagement } from './AdminLLMManagement';
 import { AdminLLMConfig } from './AdminLLMConfig';
 import { AdminCorpusManagement } from './AdminCorpusManagement';
 import { AdminTrainingSetManagement } from './AdminTrainingSetManagement';
+import { AdminAgentManagement } from './AdminAgentManagement';
+import { AdminSkillManagement } from './AdminSkillManagement';
+import { AdminToolManagement } from './AdminToolManagement';
+import { AdminWorkflowManagement } from './AdminWorkflowManagement';
 
 interface AdminPanelProps {
   lang: Language;
@@ -64,11 +68,11 @@ const MOCK_FEEDBACK: FeedbackEntry[] = [
     { id: 'fb-4', timestamp: '2024-05-17 14:00', user: '王建国', mbu: '地震解释', notebookName: '构造解释 NB-04', type: 'Error', status: 'Resolved', content: '层位追踪出现明显偏差。', processor: '管理员', result: '已修正知识库索引' },
 ];
 
-type AdminModule = 'audit' | 'feedback' | 'toolManagement' | 'skillsManagement' | 'semanticManagement' | 'nerModelManagement' | 'llmManagement' | 'llmConfig' | 'corpusManagement' | 'trainingSetManagement';
+type AdminModule = 'audit' | 'feedback' | 'agentManagement' | 'toolManagement' | 'skillManagement' | 'workflowManagement' | 'semanticManagement' | 'nerModelManagement' | 'llmManagement' | 'llmConfig' | 'corpusManagement' | 'trainingSetManagement';
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
   const t = translations[lang];
-  const [activeModule, setActiveModule] = useState<AdminModule>('audit');
+  const [activeModule, setActiveModule] = useState<AdminModule>('agentManagement');
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(true);
   const [pendingTrainingSet, setPendingTrainingSet] = useState<string | null>(null);
   
@@ -92,10 +96,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
             {[
-                { id: 'audit', label: t.userQaLogs, icon: 'fa-history' },
-                { id: 'feedback', label: t.feedbackProcessing, icon: 'fa-comments' },
+                { id: 'agentManagement', label: lang === 'zh' ? '智能体管理' : 'Agent Management', icon: 'fa-robot' },
                 { id: 'toolManagement', label: t.toolManagement, icon: 'fa-tools' },
-                { id: 'skillsManagement', label: t.skillsManagement, icon: 'fa-toolbox' },
+                { id: 'skillManagement', label: t.skillsManagement, icon: 'fa-toolbox' },
+                { id: 'workflowManagement', label: lang === 'zh' ? '模板管理' : 'Template Management', icon: 'fa-project-diagram' },
                 { id: 'semanticManagement', label: t.semanticManagement, icon: 'fa-brain' },
             ].map((item) => (
                 <button
@@ -156,6 +160,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
                         </motion.div>
                     )}
                 </AnimatePresence>
+            </div>
+
+            <div className="pt-4 mt-4 border-t border-gray-100 space-y-1">
+                {[
+                    { id: 'audit', label: t.userQaLogs, icon: 'fa-history' },
+                    { id: 'feedback', label: t.feedbackProcessing, icon: 'fa-comments' },
+                ].map((item) => (
+                    <button
+                        key={item.id}
+                        onClick={() => setActiveModule(item.id as AdminModule)}
+                        className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                            activeModule === item.id 
+                            ? 'bg-blue-50 text-blue-700' 
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                    >
+                        <i className={`fas ${item.icon} w-6 text-center mr-2 ${activeModule === item.id ? 'text-blue-600' : 'text-gray-400'}`}></i>
+                        {item.label}
+                    </button>
+                ))}
             </div>
         </nav>
     </div>
@@ -454,20 +478,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
     </div>
   );
 
-  const renderToolManagement = () => (
-    <div className="h-full p-6 bg-gray-50">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">{t.toolManagement}</h2>
-        <p className="text-gray-600">{t.toolManagementDesc}</p>
-    </div>
-  );
-
-  const renderSkillsManagement = () => (
-    <div className="h-full p-6 bg-gray-50">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">{t.skillsManagement}</h2>
-        <p className="text-gray-600">{t.skillsManagementDesc}</p>
-    </div>
-  );
-
   const renderSemanticManagement = () => (
     <div className="h-full p-6 bg-gray-50">
         <h2 className="text-xl font-bold text-gray-800 mb-4">{t.semanticManagement}</h2>
@@ -511,8 +521,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
       <div className="flex-1 min-w-0">
          {activeModule === 'audit' && renderAuditLogs()}
          {activeModule === 'feedback' && renderFeedback()}
-         {activeModule === 'toolManagement' && renderToolManagement()}
-         {activeModule === 'skillsManagement' && renderSkillsManagement()}
+         {activeModule === 'agentManagement' && <AdminAgentManagement lang={lang} />}
+         {activeModule === 'skillManagement' && <AdminSkillManagement lang={lang} />}
+         {activeModule === 'toolManagement' && <AdminToolManagement lang={lang} />}
+         {activeModule === 'workflowManagement' && <AdminWorkflowManagement lang={lang} />}
          {activeModule === 'semanticManagement' && renderSemanticManagement()}
          {activeModule === 'nerModelManagement' && renderNERModelManagement()}
          {activeModule === 'llmManagement' && renderLLMManagement()}
