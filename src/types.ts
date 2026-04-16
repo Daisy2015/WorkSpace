@@ -65,6 +65,9 @@ export interface Agent {
   avatar: string | React.ReactNode;
   description: string;
   isLeader?: boolean;
+  isEnabled?: boolean;
+  updatedAt?: string;
+  updatedBy?: string;
 }
 
 export interface ChatSession {
@@ -137,12 +140,15 @@ export interface WorkflowEntry {
   packageScope: string[];
   status: 'Draft' | 'Testing' | 'Production';
   description: string;
+  updatedAt?: string;
+  isEnabled?: boolean;
+  updatedBy?: string;
 }
 
 export interface ToolEntry {
   id: string;
   name: string;
-  type: 'Data' | 'Search' | 'Geo' | 'Report' | 'Notification' | 'Approval' | 'External';
+  type: string;
   endpoint: string;
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   authType: 'API Key' | 'OAuth2' | 'None' | 'Bearer';
@@ -153,23 +159,25 @@ export interface ToolEntry {
   costPerCall: string;
   status: 'Active' | 'Inactive' | 'Degraded';
   description: string;
+  createdAt: string;
+  updatedAt?: string;
+  updatedBy?: string;
+  isEnabled?: boolean;
+  inputSchema?: string;
+  outputSchema?: string;
 }
 
 export interface SkillEntry {
   id: string;
   name: string;
-  domain: string;
-  category: 'Analysis' | 'Document' | 'Image' | 'SOP' | 'Collaboration' | 'Official' | 'Customer';
-  triggerConditions: string;
-  boundTools: string[];
-  reusedByAgents: number;
-  workflowRefs: number;
-  version: string;
-  runtimeSuccess: string;
-  visibility: string[];
-  updatedAt: string;
-  status: 'Draft' | 'Testing' | 'Production';
+  scope: 'Global' | 'Project';
   description: string;
+  instructions: string;
+  isEnabled: boolean;
+  updatedAt: string;
+  updatedBy?: string;
+  category?: string;
+  version?: string;
 }
 
 export interface AuditLogEntry {

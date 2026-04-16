@@ -44,16 +44,7 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
   const [templateFilter, setTemplateFilter] = useState('');
   const [showAllTemplates, setShowAllTemplates] = useState(false);
   const [activeTab, setActiveTab] = useState<'recommended' | 'recent' | 'my' | 'all'>('all');
-  const [activeCategory, setActiveCategory] = useState('all');
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<'my' | 'shared' | 'all'>('all');
-
-  const categories = [
-    { id: 'all', name: t.categoryAll },
-    { id: '地质研究', name: t.categoryGeology },
-    { id: '钻完井工程', name: t.categoryDrilling },
-    { id: '油气藏工程', name: t.categoryReservoir },
-    { id: '生产管理', name: t.categoryProduction },
-  ];
 
   const filteredTemplates = useMemo(() => {
     let result = [...templates];
@@ -65,11 +56,6 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
       result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } else if (activeTab === 'recommended') {
       result = result.filter(tpl => tpl.usageCount > 100);
-    }
-
-    // Category filtering
-    if (activeCategory !== 'all') {
-      result = result.filter(tpl => tpl.category === activeCategory);
     }
 
     // Search Filter
@@ -87,7 +73,7 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
     }
 
     return result;
-  }, [templates, templateFilter, activeTab, activeCategory]);
+  }, [templates, templateFilter, activeTab]);
 
   const displayedTemplates = showAllTemplates ? filteredTemplates : filteredTemplates.slice(0, 6);
 
@@ -485,16 +471,6 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                         </button>
                       ))}
                     </div>
-
-                    <select 
-                      value={activeCategory}
-                      onChange={(e) => setActiveCategory(e.target.value)}
-                      className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-600 font-medium"
-                    >
-                      {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
                   </div>
                 </div>
                 

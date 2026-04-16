@@ -107,6 +107,7 @@ const App: React.FC = () => {
         { id: 'agent-pro-1', name: '生产分析岗', role: '场景智能体', avatar: '🏭', description: '专注于生产动态分析、产量波动诊断及稳产方案建议。' },
         { id: 'agent-pro-2', name: '勘探评价岗', role: '场景智能体', avatar: '🔍', description: '负责圈闭评价、资源量估算及勘探风险识别。' },
         { id: 'agent-pro-3', name: '钻井工程岗', role: '场景智能体', avatar: '🏗️', description: '提供钻井设计优化、复杂情况预警及提速提效建议。' },
+        { id: 'agent-pro-4', name: '邻井压裂参数优选', role: '场景智能体', avatar: '🧪', description: '针对新井自动筛选最优邻井，继承最佳历史分段压裂参数，输出推荐参数包。' },
       ];
     }
     if (workspaceVersion === 'enterprise' || workspaceVersion === 'flagship') {
@@ -173,31 +174,16 @@ const App: React.FC = () => {
 
     setActiveWorkspaceId(finalId);
     setCurrentTab('workspaces'); 
+    setWorkspaceVersion('foundation'); // Default to Basic Edition
     
-    const defaultMessages: Message[] = [
-      {
-        id: 'mock-user-1',
-        role: 'user',
-        content: 'EB-1在2023年5月日产油量的最大值，最小值，平均值',
-        timestamp: Date.now() - 10000
-      },
-      {
-        id: 'mock-model-1',
-        role: 'model',
-        content: '根据2023年5月1日至5月31日的生产数据，EB-1井的日产油量最大值为934.08桶，最小值为459.28桶，平均日产油量为655.19桶。上述数值单位均为桶(bbl/d)，反映了该井在当月的产量波动范围及稳定产出水平。数据表明EB-1井在此期间生产较为稳定，日产量变化幅度约475桶，具备良好的产能表现。',
-        timestamp: Date.now(),
-        isMockResult: true
-      }
-    ];
-
     // Reset state for new workspace
     if (id === 'new-demo') {
         setResourceTree(JSON.parse(JSON.stringify(EMPTY_RESOURCE_TREE)));
-        setMessages(defaultMessages);
+        setMessages([]); // Empty messages to show summary/recommendations
         setIsAddResourcePageOpen(false);
     } else {
         setResourceTree(JSON.parse(JSON.stringify(DRILLING_RESOURCE_TREE)));
-        setMessages(defaultMessages);
+        setMessages([]); // Empty messages to show summary/recommendations
         setIsAddResourcePageOpen(false);
     }
     setSelectedMessage(null);

@@ -41,6 +41,7 @@ export const TracePanel: React.FC<TracePanelProps> = ({
     { id: 'scheme', name: lang === 'zh' ? '方案优选' : 'Scheme Optimization', desc: '', icon: 'fa-check-double', color: 'bg-green-50 text-green-600', isBeta: false },
     { id: 'trap', name: lang === 'zh' ? '圈闭有效性评价' : 'Trap Effectiveness', desc: '', icon: 'fa-bullseye', color: 'bg-purple-50 text-purple-600', isBeta: false },
     { id: 'well', name: lang === 'zh' ? '井位优选' : 'Well Location', desc: '', icon: 'fa-map-marker-alt', color: 'bg-teal-50 text-teal-600', isBeta: false },
+    { id: 'offset_well', name: lang === 'zh' ? '邻井压裂参数优选' : 'Offset Well Optimization', desc: lang === 'zh' ? '我推荐X-1井的压裂设计参数' : 'Recommend fracturing parameters for X-1', icon: 'fa-oil-well', color: 'bg-amber-50 text-amber-600', isBeta: false },
     { id: 'geomapx', name: 'GeoMapX', desc: '', icon: 'fa-map', color: 'bg-indigo-50 text-indigo-600', isBeta: false },
   ] : [
     { id: 'report', name: lang === 'zh' ? '智能报告' : 'Smart Report', desc: '', icon: 'fa-file-alt', color: 'bg-blue-50 text-blue-600', isBeta: false },

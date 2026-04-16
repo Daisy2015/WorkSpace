@@ -18,16 +18,7 @@ export const WorkspaceTemplates: React.FC<WorkspaceTemplatesProps> = ({
   const [sortBy, setSortBy] = useState<'time' | 'usage'>('usage');
   const [filter, setFilter] = useState('');
   const [activeTab, setActiveTab] = useState<'recommended' | 'recent' | 'my' | 'all'>('all');
-  const [activeCategory, setActiveCategory] = useState('all');
   const [showAll, setShowAll] = useState(false);
-
-  const categories = [
-    { id: 'all', name: t.categoryAll },
-    { id: '地质研究', name: t.categoryGeology },
-    { id: '钻完井工程', name: t.categoryDrilling },
-    { id: '油气藏工程', name: t.categoryReservoir },
-    { id: '生产管理', name: t.categoryProduction },
-  ];
 
   const filteredTemplates = useMemo(() => {
     let result = [...templates];
@@ -39,11 +30,6 @@ export const WorkspaceTemplates: React.FC<WorkspaceTemplatesProps> = ({
       result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } else if (activeTab === 'recommended') {
       result = result.filter(tpl => tpl.usageCount > 100);
-    }
-
-    // Category filtering
-    if (activeCategory !== 'all') {
-      result = result.filter(tpl => tpl.category === activeCategory);
     }
 
     // Search Filter
@@ -68,7 +54,7 @@ export const WorkspaceTemplates: React.FC<WorkspaceTemplatesProps> = ({
     }
 
     return result;
-  }, [templates, sortBy, filter, activeTab, activeCategory]);
+  }, [templates, sortBy, filter, activeTab]);
 
   const displayedTemplates = showAll ? filteredTemplates : filteredTemplates.slice(0, 8);
 
@@ -132,19 +118,6 @@ export const WorkspaceTemplates: React.FC<WorkspaceTemplatesProps> = ({
                 )}
               </button>
             ))}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t.categoryAll}:</span>
-            <select 
-              value={activeCategory}
-              onChange={(e) => setActiveCategory(e.target.value)}
-              className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 font-medium"
-            >
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
-              ))}
-            </select>
           </div>
         </div>
       </div>

@@ -161,27 +161,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
                     )}
                 </AnimatePresence>
             </div>
-
-            <div className="pt-4 mt-4 border-t border-gray-100 space-y-1">
-                {[
-                    { id: 'audit', label: t.userQaLogs, icon: 'fa-history' },
-                    { id: 'feedback', label: t.feedbackProcessing, icon: 'fa-comments' },
-                ].map((item) => (
-                    <button
-                        key={item.id}
-                        onClick={() => setActiveModule(item.id as AdminModule)}
-                        className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                            activeModule === item.id 
-                            ? 'bg-blue-50 text-blue-700' 
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                        }`}
-                    >
-                        <i className={`fas ${item.icon} w-6 text-center mr-2 ${activeModule === item.id ? 'text-blue-600' : 'text-gray-400'}`}></i>
-                        {item.label}
-                    </button>
-                ))}
-            </div>
         </nav>
+
+        <div className="p-4 border-t border-gray-100 space-y-1 bg-gray-50/50">
+            {[
+                { id: 'audit', label: t.userQaLogs, icon: 'fa-history' },
+                { id: 'feedback', label: t.feedbackProcessing, icon: 'fa-comments' },
+            ].map((item) => (
+                <button
+                    key={item.id}
+                    onClick={() => setActiveModule(item.id as AdminModule)}
+                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                        activeModule === item.id 
+                        ? 'bg-blue-50 text-blue-700' 
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                >
+                    <i className={`fas ${item.icon} w-6 text-center mr-2 ${activeModule === item.id ? 'text-blue-600' : 'text-gray-400'}`}></i>
+                    {item.label}
+                </button>
+            ))}
+        </div>
+
     </div>
   );
 

@@ -1,8 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, SkillEntry } from '../types';
-import { AdminSkillStudio } from './AdminSkillStudio';
 
 interface AdminSkillManagementProps {
   lang: Language;
@@ -10,81 +9,171 @@ interface AdminSkillManagementProps {
 
 const MOCK_SKILLS: SkillEntry[] = [
   {
-    id: 'skill-1',
-    name: '异常诊断技能',
-    domain: '生产分析',
-    category: 'Analysis',
-    triggerConditions: 'intent == "diagnosis"',
-    boundTools: ['SQL_Query', 'Vector_Search'],
-    reusedByAgents: 12,
-    workflowRefs: 8,
-    version: 'v2.1.0',
-    runtimeSuccess: '98.5%',
-    visibility: ['Foundation', 'Professional', 'Enterprise'],
-    updatedAt: '2024-05-20 10:00',
-    status: 'Production',
-    description: '用于分析油井产量下降、压力异常等生产问题的核心诊断技能。'
+    id: 'skill-4',
+    name: '邻井发现 Skill',
+    scope: 'Project',
+    description: '基于地理位置和地质特征自动发现并匹配相邻参考井。',
+    instructions: '邻井发现的详细指令...',
+    isEnabled: true,
+    updatedAt: '2024-05-21 11:00',
+    category: 'Engineering'
   },
   {
-    id: 'skill-2',
-    name: '地质报告生成',
-    domain: '文档自动化',
-    category: 'Document',
-    triggerConditions: 'action == "generate_report"',
-    boundTools: ['Doc_Generator', 'Chart_Tool'],
-    reusedByAgents: 5,
-    workflowRefs: 3,
-    version: 'v1.4.2',
-    runtimeSuccess: '95.2%',
-    visibility: ['Professional', 'Enterprise', 'Flagship'],
-    updatedAt: '2024-05-19 15:30',
-    status: 'Production',
-    description: '自动汇总测井、录井数据并生成标准格式的地质评价报告。'
+    id: 'skill-5',
+    name: '储层评分 Skill',
+    scope: 'Project',
+    description: '多维度计算储层特征相似度，辅助井位部署决策。',
+    instructions: '储层评分的详细指令...',
+    isEnabled: true,
+    updatedAt: '2024-05-21 11:15',
+    category: 'Engineering'
+  },
+  {
+    id: 'skill-6',
+    name: '生产评价 Skill',
+    scope: 'Global',
+    description: '综合分析油气井生产历史，评估产能及衰减趋势。',
+    instructions: '生产评价的详细指令...',
+    isEnabled: true,
+    updatedAt: '2024-05-21 11:30',
+    category: 'Engineering'
+  },
+  {
+    id: 'skill-7',
+    name: '参数抽取 Skill',
+    scope: 'Project',
+    description: '从历史压裂施工文档中自动抽取关键工程参数。',
+    instructions: '压裂参数抽取的详细指令...',
+    isEnabled: true,
+    updatedAt: '2024-05-21 11:45',
+    category: 'Engineering'
+  },
+  {
+    id: 'skill-9',
+    name: '全域类比检索 Skill',
+    scope: 'Global',
+    description: '在全区范围内检索最具参考价值的历史成功井。',
+    instructions: '全域类比检索的详细指令...',
+    isEnabled: true,
+    updatedAt: '2024-05-21 12:15',
+    category: 'Analysis'
+  },
+  {
+    id: 'skill-10',
+    name: '甜点综合评分 Skill',
+    scope: 'Project',
+    description: '综合孔隙度、饱和度、脆性等指标进行段级甜点评分。',
+    instructions: '甜点综合评分的详细指令...',
+    isEnabled: true,
+    updatedAt: '2024-05-21 12:30',
+    category: 'Engineering'
+  },
+  {
+    id: 'skill-11',
+    name: '参数寻优 Skill',
+    scope: 'Global',
+    description: '基于多目标优化算法，寻找最优压裂施工参数组合。',
+    instructions: '参数寻优的详细指令...',
+    isEnabled: true,
+    updatedAt: '2024-05-21 12:45',
+    category: 'Optimization'
+  },
+  {
+    id: 'skill-12',
+    name: 'EUR 预测 Skill',
+    scope: 'Global',
+    description: '结合地质属性和生产数据，预测单井最终可采储量。',
+    instructions: 'EUR 预测的详细指令...',
+    isEnabled: true,
+    updatedAt: '2024-05-21 13:00',
+    category: 'Analysis'
   },
   {
     id: 'skill-3',
     name: '地震剖面识别',
-    domain: '图件识别',
-    category: 'Image',
-    triggerConditions: 'input_type == "seismic_image"',
-    boundTools: ['CV_Model_X', 'OCR_Tool'],
-    reusedByAgents: 3,
-    workflowRefs: 2,
-    version: 'v0.9.5',
-    runtimeSuccess: '88.0%',
-    visibility: ['Enterprise', 'Flagship'],
+    scope: 'Project',
+    description: '识别地震剖面中的层位、断层及特殊地质体。',
+    instructions: '识别地震剖面的详细指令...',
+    isEnabled: false,
     updatedAt: '2024-05-18 09:15',
-    status: 'Testing',
-    description: '识别地震剖面中的层位、断层及特殊地质体。'
+    category: 'Image'
   }
 ];
 
 export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang }) => {
-  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string>('All');
+  const [skills, setSkills] = useState<SkillEntry[]>(MOCK_SKILLS);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSkill, setEditingSkill] = useState<SkillEntry | null>(null);
+  const [isHeatmapOpen, setIsHeatmapOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerSkill, setDrawerSkill] = useState<SkillEntry | null>(null);
-  const [isHeatmapOpen, setIsHeatmapOpen] = useState(true);
 
-  const categories = [
-    { id: 'All', label: lang === 'zh' ? '全部技能' : 'All Skills', icon: 'fa-th-large' },
-    { id: 'Analysis', label: lang === 'zh' ? '分析类 Skills' : 'Analysis Skills', icon: 'fa-chart-line' },
-    { id: 'Document', label: lang === 'zh' ? '文档类 Skills' : 'Document Skills', icon: 'fa-file-alt' },
-    { id: 'Image', label: lang === 'zh' ? '图件类 Skills' : 'Image Skills', icon: 'fa-image' },
-    { id: 'SOP', label: lang === 'zh' ? '岗位 SOP Skills' : 'SOP Skills', icon: 'fa-tasks' },
-    { id: 'Collaboration', label: lang === 'zh' ? '协同 Skills' : 'Collaboration Skills', icon: 'fa-users' },
-    { id: 'Official', label: lang === 'zh' ? '官方认证 Skills' : 'Official Skills', icon: 'fa-certificate' },
-    { id: 'Customer', label: lang === 'zh' ? '客户沉淀 Skills' : 'Customer Skills', icon: 'fa-user-tie' },
-  ];
+  // Form States
+  const [formScope, setFormScope] = useState<'Global' | 'Project'>('Project');
+  const [formName, setFormName] = useState('');
+  const [formDescription, setFormDescription] = useState('');
+  const [formInstructions, setFormInstructions] = useState('');
 
-  const filteredSkills = MOCK_SKILLS.filter(s => activeCategory === 'All' || s.category === activeCategory);
+  const filteredSkills = useMemo(() => {
+    return skills.filter(s => 
+      s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      s.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [skills, searchQuery]);
 
-  if (selectedSkillId) {
-    const skill = MOCK_SKILLS.find(s => s.id === selectedSkillId);
+  const handleOpenModal = (skill?: SkillEntry) => {
     if (skill) {
-      return <AdminSkillStudio lang={lang} skill={skill} onBack={() => setSelectedSkillId(null)} />;
+      setEditingSkill(skill);
+      setFormScope(skill.scope);
+      setFormName(skill.name);
+      setFormDescription(skill.description);
+      setFormInstructions(skill.instructions);
+    } else {
+      setEditingSkill(null);
+      setFormScope('Project');
+      setFormName('');
+      setFormDescription('');
+      setFormInstructions('');
     }
-  }
+    setIsModalOpen(true);
+  };
+
+  const handleSave = () => {
+    if (editingSkill) {
+      setSkills(prev => prev.map(s => s.id === editingSkill.id ? {
+        ...s,
+        name: formName,
+        scope: formScope,
+        description: formDescription,
+        instructions: formInstructions,
+        updatedAt: new Date().toLocaleString()
+      } : s));
+    } else {
+      const newSkill: SkillEntry = {
+        id: `skill-${Date.now()}`,
+        name: formName,
+        scope: formScope,
+        description: formDescription,
+        instructions: formInstructions,
+        isEnabled: true,
+        updatedAt: new Date().toLocaleString(),
+        category: 'Analysis'
+      };
+      setSkills(prev => [newSkill, ...prev]);
+    }
+    setIsModalOpen(false);
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm(lang === 'zh' ? '确定删除该技能吗？' : 'Are you sure you want to delete this skill?')) {
+      setSkills(prev => prev.filter(s => s.id !== id));
+    }
+  };
+
+  const toggleStatus = (id: string) => {
+    setSkills(prev => prev.map(s => s.id === id ? { ...s, isEnabled: !s.isEnabled } : s));
+  };
 
   return (
     <div className="h-full flex flex-col bg-slate-50 overflow-hidden relative">
@@ -92,7 +181,7 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
       <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0 z-10">
         <div className="flex items-center gap-4">
           <h2 className="text-lg font-bold text-slate-800">
-            {lang === 'zh' ? 'Skill Registry｜企业级业务能力资产注册中心' : 'Skill Registry | Enterprise Capability Assets'}
+            {lang === 'zh' ? '技能管理' : 'Skill Management'}
           </h2>
         </div>
         <div className="flex items-center gap-3">
@@ -100,11 +189,16 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
             <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
             <input 
               type="text" 
-              placeholder={lang === 'zh' ? '搜索技能资产...' : 'Search skills...'} 
+              placeholder={lang === 'zh' ? '搜索技能...' : 'Search skills...'} 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-4 py-2 bg-slate-100 border-none rounded-xl text-xs w-64 focus:ring-2 focus:ring-indigo-500 transition-all"
             />
           </div>
-          <button className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2">
+          <button 
+            onClick={() => handleOpenModal()}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2"
+          >
             <i className="fas fa-plus"></i>
             {lang === 'zh' ? '注册新技能' : 'Register Skill'}
           </button>
@@ -112,44 +206,17 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
       </header>
 
       <div className="flex-1 flex min-h-0 overflow-hidden">
-        {/* Left: Category Tree */}
-        <aside className="w-64 bg-white border-r border-slate-200 flex flex-col flex-shrink-0">
-          <div className="p-4">
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">
-              {lang === 'zh' ? '能力分类树' : 'Capability Tree'}
-            </div>
-            <nav className="space-y-1">
-              {categories.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                    activeCategory === cat.id 
-                    ? 'bg-indigo-50 text-indigo-600 shadow-sm' 
-                    : 'text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <i className={`fas ${cat.icon} w-4 text-center ${activeCategory === cat.id ? 'text-indigo-500' : 'text-slate-400'}`}></i>
-                  {cat.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-        </aside>
-
-        {/* Middle: Asset List */}
+        {/* Asset List - Sidebar Removed */}
         <main className="flex-1 flex flex-col min-w-0 bg-slate-50 overflow-hidden">
           <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50/50 border-b border-slate-200">
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? 'Skill 名称' : 'Skill Name'}</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Capability Domain</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Trigger</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tools</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Reuse</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Success</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '技能名称' : 'Skill Name'}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '描述' : 'Description'}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '状态' : 'Status'}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '修改人' : 'Modified By'}</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '最近更新' : 'Updated'}</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">{lang === 'zh' ? '操作' : 'Actions'}</th>
                   </tr>
@@ -158,71 +225,76 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
                   {filteredSkills.map(skill => (
                     <tr 
                       key={skill.id} 
-                      className="group hover:bg-indigo-50/30 transition-all cursor-pointer"
-                      onClick={() => {
-                        setDrawerSkill(skill);
-                        setIsDrawerOpen(true);
-                      }}
+                      className="group hover:bg-indigo-50/30 transition-all"
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${
-                            skill.status === 'Production' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                            skill.isEnabled ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-400'
                           }`}>
                             <i className="fas fa-toolbox"></i>
                           </div>
                           <div>
                             <div className="text-sm font-bold text-slate-800">{skill.name}</div>
-                            <div className="text-[10px] text-slate-400">{skill.version}</div>
+                            <div className="text-[10px] text-slate-400">{skill.category}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-xs text-slate-600 bg-slate-100 px-2 py-1 rounded-lg">{skill.domain}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <code className="text-[10px] font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">{skill.triggerConditions}</code>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex -space-x-2">
-                          {skill.boundTools.map((tool, i) => (
-                            <div key={i} title={tool} className="w-6 h-6 rounded-full bg-white border border-slate-200 flex items-center justify-center text-[8px] text-slate-400 shadow-sm">
-                              <i className="fas fa-link"></i>
-                            </div>
-                          ))}
+                        <div className="text-xs text-slate-500 max-w-md truncate" title={skill.description}>
+                          {skill.description}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-4">
-                          <div className="text-center">
-                            <div className="text-xs font-bold text-slate-800">{skill.reusedByAgents}</div>
-                            <div className="text-[8px] text-slate-400 uppercase">Agents</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-xs font-bold text-slate-800">{skill.workflowRefs}</div>
-                            <div className="text-[8px] text-slate-400 uppercase">Workflows</div>
-                          </div>
-                        </div>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleStatus(skill.id);
+                          }}
+                          className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${
+                            skill.isEnabled ? 'bg-indigo-600' : 'bg-slate-200'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                              skill.isEnabled ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-emerald-500" style={{ width: skill.runtimeSuccess }}></div>
+                          <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                            {skill.updatedBy?.[0] || 'A'}
                           </div>
-                          <span className="text-[10px] font-bold text-emerald-600">{skill.runtimeSuccess}</span>
+                          <span className="text-xs text-slate-600">{skill.updatedBy || 'Admin'}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-500">{skill.updatedAt}</td>
                       <td className="px-6 py-4 text-right">
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedSkillId(skill.id);
-                          }}
-                          className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all"
-                        >
-                          {lang === 'zh' ? '进入 Studio' : 'Enter Studio'}
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDrawerSkill(skill);
+                              setIsDrawerOpen(true);
+                            }}
+                            className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+                            title={lang === 'zh' ? '详情' : 'Details'}
+                          >
+                            <i className="fas fa-info-circle"></i>
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(skill.id);
+                            }}
+                            className="p-2 text-slate-400 hover:text-rose-600 transition-colors"
+                            title={lang === 'zh' ? '删除' : 'Delete'}
+                          >
+                            <i className="fas fa-trash-alt"></i>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -231,7 +303,7 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
             </div>
           </div>
 
-          {/* Bottom: Running Heatmap */}
+          {/* Bottom: Running Heatmap (Simplified) */}
           <motion.div 
             initial={false}
             animate={{ height: isHeatmapOpen ? '200px' : '48px' }}
@@ -246,17 +318,6 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
                   <i className="fas fa-fire text-orange-500"></i>
                   {lang === 'zh' ? '运行热度与资产效能' : 'Running Heatmap & Asset Efficiency'}
                 </span>
-                <div className="h-4 w-px bg-slate-200"></div>
-                <div className="flex items-center gap-8">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '高频场景:' : 'High Freq:'}</span>
-                    <span className="text-xs font-bold text-slate-600">{lang === 'zh' ? '产量诊断' : 'Prod Diagnosis'}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ROI:</span>
-                    <span className="text-xs font-bold text-emerald-600">+24%</span>
-                  </div>
-                </div>
               </div>
               <i className={`fas fa-chevron-${isHeatmapOpen ? 'down' : 'up'} text-slate-400 group-hover:text-indigo-600 transition-all`}></i>
             </button>
@@ -286,23 +347,22 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
               <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
                 <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">ROI {lang === 'zh' ? '贡献' : 'Contribution'}</div>
                 <div className="text-2xl font-bold text-emerald-600">$12.4k</div>
-                <div className="text-[10px] text-slate-400 mt-1">{lang === 'zh' ? '本月节省人工成本' : 'Labor cost saved this month'}</div>
               </div>
             </div>
           </motion.div>
         </main>
 
-        {/* Right: Skill Manifest Drawer */}
+        {/* Right: Skill Details Drawer */}
         <AnimatePresence>
           {isDrawerOpen && drawerSkill && (
             <motion.aside 
-              initial={{ x: 400 }}
+              initial={{ x: 450 }}
               animate={{ x: 0 }}
-              exit={{ x: 400 }}
-              className="w-[400px] bg-white border-l border-slate-200 flex flex-col flex-shrink-0 z-30 shadow-2xl"
+              exit={{ x: 450 }}
+              className="w-[450px] bg-white border-l border-slate-200 flex flex-col flex-shrink-0 z-30 shadow-2xl"
             >
               <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
-                <h3 className="text-sm font-bold text-slate-800">{lang === 'zh' ? 'Skill Manifest 注册详情' : 'Skill Manifest Details'}</h3>
+                <h3 className="text-sm font-bold text-slate-800">{lang === 'zh' ? '技能详情' : 'Skill Details'}</h3>
                 <button onClick={() => setIsDrawerOpen(false)} className="text-slate-400 hover:text-slate-600">
                   <i className="fas fa-times"></i>
                 </button>
@@ -315,7 +375,7 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
                     </div>
                     <div>
                       <h4 className="font-bold text-slate-800 text-lg">{drawerSkill.name}</h4>
-                      <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[10px] font-bold uppercase">{drawerSkill.status}</span>
+                      <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[10px] font-bold uppercase">{drawerSkill.isEnabled ? 'Active' : 'Inactive'}</span>
                     </div>
                   </div>
                   <p className="text-xs text-slate-500 leading-relaxed">{drawerSkill.description}</p>
@@ -323,78 +383,132 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
 
                 <div className="space-y-6">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">Trigger 条件</label>
-                    <div className="bg-slate-900 rounded-xl p-4 font-mono text-xs text-indigo-300 border border-slate-800">
-                      {drawerSkill.triggerConditions}
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">{lang === 'zh' ? '技能指令' : 'Instructions'}</label>
+                    <div className="bg-slate-900 rounded-xl p-4 font-mono text-[10px] border border-slate-800 text-indigo-100 whitespace-pre-wrap">
+                      {drawerSkill.instructions}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">Allowed Agents</div>
-                      <div className="text-sm font-bold text-slate-800">{drawerSkill.reusedByAgents}</div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">{lang === 'zh' ? '适用范围' : 'Scope'}</div>
+                      <div className="text-sm font-bold text-slate-800">{drawerSkill.scope}</div>
                     </div>
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">Allowed Tools</div>
-                      <div className="text-sm font-bold text-slate-800">{drawerSkill.boundTools.length}</div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">Safety Constraints</label>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs text-slate-600">
-                        <i className="fas fa-check-circle text-emerald-500"></i>
-                        {lang === 'zh' ? '数据脱敏校验' : 'Data Masking Check'}
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-600">
-                        <i className="fas fa-check-circle text-emerald-500"></i>
-                        {lang === 'zh' ? 'Token 消耗限制' : 'Token Usage Limit'}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">Industry Tags</label>
-                    <div className="flex flex-wrap gap-2">
-                      {['Oil & Gas', 'Production', 'Diagnosis', 'Real-time'].map(tag => (
-                        <span key={tag} className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-medium">#{tag}</span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">Package Scope</label>
-                    <div className="space-y-2">
-                      {['Foundation', 'Professional', 'Enterprise', 'Flagship'].map(pkg => (
-                        <div key={pkg} className="flex items-center justify-between">
-                          <span className="text-xs text-slate-600">{pkg}</span>
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center ${
-                            drawerSkill.visibility.includes(pkg) ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300'
-                          }`}>
-                            {drawerSkill.visibility.includes(pkg) && <i className="fas fa-check text-[8px]"></i>}
-                          </div>
-                        </div>
-                      ))}
+                      <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">{lang === 'zh' ? '最近更新' : 'Updated At'}</div>
+                      <div className="text-sm font-bold text-slate-800">{drawerSkill.updatedAt}</div>
                     </div>
                   </div>
                 </div>
               </div>
               <div className="p-6 border-t border-slate-200 bg-slate-50/50 flex gap-3">
                 <button 
-                  onClick={() => setSelectedSkillId(drawerSkill.id)}
+                  onClick={() => {
+                    setIsDrawerOpen(false);
+                    handleOpenModal(drawerSkill);
+                  }}
                   className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
                 >
-                  {lang === 'zh' ? '进入 Studio' : 'Enter Studio'}
-                </button>
-                <button className="px-4 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all">
-                  <i className="fas fa-share-alt"></i>
+                  {lang === 'zh' ? '编辑技能' : 'Edit Skill'}
                 </button>
               </div>
             </motion.aside>
           )}
         </AnimatePresence>
       </div>
+
+      {/* Create/Edit Skill Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col"
+            >
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+                <h3 className="text-lg font-bold text-slate-800">
+                  {editingSkill ? (lang === 'zh' ? '编辑技能' : 'Edit Skill') : (lang === 'zh' ? '注册新技能' : 'Register Skill')}
+                </h3>
+                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-6 overflow-y-auto max-h-[80vh] custom-scrollbar">
+                {/* Upload Area */}
+                <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center bg-slate-50 hover:bg-indigo-50/50 hover:border-indigo-300 transition-all cursor-pointer group">
+                  <i className="fas fa-file-upload text-3xl text-slate-300 group-hover:text-indigo-500 mb-3"></i>
+                  <div className="text-sm font-bold text-slate-600 mb-1 group-hover:text-indigo-600">{lang === 'zh' ? '上传进行智能解析' : 'Upload for Intelligent Parsing'}</div>
+                  <div className="text-[10px] text-slate-400 text-center max-w-sm">
+                    {lang === 'zh' ? '包含 SKILL.md 文件的 .zip 或 .skill 文件，SKILL.md 位于根目录，包含 YAML 格式的技能名称和描述。' : 'A .zip or .skill file containing SKILL.md at the root, with YAML formatted name and description.'}
+                  </div>
+                </div>
+
+                {/* Skill Name */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-400 flex items-center gap-1 uppercase tracking-widest">
+                    <span className="text-rose-500">*</span> {lang === 'zh' ? '技能名称' : 'Skill Name'}
+                  </label>
+                  <input 
+                    type="text" 
+                    value={formName}
+                    onChange={(e) => setFormName(e.target.value)}
+                    placeholder={lang === 'zh' ? '为这个 Skill 起一个简短的名称，例如：邻井发现' : 'Give this skill a short name, e.g., Neighbor Well Discovery'}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-400 flex items-center gap-1 uppercase tracking-widest">
+                    <span className="text-rose-500">*</span> {lang === 'zh' ? '描述' : 'Description'}
+                  </label>
+                  <textarea 
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    placeholder={lang === 'zh' ? '简单描述这个 Skill 应该在什么情况下被触发，例如：基于地理位置和地质特征自动发现并匹配相邻参考井' : 'Briefly describe when this skill should be triggered...'}
+                    className="w-full h-24 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
+                  />
+                </div>
+
+                {/* Instructions */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-400 flex items-center gap-1 uppercase tracking-widest">
+                    <span className="text-rose-500">*</span> {lang === 'zh' ? '指令' : 'Instructions'}
+                  </label>
+                  <textarea 
+                    value={formInstructions}
+                    onChange={(e) => setFormInstructions(e.target.value)}
+                    placeholder={lang === 'zh' ? '当这个 Skill 被触发时，你希望模型遵循哪些规则或信息，例如：\n\n# 邻井发现指令\n## 目标\n为目标井寻找最匹配的参考邻井。\n## 逻辑\n1. 确定目标井所在的区块和层位。\n2. 在 5km 范围内搜索同层位的生产井。' : 'What rules or info should the model follow when this skill is triggered...'}
+                    className="w-full h-64 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs text-indigo-100 font-mono placeholder:text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-slate-200 bg-slate-50/50 flex justify-end gap-3">
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-6 py-2 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-200 transition-all"
+                >
+                  {lang === 'zh' ? '取消' : 'Cancel'}
+                </button>
+                <button 
+                  onClick={handleSave}
+                  disabled={!formName || !formDescription || !formInstructions}
+                  className="px-8 py-2 bg-indigo-600 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
+                >
+                  {lang === 'zh' ? '确认' : 'Confirm'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

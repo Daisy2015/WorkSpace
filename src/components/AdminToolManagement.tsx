@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, ToolEntry } from '../types';
-import { AdminToolStudio } from './AdminToolStudio';
 
 interface AdminToolManagementProps {
   lang: Language;
@@ -11,9 +10,9 @@ interface AdminToolManagementProps {
 const MOCK_TOOLS: ToolEntry[] = [
   {
     id: 'tool-1',
-    name: 'SQL 查询工具',
+    name: '井信息查询 Tool',
     type: 'Data',
-    endpoint: 'https://api.petro.com/v1/query',
+    endpoint: 'https://api.petro.com/v1/object/info',
     method: 'POST',
     authType: 'Bearer',
     skillRefs: 24,
@@ -22,13 +21,16 @@ const MOCK_TOOLS: ToolEntry[] = [
     p95Latency: '450ms',
     costPerCall: '$0.002',
     status: 'Active',
-    description: '支持自然语言转 SQL 并执行结构化数据库查询。'
+    description: '查询石油天然气各类对象（如井、区块、层位）的基础静态属性信息。',
+    createdAt: '2024-05-10 10:00',
+    inputSchema: '{"type": "object", "properties": {"objectId": {"type": "string"}}}',
+    outputSchema: '{"type": "object", "properties": {"name": {"type": "string"}, "type": {"type": "string"}}}'
   },
   {
     id: 'tool-2',
-    name: 'GeoMapX 渲染器',
+    name: '距离计算 Tool',
     type: 'Geo',
-    endpoint: 'https://geo.petro.com/render',
+    endpoint: 'https://api.petro.com/v1/geo/distance',
     method: 'POST',
     authType: 'API Key',
     skillRefs: 8,
@@ -37,13 +39,16 @@ const MOCK_TOOLS: ToolEntry[] = [
     p95Latency: '1.2s',
     costPerCall: '$0.05',
     status: 'Active',
-    description: '高性能地质图件渲染引擎，支持多井剖面与平面图。'
+    description: '计算两个地理坐标或对象之间的空间直线距离及方位角。',
+    createdAt: '2024-05-12 14:30',
+    inputSchema: '{"type": "object", "properties": {"fromId": {"type": "string"}, "toId": {"type": "string"}}}',
+    outputSchema: '{"type": "object", "properties": {"distance": {"type": "number"}, "unit": {"type": "string"}}}'
   },
   {
     id: 'tool-3',
-    name: '报告生成引擎',
-    type: 'Report',
-    endpoint: 'https://report.petro.com/gen',
+    name: '对比分析 Tool',
+    type: 'Analysis',
+    endpoint: 'https://api.petro.com/v1/object/compare',
     method: 'POST',
     authType: 'OAuth2',
     skillRefs: 12,
@@ -51,52 +56,96 @@ const MOCK_TOOLS: ToolEntry[] = [
     successRate: '96.2%',
     p95Latency: '5.5s',
     costPerCall: '$0.12',
-    status: 'Degraded',
-    description: '基于模板的自动化报告生成工具，支持 PDF/Word 导出。'
+    status: 'Active',
+    description: '对比多个同类对象的属性差异，支持差异项高亮显示。',
+    createdAt: '2024-05-15 09:15',
+    inputSchema: '{"type": "object", "properties": {"objectIds": {"type": "array", "items": {"type": "string"}}}}',
+    outputSchema: '{"type": "object", "properties": {"diff": {"type": "array"}}}'
   },
   {
-    id: 'tool-4',
-    name: '审批流网关',
-    type: 'Approval',
-    endpoint: 'https://oa.petro.com/approve',
-    method: 'PUT',
+    id: 'tool-5',
+    name: '压裂参数解析 Tool',
+    type: 'NLP',
+    endpoint: 'https://api.petro.com/v1/nlp/extract',
+    method: 'POST',
     authType: 'Bearer',
-    skillRefs: 4,
-    workflowRefs: 32,
-    successRate: '100%',
-    p95Latency: '200ms',
-    costPerCall: '$0.001',
+    skillRefs: 15,
+    workflowRefs: 10,
+    successRate: '97.5%',
+    p95Latency: '800ms',
+    costPerCall: '$0.01',
     status: 'Active',
-    description: '对接企业 OA 系统，处理各类业务审批请求。'
+    description: '从非结构化文本中自动抽取压裂、钻井等关键技术参数。',
+    createdAt: '2024-05-20 16:20',
+    inputSchema: '{"type": "object", "properties": {"text": {"type": "string"}}}',
+    outputSchema: '{"type": "object", "properties": {"parameters": {"type": "object"}}}'
+  },
+  {
+    id: 'tool-6',
+    name: '生产聚合 Tool',
+    type: 'Data',
+    endpoint: 'https://api.petro.com/v1/data/aggregate',
+    method: 'POST',
+    authType: 'Bearer',
+    skillRefs: 5,
+    workflowRefs: 8,
+    successRate: '99.1%',
+    p95Latency: '600ms',
+    costPerCall: '$0.005',
+    status: 'Active',
+    description: '对多井生产数据进行时序聚合分析。',
+    createdAt: '2024-05-21 09:00',
+    inputSchema: '{"type": "object", "properties": {"wellIds": {"type": "array"}}}',
+    outputSchema: '{"type": "object", "properties": {"aggregatedData": {"type": "object"}}}'
+  },
+  {
+    id: 'tool-7',
+    name: '压裂模拟 Tool',
+    type: 'Simulation',
+    endpoint: 'https://api.petro.com/v1/sim/frac',
+    method: 'POST',
+    authType: 'API Key',
+    skillRefs: 3,
+    workflowRefs: 12,
+    successRate: '94.5%',
+    p95Latency: '15s',
+    costPerCall: '$2.50',
+    status: 'Active',
+    description: '基于物理模型进行压裂缝网扩展模拟。',
+    createdAt: '2024-05-21 10:00',
+    inputSchema: '{"type": "object", "properties": {"params": {"type": "object"}}}',
+    outputSchema: '{"type": "object", "properties": {"mesh": {"type": "object"}}}'
+  },
+  {
+    id: 'tool-8',
+    name: '产量预测 Tool',
+    type: 'AI',
+    endpoint: 'https://api.petro.com/v1/ai/predict',
+    method: 'POST',
+    authType: 'Bearer',
+    skillRefs: 10,
+    workflowRefs: 25,
+    successRate: '92.0%',
+    p95Latency: '2.5s',
+    costPerCall: '$0.50',
+    status: 'Active',
+    description: '利用机器学习模型预测单井压后产量。',
+    createdAt: '2024-05-21 11:00',
+    inputSchema: '{"type": "object", "properties": {"features": {"type": "object"}}}',
+    outputSchema: '{"type": "object", "properties": {"forecast": {"type": "array"}}}'
   }
 ];
 
 export const AdminToolManagement: React.FC<AdminToolManagementProps> = ({ lang }) => {
-  const [selectedToolId, setSelectedToolId] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerTool, setDrawerTool] = useState<ToolEntry | null>(null);
-  const [isSlaOpen, setIsSlaOpen] = useState(true);
+  const [isSlaOpen, setIsSlaOpen] = useState(false);
 
-  const categories = [
-    { id: 'All', label: lang === 'zh' ? '全部工具' : 'All Tools', icon: 'fa-th' },
-    { id: 'Data', label: 'Data Tools', icon: 'fa-database' },
-    { id: 'Search', label: 'Search Tools', icon: 'fa-search' },
-    { id: 'Geo', label: 'Geo Tools', icon: 'fa-map-marked-alt' },
-    { id: 'Report', label: 'Report Tools', icon: 'fa-file-invoice' },
-    { id: 'Notification', label: 'Notification Tools', icon: 'fa-bell' },
-    { id: 'Approval', label: 'Approval Tools', icon: 'fa-check-double' },
-    { id: 'External', label: 'External APIs', icon: 'fa-plug' },
-  ];
-
-  const filteredTools = MOCK_TOOLS.filter(t => activeCategory === 'All' || t.type === activeCategory);
-
-  if (selectedToolId) {
-    const tool = MOCK_TOOLS.find(t => t.id === selectedToolId);
-    if (tool) {
-      return <AdminToolStudio lang={lang} tool={tool} onBack={() => setSelectedToolId(null)} />;
-    }
-  }
+  const filteredTools = MOCK_TOOLS.filter(t => 
+    t.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    t.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="h-full flex flex-col bg-slate-50 overflow-hidden relative">
@@ -104,7 +153,7 @@ export const AdminToolManagement: React.FC<AdminToolManagementProps> = ({ lang }
       <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0 z-10">
         <div className="flex items-center gap-4">
           <h2 className="text-lg font-bold text-slate-800">
-            {lang === 'zh' ? 'Tool Registry｜工具平台注册中心' : 'Tool Registry | Platform Assets'}
+            {lang === 'zh' ? '工具管理' : 'Tool Management'}
           </h2>
         </div>
         <div className="flex items-center gap-3">
@@ -112,7 +161,9 @@ export const AdminToolManagement: React.FC<AdminToolManagementProps> = ({ lang }
             <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
             <input 
               type="text" 
-              placeholder={lang === 'zh' ? '搜索工具资产...' : 'Search tools...'} 
+              placeholder={lang === 'zh' ? '搜索工具...' : 'Search tools...'} 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-4 py-2 bg-slate-100 border-none rounded-xl text-xs w-64 focus:ring-2 focus:ring-indigo-500 transition-all"
             />
           </div>
@@ -124,45 +175,18 @@ export const AdminToolManagement: React.FC<AdminToolManagementProps> = ({ lang }
       </header>
 
       <div className="flex-1 flex min-h-0 overflow-hidden">
-        {/* Left: Category Tree */}
-        <aside className="w-64 bg-white border-r border-slate-200 flex flex-col flex-shrink-0">
-          <div className="p-4">
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-2">
-              {lang === 'zh' ? '工具分类' : 'Tool Categories'}
-            </div>
-            <nav className="space-y-1">
-              {categories.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                    activeCategory === cat.id 
-                    ? 'bg-indigo-50 text-indigo-600 shadow-sm' 
-                    : 'text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <i className={`fas ${cat.icon} w-4 text-center ${activeCategory === cat.id ? 'text-indigo-500' : 'text-slate-400'}`}></i>
-                  {cat.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-        </aside>
-
-        {/* Middle: Registry List */}
+        {/* Registry List - Sidebar Removed */}
         <main className="flex-1 flex flex-col min-w-0 bg-slate-50 overflow-hidden">
           <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50/50 border-b border-slate-200">
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? 'Tool 名称' : 'Tool Name'}</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">API Endpoint</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '鉴权' : 'Auth'}</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Usage</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">SLA (P95)</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cost</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '工具名称' : 'Tool Name'}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '描述' : 'Description'}</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '状态' : 'Status'}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '修改人' : 'Modified By'}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '最近更新' : 'Updated'}</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">{lang === 'zh' ? '操作' : 'Actions'}</th>
                   </tr>
                 </thead>
@@ -170,11 +194,7 @@ export const AdminToolManagement: React.FC<AdminToolManagementProps> = ({ lang }
                   {filteredTools.map(tool => (
                     <tr 
                       key={tool.id} 
-                      className="group hover:bg-indigo-50/30 transition-all cursor-pointer"
-                      onClick={() => {
-                        setDrawerTool(tool);
-                        setIsDrawerOpen(true);
-                      }}
+                      className="group hover:bg-indigo-50/30 transition-all"
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -190,54 +210,58 @@ export const AdminToolManagement: React.FC<AdminToolManagementProps> = ({ lang }
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded uppercase">{tool.method}</span>
-                          <code className="text-[10px] font-mono text-slate-500 truncate max-w-[150px]">{tool.endpoint}</code>
-                        </div>
+                        <div className="text-xs text-slate-500 max-w-md truncate">{tool.description}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-[10px] font-medium text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">{tool.authType}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="text-center">
-                            <div className="text-xs font-bold text-slate-800">{tool.skillRefs}</div>
-                            <div className="text-[8px] text-slate-400 uppercase">Skills</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-xs font-bold text-slate-800">{tool.workflowRefs}</div>
-                            <div className="text-[8px] text-slate-400 uppercase">Flows</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-slate-700">{tool.p95Latency}</span>
-                          <span className="text-[10px] text-emerald-600 font-bold">({tool.successRate})</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-xs font-mono text-slate-600">{tool.costPerCall}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5">
-                          <div className={`w-1.5 h-1.5 rounded-full ${
-                            tool.status === 'Active' ? 'bg-emerald-500' : 
-                            tool.status === 'Degraded' ? 'bg-amber-500' : 'bg-rose-500'
-                          }`}></div>
-                          <span className="text-[10px] font-bold text-slate-600">{tool.status}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedToolId(tool.id);
+                            // In a real app, we'd update the state here
                           }}
-                          className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all"
+                          className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${
+                            tool.status === 'Active' ? 'bg-indigo-600' : 'bg-slate-200'
+                          }`}
                         >
-                          {lang === 'zh' ? '进入 Studio' : 'Enter Studio'}
+                          <span
+                            className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                              tool.status === 'Active' ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
                         </button>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                            A
+                          </div>
+                          <span className="text-xs text-slate-600">Admin</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-500">{tool.updatedAt || tool.createdAt}</td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDrawerTool(tool);
+                              setIsDrawerOpen(true);
+                            }}
+                            className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+                            title={lang === 'zh' ? '详情' : 'Details'}
+                          >
+                            <i className="fas fa-info-circle"></i>
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Handle delete
+                            }}
+                            className="p-2 text-slate-400 hover:text-rose-600 transition-colors"
+                            title={lang === 'zh' ? '删除' : 'Delete'}
+                          >
+                            <i className="fas fa-trash-alt"></i>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -246,7 +270,7 @@ export const AdminToolManagement: React.FC<AdminToolManagementProps> = ({ lang }
             </div>
           </div>
 
-          {/* Bottom: SLA & Cost Monitoring */}
+          {/* Bottom Panel Removed or Simplified if needed, keeping it for now but closed by default */}
           <motion.div 
             initial={false}
             animate={{ height: isSlaOpen ? '200px' : '48px' }}
@@ -261,17 +285,6 @@ export const AdminToolManagement: React.FC<AdminToolManagementProps> = ({ lang }
                   <i className="fas fa-chart-bar text-indigo-500"></i>
                   {lang === 'zh' ? 'SLA 实时监控与成本分析' : 'SLA Runtime & Cost Analysis'}
                 </span>
-                <div className="h-4 w-px bg-slate-200"></div>
-                <div className="flex items-center gap-8">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Avg QPS:</span>
-                    <span className="text-xs font-bold text-slate-600">124.5</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Error Rate:</span>
-                    <span className="text-xs font-bold text-rose-600">0.02%</span>
-                  </div>
-                </div>
               </div>
               <i className={`fas fa-chevron-${isSlaOpen ? 'down' : 'up'} text-slate-400 group-hover:text-indigo-600 transition-all`}></i>
             </button>
@@ -285,11 +298,8 @@ export const AdminToolManagement: React.FC<AdminToolManagementProps> = ({ lang }
                 </div>
               </div>
               <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">{lang === 'zh' ? '错误码分布' : 'Error Codes'}</div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-[10px]"><span className="text-slate-600">401 Unauthorized</span><span className="font-bold">62%</span></div>
-                  <div className="flex justify-between text-[10px]"><span className="text-slate-600">504 Gateway Timeout</span><span className="font-bold">28%</span></div>
-                </div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">{lang === 'zh' ? '错误率' : 'Error Rate'}</div>
+                <div className="text-2xl font-bold text-rose-500">0.02%</div>
               </div>
               <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
                 <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">{lang === 'zh' ? '成本趋势' : 'Cost Trend'}</div>
@@ -300,11 +310,8 @@ export const AdminToolManagement: React.FC<AdminToolManagementProps> = ({ lang }
                 </div>
               </div>
               <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">{lang === 'zh' ? '热点调用来源' : 'Top Callers'}</div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-[10px]"><span className="text-slate-600">Diagnosis Skill</span><span className="font-bold">45%</span></div>
-                  <div className="flex justify-between text-[10px]"><span className="text-slate-600">Auto Report Flow</span><span className="font-bold">32%</span></div>
-                </div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">{lang === 'zh' ? '平均延迟' : 'Avg Latency'}</div>
+                <div className="text-2xl font-bold text-slate-800">450ms</div>
               </div>
             </div>
           </motion.div>
@@ -320,7 +327,7 @@ export const AdminToolManagement: React.FC<AdminToolManagementProps> = ({ lang }
               className="w-[450px] bg-white border-l border-slate-200 flex flex-col flex-shrink-0 z-30 shadow-2xl"
             >
               <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
-                <h3 className="text-sm font-bold text-slate-800">{lang === 'zh' ? 'API 配置详情' : 'API Configuration'}</h3>
+                <h3 className="text-sm font-bold text-slate-800">{lang === 'zh' ? '工具详情' : 'Tool Details'}</h3>
                 <button onClick={() => setIsDrawerOpen(false)} className="text-slate-400 hover:text-slate-600">
                   <i className="fas fa-times"></i>
                 </button>
@@ -341,66 +348,38 @@ export const AdminToolManagement: React.FC<AdminToolManagementProps> = ({ lang }
 
                 <div className="space-y-6">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">Endpoint & Method</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">API Endpoint</label>
                     <div className="bg-slate-900 rounded-xl p-4 font-mono text-xs border border-slate-800 flex items-center gap-3">
                       <span className="text-indigo-400 font-bold">{drawerTool.method}</span>
                       <span className="text-slate-400 truncate">{drawerTool.endpoint}</span>
                     </div>
                   </div>
 
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">{lang === 'zh' ? '输入参数 (Input)' : 'Input Schema'}</label>
+                    <div className="bg-slate-50 rounded-xl p-4 font-mono text-[10px] border border-slate-200 text-slate-600">
+                      {drawerTool.inputSchema || '{}'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">{lang === 'zh' ? '输出参数 (Output)' : 'Output Schema'}</label>
+                    <div className="bg-slate-50 rounded-xl p-4 font-mono text-[10px] border border-slate-200 text-slate-600">
+                      {drawerTool.outputSchema || '{}'}
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">Timeout</div>
-                      <div className="text-sm font-bold text-slate-800">30s</div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">{lang === 'zh' ? '鉴权方式' : 'Auth Type'}</div>
+                      <div className="text-sm font-bold text-slate-800">{drawerTool.authType}</div>
                     </div>
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">Retry</div>
-                      <div className="text-sm font-bold text-slate-800">3 Times</div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">熔断策略 (Circuit Breaker)</label>
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
-                      <div className="flex justify-between text-xs"><span className="text-slate-500">Threshold</span><span className="font-bold">5% Error</span></div>
-                      <div className="flex justify-between text-xs"><span className="text-slate-500">Recovery</span><span className="font-bold">60s</span></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">鉴权与权限 (Auth & Permission)</label>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl text-xs">
-                        <span className="text-slate-600">Auth Type</span>
-                        <span className="font-bold text-indigo-600">{drawerTool.authType}</span>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl text-xs">
-                        <span className="text-slate-600">{lang === 'zh' ? '租户权限' : 'Tenant Permission'}</span>
-                        <span className="text-emerald-600 font-bold">All Tenants</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">数据源白名单</label>
-                    <div className="flex flex-wrap gap-2">
-                      {['MySQL_Prod', 'ES_Logs', 'HDFS_Seismic'].map(ds => (
-                        <span key={ds} className="px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-medium">{ds}</span>
-                      ))}
+                      <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">{lang === 'zh' ? '创建时间' : 'Created At'}</div>
+                      <div className="text-sm font-bold text-slate-800">{drawerTool.createdAt}</div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="p-6 border-t border-slate-200 bg-slate-50/50 flex gap-3">
-                <button 
-                  onClick={() => setSelectedToolId(drawerTool.id)}
-                  className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
-                >
-                  {lang === 'zh' ? '进入 Studio' : 'Enter Studio'}
-                </button>
-                <button className="px-4 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all">
-                  <i className="fas fa-cog"></i>
-                </button>
               </div>
             </motion.aside>
           )}

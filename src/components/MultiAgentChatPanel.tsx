@@ -575,6 +575,114 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
     onChatStart();
 
     if (workspaceVersion === 'professional') {
+      if (input.includes('压裂设计参数')) {
+        const offsetWellAgent = agents.find(a => a.id === 'agent-pro-4') || agents[1];
+        try {
+          // 1. Thought
+          const thoughtId = `msg-thought-${Date.now()}`;
+          setMessages(prev => [...prev, {
+            id: thoughtId,
+            role: 'model',
+            agentId: leaderAgent.id,
+            content: `**问题理解**：用户需要针对 X-1 井推荐压裂设计参数。
+**意图识别**：
+- 核心任务：邻井压裂参数优选。
+- 业务逻辑：通过同区块同层位筛选、空间距离计算、储层属性匹配及生产表现评价，定位最优参考井并抽取参数。
+**调度计划**：
+- 启动 **邻井压裂参数优选** 场景智能体。
+- 执行标准 6 步 Workflow 流程。`,
+            timestamp: Date.now(),
+            status: 'completed'
+          }]);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          // 2. Workflow Card
+          const workflowId = `msg-wf-${Date.now()}`;
+          const steps = [
+            { name: 'Step 1: 区块 + 层位初筛', details: { thought: '先保证候选井在地质大背景上可参考。', action: ['过滤规则：区块=目标区块 AND 层位=目标层位'], observation: '初步筛选出 12 口同区块同层位候选井。' } },
+            { name: 'Step 2: 距离相近筛选', details: { thought: '在同区块同层位井中找到真正具有空间参考价值的井。', action: ['计算井间距离', 'Top-5 最近邻推荐'], observation: '识别出 5 口空间邻近井，最近距离 450m。' } },
+            { name: 'Step 3: 储层属性相似匹配', details: { thought: '保证参考井与目标井储层品质一致。', action: ['匹配渗透率、孔隙度、含油饱和度', '误差控制在 ±10%'], observation: '3 口井满足储层相似性要求，GeoScore 最高 0.92。' } },
+            { name: 'Step 4: 生产有效性过滤', details: { thought: '去掉没有实际生产验证价值的井。', action: ['剔除未投产井'], observation: '剔除 1 口未投产井，剩余 2 口有效参考井。' } },
+            { name: 'Step 5: 生产表现优选', details: { thought: '从有效井中找到生产效果最好的参考井。', action: ['按达产年产量、累计产量排序'], observation: '确定最优参考井：X-10 井，ProdScore 0.88。' } },
+            { name: 'Step 6: 最佳井分段压裂参数抽取', details: { thought: '沉淀真正可复用的压裂设计参数。', action: ['按“段级”抽取分段数、液量、加砂强度等'], observation: '成功抽取 X-10 井 12 段压裂施工参数。' } }
+          ];
+
+          setMessages(prev => [...prev, {
+            id: workflowId,
+            role: 'model',
+            agentId: offsetWellAgent.id,
+            content: '',
+            timestamp: Date.now(),
+            status: 'processing',
+            cardType: 'workflow',
+            payload: {
+              title: '邻井压裂参数优选',
+              category: '场景智能体',
+              steps: steps,
+              currentStep: 1,
+              status: '正在进行区块层位初筛...'
+            }
+          }]);
+
+          // Simulate step progression
+          for (let i = 2; i <= 6; i++) {
+            await new Promise(resolve => setTimeout(resolve, 1200));
+            setMessages(prev => prev.map(msg => 
+              msg.id === workflowId ? {
+                ...msg,
+                payload: {
+                  ...msg.payload,
+                  currentStep: i,
+                  status: `正在执行 ${steps[i-1].name}...`
+                }
+              } : msg
+            ));
+          }
+
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          setMessages(prev => prev.map(msg => 
+            msg.id === workflowId ? {
+              ...msg,
+              status: 'completed',
+              payload: { ...msg.payload, currentStep: 7, status: 'Workflow 执行完成' }
+            } : msg
+          ));
+
+          // 3. Final Result
+          const finalId = `msg-final-${Date.now()}`;
+          setMessages(prev => [...prev, {
+            id: finalId,
+            role: 'model',
+            agentId: leaderAgent.id,
+            content: '',
+            timestamp: Date.now(),
+            status: 'completed',
+            payload: {
+              conclusion: `经过邻井压裂参数优选智能体的深度分析，我为您推荐 **X-10 井** 作为最优参考井。该井与 X-1 井空间距离仅 450m，储层属性相似度达 92%，且达产年产量处于区块领先水平。
+
+### 分段参数推荐表 (基于 X-10 井)
+| 段号 | 段长 | 簇数 | 液量 (m³) | 加砂强度 (t/m) | 排量 (m³/min) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | 85m | 4 | 120 | 2.1 | 12 |
+| 2 | 80m | 4 | 115 | 2.0 | 12 |
+| 3 | 85m | 4 | 122 | 2.2 | 12 |
+| ... | ... | ... | ... | ... | ... |
+| 12 | 82m | 4 | 118 | 2.1 | 12 |
+
+**参数来源说明**：以上参数完全继承自 X-10 井实钻施工数据，已验证其在同类储层下的增产效果。`,
+              recommendations: [
+                '① 建议直接采用 X-10 井的加砂强度模板',
+                '② 针对 X-1 井局部高应力区，建议排量提升至 13m³/min',
+                '③ 一键生成新井压裂初设方案'
+              ],
+              outputs: ['压裂参数推荐表.xlsx', '邻井对比分析报告.pdf', '新井压裂初设初稿.docx']
+            }
+          }]);
+
+        } catch (e) { console.error(e); } finally { setIsGenerating(false); }
+        return;
+      }
+
       const scenarioAgent = agents.find(a => a.name === '生产分析岗') || agents[1];
       try {
         // 1. Thought (思考)
@@ -1070,7 +1178,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
       return [
         { text: lang === 'zh' ? '针对 X-1 井产量下降进行深度归因诊断' : 'Deep attribution diagnosis for production decline of Well X-1', icon: 'fa-stethoscope' },
         { text: lang === 'zh' ? '评估区块-X 近期的酸化措施有效性' : 'Evaluate effectiveness of recent acidification in Block-X', icon: 'fa-vial' },
-        { text: lang === 'zh' ? '预测 A2 井未来 15 天的含水率变化' : 'Predict water cut change of Well A2 for next 15 days', icon: 'fa-crystal-ball' }
+        { text: lang === 'zh' ? '为我推荐 X-1 井的压裂设计参数' : 'Recommend fracturing design parameters for Well X-1', icon: 'fa-oil-well' }
       ];
     }
     return [
@@ -1161,42 +1269,56 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
       {/* Chat Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center max-w-3xl mx-auto">
-            <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mb-6 text-indigo-500 shadow-sm">
-              <i className="fas fa-sparkles text-2xl"></i>
+          <div className="h-full flex flex-col items-center justify-center max-w-3xl mx-auto py-12">
+            <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center mb-8 text-white shadow-xl shadow-indigo-100 animate-pulse">
+              <i className="fas fa-sparkles text-3xl"></i>
             </div>
             
-            <div className="text-center mb-10">
-              <h2 className="text-xl font-bold text-gray-800 mb-3">
+            <div className="text-center mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 tracking-tight">
                 {lang === 'zh' ? '欢迎使用智能协作空间' : 'Welcome to AI Workspace'}
               </h2>
-              <p className="text-sm text-gray-500 leading-relaxed px-4">
-                {getVersionSummary()}
-              </p>
+              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm max-w-2xl mx-auto">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1.5 h-4 bg-indigo-500 rounded-full"></div>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{lang === 'zh' ? '空间总结' : 'Space Summary'}</span>
+                </div>
+                <p className="text-sm text-gray-600 leading-relaxed text-left">
+                  {getVersionSummary()}
+                </p>
+              </div>
             </div>
 
-            <div className="w-full grid grid-cols-1 gap-3">
-              <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 px-1">
-                {lang === 'zh' ? '推荐问题示例' : 'Recommended Questions'}
+            <div className="w-full space-y-4">
+              <div className="flex items-center gap-2 px-1">
+                <div className="w-1.5 h-4 bg-emerald-500 rounded-full"></div>
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  {lang === 'zh' ? '推荐问题示例' : 'Recommended Questions'}
+                </span>
               </div>
-              {getRecommendedQuestions().map((q, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    setInput(q.text);
-                    inputRef.current?.focus();
-                  }}
-                  className="flex items-center gap-4 p-4 bg-white border border-gray-100 rounded-2xl text-left hover:border-indigo-300 hover:shadow-md transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors">
-                    <i className={`fas ${q.icon}`}></i>
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-700 group-hover:text-indigo-600 transition-colors">{q.text}</div>
-                  </div>
-                  <i className="fas fa-chevron-right text-gray-300 text-xs group-hover:text-indigo-400 transition-colors"></i>
-                </button>
-              ))}
+              <div className="grid grid-cols-1 gap-3">
+                {getRecommendedQuestions().map((q, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setInput(q.text);
+                      inputRef.current?.focus();
+                    }}
+                    className="flex items-center gap-4 p-5 bg-white border border-gray-100 rounded-2xl text-left hover:border-indigo-300 hover:shadow-lg transition-all group relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors shadow-sm">
+                      <i className={`fas ${q.icon} text-lg`}></i>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">{q.text}</div>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-all">
+                      <i className="fas fa-arrow-right text-xs"></i>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         ) : (
