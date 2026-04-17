@@ -562,7 +562,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
     if (!input.trim() || isGenerating) return;
 
     const userMsg: Message = {
-      id: `msg-${Date.now()}`,
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       role: 'user',
       content: input,
       timestamp: Date.now()
@@ -579,7 +579,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
         const offsetWellAgent = agents.find(a => a.id === 'agent-pro-4') || agents[1];
         try {
           // 1. Thought
-          const thoughtId = `msg-thought-${Date.now()}`;
+          const thoughtId = `msg-thought-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           setMessages(prev => [...prev, {
             id: thoughtId,
             role: 'model',
@@ -588,6 +588,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
 **意图识别**：
 - 核心任务：邻井压裂参数优选。
 - 业务逻辑：通过同区块同层位筛选、空间距离计算、储层属性匹配及生产表现评价，定位最优参考井并抽取参数。
+
 **调度计划**：
 - 启动 **邻井压裂参数优选** 场景智能体。
 - 执行标准 6 步 Workflow 流程。`,
@@ -597,7 +598,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
           await new Promise(resolve => setTimeout(resolve, 1000));
 
           // 2. Workflow Card
-          const workflowId = `msg-wf-${Date.now()}`;
+          const workflowId = `msg-wf-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           const steps = [
             { name: 'Step 1: 区块 + 层位初筛', details: { thought: '先保证候选井在地质大背景上可参考。', action: ['过滤规则：区块=目标区块 AND 层位=目标层位'], observation: '初步筛选出 12 口同区块同层位候选井。' } },
             { name: 'Step 2: 距离相近筛选', details: { thought: '在同区块同层位井中找到真正具有空间参考价值的井。', action: ['计算井间距离', 'Top-5 最近邻推荐'], observation: '识别出 5 口空间邻近井，最近距离 450m。' } },
@@ -649,27 +650,16 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
           ));
 
           // 3. Final Result
-          const finalId = `msg-final-${Date.now()}`;
+          const finalId = `msg-final-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           setMessages(prev => [...prev, {
             id: finalId,
             role: 'model',
             agentId: leaderAgent.id,
-            content: '',
+            content: '我推荐X-1井的压裂设计参数',
             timestamp: Date.now(),
             status: 'completed',
             payload: {
-              conclusion: `经过邻井压裂参数优选智能体的深度分析，我为您推荐 **X-10 井** 作为最优参考井。该井与 X-1 井空间距离仅 450m，储层属性相似度达 92%，且达产年产量处于区块领先水平。
-
-### 分段参数推荐表 (基于 X-10 井)
-| 段号 | 段长 | 簇数 | 液量 (m³) | 加砂强度 (t/m) | 排量 (m³/min) |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | 85m | 4 | 120 | 2.1 | 12 |
-| 2 | 80m | 4 | 115 | 2.0 | 12 |
-| 3 | 85m | 4 | 122 | 2.2 | 12 |
-| ... | ... | ... | ... | ... | ... |
-| 12 | 82m | 4 | 118 | 2.1 | 12 |
-
-**参数来源说明**：以上参数完全继承自 X-10 井实钻施工数据，已验证其在同类储层下的增产效果。`,
+              conclusion: `经过邻井压裂参数优选智能体的深度分析，我为您推荐 **X-10 井** 作为最优参考井。该井与 X-1 井空间距离仅 450m，储层属性相似度达 92%，且达产年产量处于区块领先水平。`,
               recommendations: [
                 '① 建议直接采用 X-10 井的加砂强度模板',
                 '② 针对 X-1 井局部高应力区，建议排量提升至 13m³/min',
@@ -686,7 +676,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
       const scenarioAgent = agents.find(a => a.name === '生产分析岗') || agents[1];
       try {
         // 1. Thought (思考)
-        const thoughtId = `msg-thought-${Date.now()}`;
+        const thoughtId = `msg-thought-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         setMessages(prev => [...prev, {
           id: thoughtId,
           role: 'model',
@@ -706,13 +696,13 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         // 2. Workflow Card
-        const workflowId = `msg-workflow-${Date.now()}`;
-        const initialSteps = [
-          { name: '产量趋势分析', details: null },
-          { name: '压力变化诊断', details: null },
-          { name: '含水率异常检测', details: null },
-          { name: '多指标联动归因', details: null },
-          { name: '诊断图件生成', details: null }
+        const workflowId = `msg-wf-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const steps = [
+           { name: 'Step 1: 产量变化趋势分析', details: { thought: '首先确认日产量下降的具体数值与速率。', action: ['提取近7天日产量数据', '计算日递减率'], observation: '日产量由 102.3m³ 下降至 95.9m³，平均日降幅 0.9m³。' } },
+           { name: 'Step 2: 井底压力诊断', details: { thought: '检查地层能量或供液能力是否发生变化。', action: ['提取流压/套压数据', '分析压力与产量相关性'], observation: '井底流压由 25.2MPa 下降至 22.5MPa，呈同步下降趋势。' } },
+           { name: 'Step 3: 含水率波动监测', details: { thought: '排查是否因含水率上升导致产液量下降或油量下降。', action: ['比对含水分析报告'], observation: '含水率由 14.8% 上升至 17.2%，存在缓慢水淹迹象。' } },
+           { name: 'Step 4: 联动归因分析', details: { thought: '综合产量、压力、含水进行多指标联合归因。', action: ['多指标叠加分析', '计算贡献权重'], observation: '压力下降贡献度 70%，含水上升贡献度 30%。' } },
+           { name: 'Step 5: 优化建议生成', details: { thought: '给出针对性的稳产优化建议。', action: ['匹配优化策略库'], observation: '生成基于压力恢复与控水的综合建议。' } }
         ];
 
         setMessages(prev => [...prev, {
@@ -724,108 +714,44 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
           status: 'processing',
           cardType: 'workflow',
           payload: {
-            title: '产量下降模版',
-            category: '异常诊断',
-            steps: initialSteps,
+            title: '产量下降深度诊断',
+            category: '场景智能体',
+            steps: steps,
             currentStep: 1,
-            status: '正在执行：步骤 1 / 5'
+            status: '正在分析产量趋势...'
           }
         }]);
-        await new Promise(resolve => setTimeout(resolve, 1500));
 
-        // Update Step 1 details
-        setMessages(prev => prev.map(msg => msg.id === workflowId ? {
-          ...msg,
-          payload: {
-            ...msg.payload,
-            steps: msg.payload.steps.map((s: any, i: number) => i === 0 ? {
-              ...s,
-              details: {
-                thought: '先确认近7日产量是否为持续下降。',
-                action: ['调用：趋势分析通用智能体', 'NL2SQL', '递减率计算工具'],
-                observation: '近7日产量由 102.3 下放至 95.9，累计下降 6.3%。'
+        // Simulate step progression
+        for (let i = 2; i <= 5; i++) {
+          await new Promise(resolve => setTimeout(resolve, 1200));
+          setMessages(prev => prev.map(msg => 
+            msg.id === workflowId ? {
+              ...msg,
+              payload: {
+                ...msg.payload,
+                currentStep: i,
+                status: `正在执行 ${steps[i-1].name}...`
               }
-            } : s),
-            currentStep: 2,
-            status: '正在执行：步骤 2 / 5'
-          }
-        } : msg));
-        await new Promise(resolve => setTimeout(resolve, 1500));
+            } : msg
+          ));
+        }
 
-        // Update Step 2 details
-        setMessages(prev => prev.map(msg => msg.id === workflowId ? {
-          ...msg,
-          payload: {
-            ...msg.payload,
-            steps: msg.payload.steps.map((s: any, i: number) => i === 1 ? {
-              ...s,
-              details: {
-                thought: '判断产量递减是否由供液压力下降导致。',
-                action: ['调用：压力诊断通用智能体', 'NL2CQL', '压降速率工具'],
-                observation: '井底压力近7天下降 8.1%，与产量递减同步。'
-              }
-            } : s),
-            currentStep: 3,
-            status: '正在执行：步骤 3 / 5'
-          }
-        } : msg));
         await new Promise(resolve => setTimeout(resolve, 1000));
+        setMessages(prev => prev.map(msg => 
+          msg.id === workflowId ? {
+            ...msg,
+            status: 'completed',
+            payload: { ...msg.payload, currentStep: 6, status: '诊断流程执行完成' }
+          } : msg
+        ));
 
-        // Update Step 5 details
-        setMessages(prev => prev.map(msg => msg.id === workflowId ? {
-          ...msg,
-          payload: {
-            ...msg.payload,
-            steps: msg.payload.steps.map((s: any, i: number) => i === 4 ? {
-              ...s,
-              details: {
-                thought: '将归因分析结果可视化，生成多指标联动诊断图。',
-                action: ['调用：数据成图通用智能体', 'ECharts 渲染引擎'],
-                observation: '多指标联动归因诊断图已生成，包含产量、压力、含水率三曲线对比。',
-                plan: '输出最终诊断报告。'
-              }
-            } : s),
-            currentStep: 5,
-            status: '正在执行：步骤 5 / 5'
-          }
-        } : msg));
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Complete Workflow
-        setMessages(prev => prev.map(msg => msg.id === workflowId ? {
-          ...msg,
-          status: 'completed',
-          payload: {
-            ...msg.payload,
-            currentStep: 6,
-            status: '执行完成'
-          }
-        } : msg));
-
-        // 3. Stage Result
-        const stageId = `msg-stage-${Date.now()}`;
-        setMessages(prev => [...prev, {
-          id: stageId,
-          role: 'model',
-          agentId: leaderAgent.id,
-          content: '',
-          timestamp: Date.now(),
-          status: 'completed',
-          cardType: 'stage_result',
-          payload: { 
-            title: '阶段结论', 
-            finding: 'X-1井产量下降主因为井底压力不足，次因为含水率波动。',
-            points: ['压力递减率 1.2%/天', '含水率上升 0.5%']
-          }
-        }]);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // 4. Chart Card (Integrated into flow)
-        const chartId = `msg-chart-${Date.now()}`;
+        // 3. Chart Card (联动诊断图)
+        const chartId = `msg-diag-chart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         setMessages(prev => [...prev, {
           id: chartId,
           role: 'model',
-          agentId: agents.find(a => a.name === '数据成图')?.id || 'agent-chart',
+          agentId: scenarioAgent.id,
           content: '',
           timestamp: Date.now(),
           status: 'completed',
@@ -842,8 +768,8 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
         }]);
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // 5. Final Result
-        const finalId = `msg-final-${Date.now()}`;
+        // 4. Final Result
+        const finalId = `msg-final-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         setMessages(prev => [...prev, {
           id: finalId,
           role: 'model',

@@ -368,7 +368,7 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
         <div className="flex items-center gap-4">
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
             <i className="fas fa-robot text-indigo-600"></i>
-            Agent Console
+            {lang === 'zh' ? '智能体管理' : 'Agent Management'}
           </h2>
           <div className="h-6 w-px bg-slate-200 mx-2"></div>
           <div className="relative">
@@ -529,48 +529,6 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
             </div>
           </div>
 
-          {/* 5) Bottom: Running Observation Area */}
-          <footer className="h-20 bg-white border-t border-slate-200 px-8 flex items-center justify-between flex-shrink-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-            <div className="flex items-center gap-12">
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{lang === 'zh' ? '今日调用量' : "Today's Calls"}</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xl font-bold text-slate-800">42,850</span>
-                  <span className="text-xs text-emerald-500 font-bold flex items-center">
-                    <i className="fas fa-caret-up mr-1"></i> 12%
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{lang === 'zh' ? '平均耗时' : 'Avg Latency'}</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xl font-bold text-slate-800">1.2s</span>
-                  <span className="text-xs text-emerald-500 font-bold flex items-center">
-                    <i className="fas fa-caret-down mr-1"></i> 0.3s
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{lang === 'zh' ? 'Token 成本' : 'Token Cost'}</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xl font-bold text-slate-800">$124.50</span>
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{lang === 'zh' ? '用户满意度' : 'Satisfaction'}</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xl font-bold text-slate-800">4.8/5.0</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{lang === 'zh' ? 'Top 失败原因' : 'Top Failures'}</span>
-              <div className="flex gap-2">
-                <span className="px-2 py-0.5 bg-rose-50 text-rose-600 rounded text-[10px] font-bold border border-rose-100">Tool Timeout (42%)</span>
-                <span className="px-2 py-0.5 bg-rose-50 text-rose-600 rounded text-[10px] font-bold border border-rose-100">Auth Error (18%)</span>
-              </div>
-            </div>
-          </footer>
         </main>
 
         {/* 4) Right: Detail Configuration Drawer */}

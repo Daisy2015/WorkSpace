@@ -14,8 +14,6 @@ interface VersionData {
   enName: string;
   badge: string;
   agentCount: number | '不限';
-  price: string;
-  priceDetail: string;
   features: string[];
   agentSplit: string;
   suitable: string;
@@ -37,16 +35,14 @@ export const VersionComparisonModal: React.FC<VersionComparisonModalProps> = ({ 
       enName: 'Foundation',
       badge: '轻量起步',
       agentCount: 5,
-      price: '¥199',
-      priceDetail: '超出按每个智能体增购',
-      features: ['通用智能体', '智能问数', '数据成图', '摘要', '报告/PPT基础生成'],
-      agentSplit: '• 3个通用智能体\n• 2个工具智能体',
-      suitable: '个人分析/日常办公/快速汇报',
+      features: ['智能问数', '数据成图', '总结摘要', '动态报表'],
+      agentSplit: '集成 5 个专业智能体',
+      suitable: '个人分析与办公汇报',
       color: 'indigo',
       gradient: 'from-gray-50 to-slate-50',
       border: 'border-gray-200',
       icon: <Zap className="w-6 h-6 text-slate-600" />,
-      scene: '问数 + 成图 → 快速生成分析报告'
+      scene: '分析数据，快速成图'
     },
     {
       id: 'professional',
@@ -54,16 +50,14 @@ export const VersionComparisonModal: React.FC<VersionComparisonModalProps> = ({ 
       enName: 'Professional',
       badge: '推荐升级',
       agentCount: 20,
-      price: '¥899',
-      priceDetail: '超出按每个智能体增购',
-      features: ['包含基础版全部能力', '场景智能体', '多指标联动归因', '自动化优化方案', '高级图表定制'],
-      agentSplit: '• 10个通用智能体\n• 10个工具智能体',
-      suitable: '专业分析师/部门级应用/闭环诊断',
+      features: ['场景辅助', '联动归因', '优化方案', '专业诊断'],
+      agentSplit: '集成 20 个专业智能体',
+      suitable: '部门级专业闭环诊断',
       color: 'blue',
       gradient: 'from-blue-50 to-cyan-50',
       border: 'border-blue-200',
       icon: <Layout className="w-6 h-6 text-blue-600" />,
-      scene: '异常诊断 → 措施评估 → 自动生成优化方案'
+      scene: '多维诊断，提供方案'
     },
     {
       id: 'enterprise',
@@ -71,16 +65,14 @@ export const VersionComparisonModal: React.FC<VersionComparisonModalProps> = ({ 
       enName: 'Enterprise',
       badge: '岗位数字员工',
       agentCount: 100,
-      price: '¥4,999',
-      priceDetail: '超出按每个智能体增购',
-      features: ['包含专业版全部能力', '岗位智能体', '全流程自动化', '企业级知识库集成', '多团队协同管理'],
-      agentSplit: '• 50个通用智能体\n• 50个岗位智能体',
-      suitable: '中大型企业/核心业务线/全流程提效',
+      features: ['岗位智能', '自动流程', '知识中台', '协同管理'],
+      agentSplit: '集成 100 个专业智能体',
+      suitable: '中大型企业全流程提效',
       color: 'purple',
       gradient: 'from-purple-50 to-fuchsia-50',
       border: 'border-purple-200',
       icon: <Users className="w-6 h-6 text-purple-600" />,
-      scene: '生产分析岗数字员工 → 全流程自动化'
+      scene: '岗位闭环，流程自动'
     },
     {
       id: 'flagship',
@@ -88,16 +80,14 @@ export const VersionComparisonModal: React.FC<VersionComparisonModalProps> = ({ 
       enName: 'Flagship',
       badge: '组织级协同',
       agentCount: '不限',
-      price: '联系销售',
-      priceDetail: '定制化私有部署方案',
-      features: ['包含企业版全部能力', 'Agent 生态系统', '组织级智能运营中心', '跨部门协同调度', '专属定制化开发'],
-      agentSplit: '• 不限数量智能体\n• 专属算力保障',
-      suitable: '集团级客户/数字化转型标杆/全场景覆盖',
+      features: ['生态互联', '跨部协作', '集中调度', '私有定制'],
+      agentSplit: '不限数量智能体',
+      suitable: '集团组织级全场景覆盖',
       color: 'violet',
       gradient: 'from-orange-50 via-rose-50 to-pink-50',
       border: 'border-orange-200',
       icon: <Gem className="w-6 h-6 text-violet-600" />,
-      scene: '跨部门协同 → 组织级智能运营中心'
+      scene: '跨部协同，敏捷响应'
     }
   ], []);
 
@@ -245,15 +235,9 @@ export const VersionComparisonModal: React.FC<VersionComparisonModalProps> = ({ 
                 </div>
 
                 {/* Suitable */}
-                <div className="mb-6">
+                <div className="mt-auto">
                   <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">适合人群</div>
                   <div className="text-[11px] text-gray-700 leading-relaxed">{v.suitable}</div>
-                </div>
-
-                {/* Price */}
-                <div className="mt-auto pt-4 border-t border-gray-100">
-                  <div className="text-xl font-bold text-gray-900">{v.price}</div>
-                  <div className="text-[10px] text-gray-400">{v.priceDetail}</div>
                 </div>
 
                 {/* Hover Overlay */}
@@ -319,17 +303,14 @@ export const VersionComparisonModal: React.FC<VersionComparisonModalProps> = ({ 
         <div className="px-8 py-6 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <button className="text-xs font-medium text-gray-500 hover:text-indigo-600 transition-colors flex items-center gap-1">
-              查看详细版本能力 <ArrowRight className="w-3 h-3" />
-            </button>
-            <button className="text-xs font-medium text-gray-500 hover:text-indigo-600 transition-colors flex items-center gap-1">
-              计算当前升级费用 <ArrowRight className="w-3 h-3" />
+              查看能力清单 <ArrowRight className="w-3 h-3" />
             </button>
           </div>
           
           <div className="flex items-center gap-4">
             <div className="text-right mr-2">
-              <div className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">💡 产品建议</div>
-              <div className="text-xs text-gray-600">一个界面，四级能力递进，从个人助手平滑升级到组织级智能协同</div>
+              <div className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">💡 能力跃迁</div>
+              <div className="text-xs text-gray-600">从个人助手到组织级智能协同</div>
             </div>
             <button className="px-6 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-bold hover:bg-gray-50 transition-all">
               增购智能体
