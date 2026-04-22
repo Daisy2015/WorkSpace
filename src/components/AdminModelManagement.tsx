@@ -502,7 +502,7 @@ export const AdminModelManagement: React.FC<AdminModelManagementProps> = ({ lang
               <div className="flex-1 overflow-y-auto p-8 space-y-8">
                 {/* Input Area */}
                 <div>
-                  <label className="text-sm font-bold text-gray-700 mb-3 block uppercase tracking-wider">Input Text</label>
+                  <label className="text-sm font-bold text-gray-700 mb-3 block uppercase tracking-wider">{t.inputText}</label>
                   <div className="relative">
                     <textarea 
                       value={testText}
@@ -515,7 +515,7 @@ export const AdminModelManagement: React.FC<AdminModelManagementProps> = ({ lang
                             onClick={() => setTestText('')}
                             className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-gray-700"
                         >
-                            Clear
+                            {t.clear}
                         </button>
                         <button 
                             onClick={runTest}
@@ -523,7 +523,7 @@ export const AdminModelManagement: React.FC<AdminModelManagementProps> = ({ lang
                             className="bg-blue-600 text-white px-6 py-1.5 rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50 shadow-md"
                         >
                             {isTesting ? <i className="fas fa-spinner fa-spin mr-2"></i> : <i className="fas fa-play mr-2"></i>}
-                            Execute Test
+                            {t.executeTest}
                         </button>
                     </div>
                   </div>
@@ -542,7 +542,7 @@ export const AdminModelManagement: React.FC<AdminModelManagementProps> = ({ lang
                         >
                             <i className="fas fa-circle-notch"></i>
                         </motion.div>
-                        <p className="text-sm animate-pulse">Analyzing entities using {selectedModelForTest.baseModel}...</p>
+                        <p className="text-sm animate-pulse">{t.analyzing.replace('{model}', selectedModelForTest.baseModel)}</p>
                     </div>
                   ) : testResults.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -600,7 +600,7 @@ export const AdminModelManagement: React.FC<AdminModelManagementProps> = ({ lang
                   ) : (
                     <div className="py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 italic">
                         <i className="fas fa-keyboard text-3xl mb-3 opacity-20"></i>
-                        Enter text and click "Execute Test" to see results
+                        {lang === 'zh' ? `输入文本并点击“${t.executeTest}”查看结果` : `Enter text and click "${t.executeTest}" to see results`}
                     </div>
                   )}
                 </div>
