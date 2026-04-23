@@ -39,6 +39,8 @@ export interface ResourceNode {
     isPublic?: boolean;
     outcomeName?: string;
     outcomeType?: string;
+    objectId?: string;
+    isArtifactOutcome?: boolean;
   };
 }
 

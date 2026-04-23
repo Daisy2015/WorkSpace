@@ -20,6 +20,7 @@ interface MultiAgentChatPanelProps {
   isTracePanelOpen: boolean;
   agents: Agent[];
   workspaceVersion?: 'foundation' | 'professional' | 'enterprise' | 'flagship';
+  onSaveOutcome?: (name: string) => void;
 }
 
 export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
@@ -37,7 +38,8 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
   onToggleTracePanel,
   isTracePanelOpen,
   agents,
-  workspaceVersion = 'foundation'
+  workspaceVersion = 'foundation',
+  onSaveOutcome
 }) => {
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -76,7 +78,8 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
   }, [messages]);
 
   useEffect(() => {
-    if (messages.length === 0) {
+    // Automatic population of mock messages has been disabled.
+    if (false && messages.length === 0) {
       if (workspaceVersion === 'enterprise') {
         const enterpriseMockMessages: Message[] = [
           {
@@ -1254,7 +1257,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
             }
 
             // Use UnifiedResponseCard for all versions to group model messages into a single card
-            return <UnifiedResponseCard key={`group-${gIndex}`} messages={group.messages} agents={agents} version={workspaceVersion} />;
+            return <UnifiedResponseCard key={`group-${gIndex}`} messages={group.messages} agents={agents} version={workspaceVersion} onSaveOutcome={onSaveOutcome} />;
           })
         )}
         <div ref={messagesEndRef} />

@@ -447,7 +447,7 @@ export const ChartCard = ({ title, observation, data, type = 'line' }: { title: 
 };
 
 // --- UnifiedResponseCard ---
-export const UnifiedResponseCard = ({ messages, agents, version }: { messages: Message[], agents: Agent[], version: string }) => {
+export const UnifiedResponseCard = ({ messages, agents, version, onSaveOutcome }: { messages: Message[], agents: Agent[], version: string, onSaveOutcome?: (name: string) => void }) => {
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
   const [expandedSteps, setExpandedSteps] = useState<Record<string, Record<number, boolean>>>({});
   const [expandedScenarios, setExpandedScenarios] = useState<Record<string, Record<number, boolean>>>({});
@@ -848,7 +848,13 @@ export const UnifiedResponseCard = ({ messages, agents, version }: { messages: M
                   )}
 
                   <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-all shadow-sm">
+                    <button 
+                      onClick={() => {
+                        const name = msg.payload?.title || (msg.payload?.conclusion ? msg.payload.conclusion.substring(0, 20) : '未命名成果');
+                        onSaveOutcome?.(name);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-all shadow-sm"
+                    >
                       <i className="fas fa-save"></i> 保存为成果
                     </button>
                     <div className="flex items-center gap-1">
@@ -871,7 +877,7 @@ export const UnifiedResponseCard = ({ messages, agents, version }: { messages: M
   );
 };
 
-export const FinalResultCard = ({ message, agent }: { message: Message, agent: Agent }) => {
+export const FinalResultCard = ({ message, agent, onSaveOutcome }: { message: Message, agent: Agent, onSaveOutcome?: (name: string) => void }) => {
   return (
     <div className="max-w-[720px] mx-auto mb-6">
       <div className="flex items-start gap-3">
@@ -921,7 +927,16 @@ export const FinalResultCard = ({ message, agent }: { message: Message, agent: A
                     <i className="fas fa-magic mr-2"></i> 一键生成完整报告
                   </button>
                   <div className="flex items-center gap-2">
-                    <button className="p-2 text-gray-400 hover:text-indigo-600 transition-colors" title="保存为成果"><i className="fas fa-save"></i></button>
+                    <button 
+                      onClick={() => {
+                        const name = message.payload?.conclusion ? message.payload.conclusion.substring(0, 20) : '未命名成果';
+                        onSaveOutcome?.(name);
+                      }}
+                      className="p-2 text-gray-400 hover:text-indigo-600 transition-colors" 
+                      title="保存为成果"
+                    >
+                      <i className="fas fa-save"></i>
+                    </button>
                     <button className="p-2 text-gray-400 hover:text-indigo-600 transition-colors" title="重新生成"><i className="fas fa-redo-alt"></i></button>
                     <button className="p-2 text-gray-400 hover:text-indigo-600 transition-colors" title="复制"><i className="fas fa-copy"></i></button>
                     <button className="p-2 text-gray-400 hover:text-green-600 transition-colors" title="点赞"><i className="far fa-thumbs-up"></i></button>

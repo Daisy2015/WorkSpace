@@ -19,6 +19,7 @@ import { IntelligentConstruction } from './components/IntelligentConstruction';
 import { MbuExplorer } from './components/MbuExplorer';
 import { VersionComparisonModal } from './components/VersionComparisonModal';
 import { ReportTemplateModal } from './components/ReportTemplateModal';
+import { SaveOutcomeModal } from './components/SaveOutcomeModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESOURCE_TREE, MOCK_TEMPLATES } from './constants';
@@ -69,6 +70,8 @@ const App: React.FC = () => {
   const [isVersionDropdownOpen, setIsVersionDropdownOpen] = useState(false);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isSaveOutcomeModalOpen, setIsSaveOutcomeModalOpen] = useState(false);
+  const [outcomeToSave, setOutcomeToSave] = useState<{ name: string } | null>(null);
 
   const versions = useMemo(() => [
     { id: 'foundation', name: '基础版', enName: 'Foundation', desc: '通用智能助手', icon: 'fa-bolt', tagClass: 'bg-slate-100 text-slate-700' },
@@ -474,6 +477,11 @@ const App: React.FC = () => {
 
   const handleEditReport = (content: string, msgId: string) => {
       setEditingDoc({ content, msgId });
+  };
+
+  const handleOpenSaveOutcome = (name: string) => {
+    setOutcomeToSave({ name });
+    setIsSaveOutcomeModalOpen(true);
   };
 
   const handleSaveDoc = (newContent: string) => {
@@ -1010,6 +1018,7 @@ const App: React.FC = () => {
                                     isTracePanelOpen={isTracePanelOpen}
                                     agents={displayAgents}
                                     workspaceVersion={workspaceVersion}
+                                    onSaveOutcome={handleOpenSaveOutcome}
                                 />
                             </div>
 
@@ -1178,6 +1187,34 @@ const App: React.FC = () => {
             isOpen={isReportModalOpen}
             onClose={() => setIsReportModalOpen(false)}
             lang={lang}
+        />
+
+        <SaveOutcomeModal 
+          isOpen={isSaveOutcomeModalOpen}
+          onClose={() => setIsSaveOutcomeModalOpen(false)}
+          lang={lang}
+          resourceTree={resourceTree}
+          initialName={outcomeToSave?.name || ''}
+          objectScope={constructionObjectScope}
+          onConfirm={(data) => {
+            const newOutcome: ResourceNode = {
+              id: `outcome-${Date.now()}`,
+              name: data.name,
+              type: 'artifact',
+              meta: {
+                sourceType: 'system',
+                fileType: 'Outcome',
+                isPublic: data.isPublic,
+                date: new Date().toISOString(),
+                outcomeType: data.outcomeType,
+                objectId: data.objectId,
+                isArtifactOutcome: data.isArtifactOutcome
+              }
+            };
+            handleAddResource(data.mbuId, newOutcome);
+            setIsSaveOutcomeModalOpen(false);
+            setAlertMessage(lang === 'zh' ? '成果保存成功！已添加到资源树，并标记为深度分析成果。' : 'Outcome saved successfully! Added to resource tree and marked as deep analysis artifact.');
+          }}
         />
       </div>
     </div>

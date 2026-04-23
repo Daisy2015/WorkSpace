@@ -57,6 +57,9 @@ const ResourceTreeNode: React.FC<{
   };
 
   const getIcon = () => {
+    if (node.meta?.isArtifactOutcome) {
+      return 'fa-gem text-amber-500 shimmer-effect';
+    }
     if (node.meta?.fileType === 'Outcome') {
         const name = node.name.toLowerCase();
         if (name.includes('文档')) return 'fa-file-alt text-blue-500';
