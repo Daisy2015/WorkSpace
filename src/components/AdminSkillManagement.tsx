@@ -16,7 +16,7 @@ const MOCK_SKILLS: SkillEntry[] = [
     instructions: '邻井发现的详细指令...',
     isEnabled: true,
     updatedAt: '2024-05-21 11:00',
-    category: 'Engineering'
+    category: 'Business'
   },
   {
     id: 'skill-5',
@@ -26,7 +26,7 @@ const MOCK_SKILLS: SkillEntry[] = [
     instructions: '储层评分的详细指令...',
     isEnabled: true,
     updatedAt: '2024-05-21 11:15',
-    category: 'Engineering'
+    category: 'Business'
   },
   {
     id: 'skill-6',
@@ -36,7 +36,7 @@ const MOCK_SKILLS: SkillEntry[] = [
     instructions: '生产评价的详细指令...',
     isEnabled: true,
     updatedAt: '2024-05-21 11:30',
-    category: 'Engineering'
+    category: 'Business'
   },
   {
     id: 'skill-7',
@@ -46,7 +46,7 @@ const MOCK_SKILLS: SkillEntry[] = [
     instructions: '压裂参数抽取的详细指令...',
     isEnabled: true,
     updatedAt: '2024-05-21 11:45',
-    category: 'Engineering'
+    category: 'Business'
   },
   {
     id: 'skill-9',
@@ -56,7 +56,7 @@ const MOCK_SKILLS: SkillEntry[] = [
     instructions: '全域类比检索的详细指令...',
     isEnabled: true,
     updatedAt: '2024-05-21 12:15',
-    category: 'Analysis'
+    category: 'Business'
   },
   {
     id: 'skill-10',
@@ -66,7 +66,7 @@ const MOCK_SKILLS: SkillEntry[] = [
     instructions: '甜点综合评分的详细指令...',
     isEnabled: true,
     updatedAt: '2024-05-21 12:30',
-    category: 'Engineering'
+    category: 'Business'
   },
   {
     id: 'skill-11',
@@ -76,7 +76,7 @@ const MOCK_SKILLS: SkillEntry[] = [
     instructions: '参数寻优的详细指令...',
     isEnabled: true,
     updatedAt: '2024-05-21 12:45',
-    category: 'Optimization'
+    category: 'Business'
   },
   {
     id: 'skill-12',
@@ -86,7 +86,7 @@ const MOCK_SKILLS: SkillEntry[] = [
     instructions: 'EUR 预测的详细指令...',
     isEnabled: true,
     updatedAt: '2024-05-21 13:00',
-    category: 'Analysis'
+    category: 'Business'
   },
   {
     id: 'skill-3',
@@ -96,12 +96,63 @@ const MOCK_SKILLS: SkillEntry[] = [
     instructions: '识别地震剖面的详细指令...',
     isEnabled: false,
     updatedAt: '2024-05-18 09:15',
-    category: 'Image'
+    category: 'Business'
+  },
+  {
+    id: 'skill-creator',
+    name: 'Skill Creator',
+    scope: 'Global',
+    description: '智能技能创建助手，辅助用户定义技能范围、指令和描述。',
+    instructions: 'Skill Creator 的详细指令...',
+    isEnabled: true,
+    updatedAt: '2024-05-23 09:00',
+    category: 'General'
+  },
+  {
+    id: 'skill-finder',
+    name: 'Skill Finder',
+    scope: 'Global',
+    description: '智能技能检索助手，在技能库中快速寻找匹配业务场景的技能。',
+    instructions: 'Skill Finder 的详细指令...',
+    isEnabled: true,
+    updatedAt: '2024-05-23 09:10',
+    category: 'General'
+  },
+  {
+    id: 'docx',
+    name: 'DOCX Handler',
+    scope: 'Global',
+    description: 'Word 文档处理技能，支持文档读取、内容分析和结构化导出。',
+    instructions: 'DOCX Handler 的详细指令...',
+    isEnabled: true,
+    updatedAt: '2024-05-23 09:20',
+    category: 'General'
+  },
+  {
+    id: 'ppt',
+    name: 'PPT Generator',
+    scope: 'Global',
+    description: 'PPT 演示文稿生成技能，根据分析结论自动构建幻灯片大纲和内容。',
+    instructions: 'PPT Generator 的详细指令...',
+    isEnabled: true,
+    updatedAt: '2024-05-23 09:30',
+    category: 'General'
+  },
+  {
+    id: 'xlsx',
+    name: 'XLSX Analyst',
+    scope: 'Global',
+    description: 'Excel 报表分析技能，自动从复杂表格中提取关键指标并进行横向对比。',
+    instructions: 'XLSX Analyst 的详细指令...',
+    isEnabled: true,
+    updatedAt: '2024-05-23 09:40',
+    category: 'General'
   }
 ];
 
 export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang }) => {
   const [skills, setSkills] = useState<SkillEntry[]>(MOCK_SKILLS);
+  const [activeCategory, setActiveCategory] = useState<'All' | 'Business' | 'General'>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSkill, setEditingSkill] = useState<SkillEntry | null>(null);
@@ -112,27 +163,32 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
   // Form States
   const [formScope, setFormScope] = useState<'Global' | 'Project'>('Project');
   const [formName, setFormName] = useState('');
+  const [formCategory, setFormCategory] = useState<string>('Business');
   const [formDescription, setFormDescription] = useState('');
   const [formInstructions, setFormInstructions] = useState('');
 
   const filteredSkills = useMemo(() => {
-    return skills.filter(s => 
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      s.description.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [skills, searchQuery]);
+    return skills.filter(s => {
+      const matchSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          s.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchCategory = activeCategory === 'All' || s.category === activeCategory;
+      return matchSearch && matchCategory;
+    });
+  }, [skills, searchQuery, activeCategory]);
 
   const handleOpenModal = (skill?: SkillEntry) => {
     if (skill) {
       setEditingSkill(skill);
       setFormScope(skill.scope);
       setFormName(skill.name);
+      setFormCategory(skill.category || 'Business');
       setFormDescription(skill.description);
       setFormInstructions(skill.instructions);
     } else {
       setEditingSkill(null);
       setFormScope('Project');
       setFormName('');
+      setFormCategory(activeCategory === 'All' ? 'Business' : activeCategory);
       setFormDescription('');
       setFormInstructions('');
     }
@@ -145,6 +201,7 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
         ...s,
         name: formName,
         scope: formScope,
+        category: formCategory,
         description: formDescription,
         instructions: formInstructions,
         updatedAt: new Date().toLocaleString()
@@ -154,11 +211,11 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
         id: `skill-${Date.now()}`,
         name: formName,
         scope: formScope,
+        category: formCategory,
         description: formDescription,
         instructions: formInstructions,
         isEnabled: true,
         updatedAt: new Date().toLocaleString(),
-        category: 'Analysis'
       };
       setSkills(prev => [newSkill, ...prev]);
     }
@@ -179,10 +236,34 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
     <div className="h-full flex flex-col bg-slate-50 overflow-hidden relative">
       {/* Header */}
       <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0 z-10">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-8">
           <h2 className="text-lg font-bold text-slate-800">
             {lang === 'zh' ? '技能管理' : 'Skill Management'}
           </h2>
+          
+          <nav className="flex items-center gap-6">
+            {[
+              { id: 'All', zh: '全部', en: 'All' },
+              { id: 'Business', zh: '业务', en: 'Business' },
+              { id: 'General', zh: '通用', en: 'General' },
+            ].map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id as any)}
+                className={`relative py-5 text-sm font-bold transition-all ${
+                  activeCategory === cat.id ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                {lang === 'zh' ? cat.zh : cat.en}
+                {activeCategory === cat.id && (
+                  <motion.div 
+                    layoutId="activeCategory"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" 
+                  />
+                )}
+              </button>
+            ))}
+          </nav>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -445,6 +526,32 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
                   <div className="text-sm font-bold text-slate-600 mb-1 group-hover:text-indigo-600">{lang === 'zh' ? '上传进行智能解析' : 'Upload for Intelligent Parsing'}</div>
                   <div className="text-[10px] text-slate-400 text-center max-w-sm">
                     {lang === 'zh' ? '包含 SKILL.md 文件的 .zip 或 .skill 文件，SKILL.md 位于根目录，包含 YAML 格式的技能名称和描述。' : 'A .zip or .skill file containing SKILL.md at the root, with YAML formatted name and description.'}
+                  </div>
+                </div>
+
+                  {/* Category */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-400 flex items-center gap-1 uppercase tracking-widest">
+                    <span className="text-rose-500">*</span> {lang === 'zh' ? '分类' : 'Category'}
+                  </label>
+                  <div className="flex gap-4">
+                    {[
+                      { id: 'Business', zh: '业务', en: 'Business' },
+                      { id: 'General', zh: '通用', en: 'General' },
+                    ].map(cat => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setFormCategory(cat.id)}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
+                          formCategory === cat.id 
+                            ? 'bg-indigo-50 border-indigo-200 text-indigo-600' 
+                            : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                        }`}
+                      >
+                        {lang === 'zh' ? cat.zh : cat.en}
+                      </button>
+                    ))}
                   </div>
                 </div>
 

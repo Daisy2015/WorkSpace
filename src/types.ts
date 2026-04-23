@@ -78,6 +78,17 @@ export interface ChatSession {
 
 // --- Admin Module Types ---
 
+export interface SemanticEntry {
+  id: string;
+  name: string;
+  module: string;
+  type: string;
+  content: string;
+  isEnabled: boolean;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
 export type ModelStatus = 'Queued' | 'Preparing' | 'Training' | 'Evaluating' | 'Success' | 'Failed';
 
 export interface NERModel {

@@ -12,6 +12,7 @@ import { AdminAgentManagement } from './AdminAgentManagement';
 import { AdminSkillManagement } from './AdminSkillManagement';
 import { AdminToolManagement } from './AdminToolManagement';
 import { AdminWorkflowManagement } from './AdminWorkflowManagement';
+import { AdminSemanticManagement } from './AdminSemanticManagement';
 
 interface AdminPanelProps {
   lang: Language;
@@ -480,10 +481,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
   );
 
   const renderSemanticManagement = () => (
-    <div className="h-full p-6 bg-gray-50">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">{t.semanticManagement}</h2>
-        <p className="text-gray-600">{t.semanticManagementDesc}</p>
-    </div>
+    <AdminSemanticManagement lang={lang} />
   );
 
   const renderNERModelManagement = () => (
