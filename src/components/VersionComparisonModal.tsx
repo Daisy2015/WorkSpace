@@ -5,11 +5,11 @@ import { Check, X, HelpCircle, ArrowRight, Zap, Shield, Globe, Gem, Users, Brief
 interface VersionComparisonModalProps {
   isOpen: boolean;
   onClose: () => void;
-  currentVersion?: 'foundation' | 'professional' | 'enterprise' | 'flagship';
+  currentVersion?: 'foundation' | 'professional' | 'enterprise';
 }
 
 interface VersionData {
-  id: 'foundation' | 'professional' | 'enterprise' | 'flagship';
+  id: 'foundation' | 'professional' | 'enterprise';
   name: string;
   enName: string;
   badge: string;
@@ -25,7 +25,7 @@ interface VersionData {
 }
 
 export const VersionComparisonModal: React.FC<VersionComparisonModalProps> = ({ isOpen, onClose, currentVersion = 'foundation' }) => {
-  const [selectedVersion, setSelectedVersion] = useState<'foundation' | 'professional' | 'enterprise' | 'flagship'>(currentVersion);
+  const [selectedVersion, setSelectedVersion] = useState<'foundation' | 'professional' | 'enterprise'>(currentVersion);
   const [hoveredVersion, setHoveredVersion] = useState<string | null>(null);
 
   const versions: VersionData[] = useMemo(() => [
@@ -73,41 +73,24 @@ export const VersionComparisonModal: React.FC<VersionComparisonModalProps> = ({ 
       border: 'border-purple-200',
       icon: <Users className="w-6 h-6 text-purple-600" />,
       scene: '岗位闭环，流程自动'
-    },
-    {
-      id: 'flagship',
-      name: '旗舰版',
-      enName: 'Flagship',
-      badge: '组织级协同',
-      agentCount: '不限',
-      features: ['生态互联', '跨部协作', '集中调度', '私有定制'],
-      agentSplit: '不限数量智能体',
-      suitable: '集团组织级全场景覆盖',
-      color: 'violet',
-      gradient: 'from-orange-50 via-rose-50 to-pink-50',
-      border: 'border-orange-200',
-      icon: <Gem className="w-6 h-6 text-violet-600" />,
-      scene: '跨部协同，敏捷响应'
     }
   ], []);
 
   const comparisonItems = [
-    { label: '能力继承关系', values: ['起始版本', '包含基础版全部能力', '包含专业版全部能力', '包含企业版全部能力'] },
-    { label: '通用智能体', values: [true, true, true, true] },
-    { label: '智能问数', values: [true, true, true, true] },
-    { label: '数据成图', values: [true, true, true, true] },
-    { label: '摘要生成', values: [true, true, true, true] },
-    { label: '报告/PPT基础生成', values: [true, true, true, true] },
-    { label: '场景智能体', values: [false, true, true, true] },
-    { label: '多指标联动归因', values: [false, true, true, true] },
-    { label: '自动化优化方案', values: [false, true, true, true] },
-    { label: '岗位智能体', values: [false, false, true, true] },
-    { label: '全流程自动化', values: [false, false, true, true] },
-    { label: '企业级知识库集成', values: [false, false, true, true] },
-    { label: '组织级协同', values: [false, false, false, true] },
-    { label: 'Agent 生态系统', values: [false, false, false, true] },
-    { label: '私有化部署', values: ['不支持', '不支持', '支持', '深度定制'] },
-    { label: '专属算力保障', values: ['共享', '共享', '优先', '独享'] },
+    { label: '能力继承关系', values: ['起始版本', '包含基础版全部能力', '包含专业版全部能力'] },
+    { label: '通用智能体', values: [true, true, true] },
+    { label: '智能问数', values: [true, true, true] },
+    { label: '数据成图', values: [true, true, true] },
+    { label: '摘要生成', values: [true, true, true] },
+    { label: '报告/PPT基础生成', values: [true, true, true] },
+    { label: '场景智能体', values: [false, true, true] },
+    { label: '多指标联动归因', values: [false, true, true] },
+    { label: '自动化优化方案', values: [false, true, true] },
+    { label: '岗位智能体', values: [false, false, true] },
+    { label: '全流程自动化', values: [false, false, true] },
+    { label: '企业级知识库集成', values: [false, false, true] },
+    { label: '私有化部署', values: ['不支持', '不支持', '支持'] },
+    { label: '专属算力保障', values: ['共享', '共享', '优先'] },
   ];
 
   const getAgentBarWidth = (count: number | string) => {
@@ -157,7 +140,7 @@ export const VersionComparisonModal: React.FC<VersionComparisonModalProps> = ({ 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto custom-scrollbar px-8 py-6 space-y-8">
           {/* Version Cards */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             {versions.map((v) => (
               <motion.div
                 key={v.id}
@@ -173,7 +156,6 @@ export const VersionComparisonModal: React.FC<VersionComparisonModalProps> = ({ 
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
                     v.id === 'professional' ? 'bg-blue-100 text-blue-700' :
                     v.id === 'enterprise' ? 'bg-purple-100 text-purple-700' :
-                    v.id === 'flagship' ? 'bg-orange-100 text-orange-700' :
                     'bg-gray-100 text-gray-600'
                   }`}>
                     {v.badge}
@@ -224,8 +206,7 @@ export const VersionComparisonModal: React.FC<VersionComparisonModalProps> = ({ 
                       className={`h-full rounded-full ${
                         v.id === 'foundation' ? 'bg-gray-400' :
                         v.id === 'professional' ? 'bg-blue-500' :
-                        v.id === 'enterprise' ? 'bg-purple-500' :
-                        'bg-orange-500'
+                        'bg-purple-500'
                       }`}
                     />
                   </div>

@@ -444,6 +444,8 @@ export const translations = {
     newTrainingSet: '新建训练集',
     intelligentConstruction: '智能构建过程',
     constructionSubtitle: '可视化展示系统自动构建过程',
+    history: '执行记录',
+    config: '功能配置',
   },
   en: {
     appTitle: 'JuraWorkSpace',
@@ -886,5 +888,7 @@ export const translations = {
     newTrainingSet: 'New Training Set',
     intelligentConstruction: 'Intelligent Construction',
     constructionSubtitle: 'Visualize the automatic construction process',
+    history: 'History',
+    config: 'Config',
   }
 };

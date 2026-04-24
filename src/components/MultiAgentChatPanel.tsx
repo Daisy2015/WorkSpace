@@ -19,7 +19,7 @@ interface MultiAgentChatPanelProps {
   onToggleTracePanel: () => void;
   isTracePanelOpen: boolean;
   agents: Agent[];
-  workspaceVersion?: 'foundation' | 'professional' | 'enterprise' | 'flagship';
+  workspaceVersion?: 'foundation' | 'professional' | 'enterprise';
   onSaveOutcome?: (name: string) => void;
 }
 
@@ -934,7 +934,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
       return;
     }
 
-    if (workspaceVersion === 'enterprise' || workspaceVersion === 'flagship') {
+    if (workspaceVersion === 'enterprise') {
       const productionAgent = agents.find(a => a.name === '生产管理专家') || agents[1];
 
       try {

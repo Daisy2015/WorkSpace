@@ -11,7 +11,7 @@ interface ManagedAgent {
   id: string;
   name: string;
   type: 'Role' | 'Scenario' | 'General';
-  version: '基础版' | '专业版' | '企业版' | '旗舰版';
+  version: '基础版' | '专业版' | '企业版';
   skillsCount: number;
   toolsCount: number;
   recentCalls: number;
@@ -42,7 +42,7 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     id: 'agent-001',
     name: 'Leader Agent',
     type: 'General',
-    version: '旗舰版',
+    version: '企业版',
     skillsCount: 12,
     toolsCount: 8,
     recentCalls: 12500,

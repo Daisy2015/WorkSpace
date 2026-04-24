@@ -7,6 +7,7 @@ import { ResourceTree } from './components/ResourceTree';
 import { ChatPanel } from './components/ChatPanel';
 import { TracePanel } from './components/TracePanel';
 import { AddResourcePage } from './components/AddResourcePage';
+import { ExecutionHistoryPage } from './components/enterprise/ExecutionHistoryPage';
 import { Dashboard } from './components/Dashboard';
 import { AdminPanel } from './components/AdminPanel';
 import { KnowledgeBase } from './components/KnowledgeBase';
@@ -20,6 +21,7 @@ import { MbuExplorer } from './components/MbuExplorer';
 import { VersionComparisonModal } from './components/VersionComparisonModal';
 import { ReportTemplateModal } from './components/ReportTemplateModal';
 import { SaveOutcomeModal } from './components/SaveOutcomeModal';
+import { AgentConfigWizard } from './components/enterprise/AgentConfigWizard';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESOURCE_TREE, MOCK_TEMPLATES } from './constants';
@@ -48,8 +50,11 @@ const App: React.FC = () => {
   const [multiAgentMessages, setMultiAgentMessages] = useState<Message[]>([]);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [isAddResourcePageOpen, setIsAddResourcePageOpen] = useState(false);
+  const [isExecutionHistoryPageOpen, setIsExecutionHistoryPageOpen] = useState(false);
   const [isTracePanelOpen, setIsTracePanelOpen] = useState(true);
+  const [isResourcePanelOpen, setIsResourcePanelOpen] = useState(true);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [configAgentId, setConfigAgentId] = useState<string | null>(null);
 
   // MBU Explorer State (for construction completion)
   const [constructionTreeNode, setConstructionTreeNode] = useState<ResourceNode | null>(null);
@@ -66,7 +71,7 @@ const App: React.FC = () => {
   // Document Editor State
   const [editingDoc, setEditingDoc] = useState<{ content: string, msgId: string } | null>(null);
   
-  const [workspaceVersion, setWorkspaceVersion] = useState<'foundation' | 'professional' | 'enterprise' | 'flagship'>('foundation');
+  const [workspaceVersion, setWorkspaceVersion] = useState<'foundation' | 'professional' | 'enterprise'>('foundation');
   const [isVersionDropdownOpen, setIsVersionDropdownOpen] = useState(false);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -77,49 +82,77 @@ const App: React.FC = () => {
     { id: 'foundation', name: '基础版', enName: 'Foundation', desc: '通用智能助手', icon: 'fa-bolt', tagClass: 'bg-slate-100 text-slate-700' },
     { id: 'professional', name: '专业版', enName: 'Professional', desc: '场景闭环 Agent', icon: 'fa-cube', tagClass: 'bg-blue-100 text-blue-700' },
     { id: 'enterprise', name: '企业版', enName: 'Enterprise', desc: '岗位数字员工', icon: 'fa-users', tagClass: 'bg-purple-100 text-purple-700' },
-    { id: 'flagship', name: '旗舰版', enName: 'Flagship', desc: 'Agent 生态系统', icon: 'fa-gem', tagClass: 'bg-violet-600 text-white' },
   ], []);
 
   const currentVersionData = versions.find(v => v.id === workspaceVersion) || versions[0];
 
   const [agents, setAgents] = useState<Agent[]>([
-    { id: 'agent-1', name: 'Leader', role: '需求理解与任务调度', avatar: '👑', description: '负责理解用户意图，拆解任务并分发给对应的数字专家，最后汇总答案。', isLeader: true },
+    { id: 'agent-1', name: 'Leader', role: '需求理解与任务调度', avatar: '👑', description: '负责理解用户意图，拆解任务并分发给对应的数字专家，最后汇总答案。', isLeader: true, status: 'Idle' },
     { id: 'agent-2', name: '数据分析专家', role: '数据查询与统计', avatar: '📊', description: '精通SQL和数据分析，能够快速从海量数据中提取关键指标。' },
     { id: 'agent-3', name: '文档检索专家', role: '知识库问答', avatar: '📚', description: '熟悉各类技术文档和规范，能够准确回答专业问题。' },
     { id: 'agent-4', name: '报告生成专家', role: '内容总结与排版', avatar: '📝', description: '擅长将零散的信息整理成结构清晰、格式规范的报告。' },
-    { id: 'agent-5', name: '圈闭有效性评价专家', role: '圈闭有效性评价', avatar: '🎯', description: '负责对圈闭的构造、储层、盖层及保存条件进行综合评价，确定圈闭的有效性。' },
-    { id: 'agent-6', name: '主控风险识别专家', role: '主控风险识别', avatar: '🔍', description: '识别影响勘探成功率的关键风险因素，分析风险来源及影响程度。' },
-    { id: 'agent-7', name: '风险消减方案专家', role: '风险消减方案', avatar: '🛡️', description: '针对识别出的主控风险，制定科学合理的风险消减措施与应对预案。' },
-    { id: 'agent-8', name: '井位优选专家', role: '井位优选', avatar: '📍', description: '综合地质、工程及经济因素，从多个候选井位中优选出最佳钻探位置。' },
-    { id: 'agent-9', name: '钻后复盘专家', role: '钻后复盘', avatar: '🔄', description: '对已钻井的实钻资料进行系统梳理，对比设计与实钻差异，总结经验教训。' }
+    { id: 'agent-chart', name: '数据成图', role: '可视化成图', avatar: <i className="fas fa-chart-bar"></i>, description: '擅长将数据转化为直观的图表和可视化看板。' },
+    
+    // Pro specific
+    { id: 'agent-pro-1', name: '生产分析岗', role: '场景智能体', avatar: '🏭', description: '专注于生产动态分析、产量波动诊断及稳产方案建议。' },
+    { id: 'agent-pro-2', name: '勘探评价岗', role: '场景智能体', avatar: '🔍', description: '负责圈闭评价、资源量估算及勘探风险识别。' },
+    { id: 'agent-pro-3', name: '钻井工程岗', role: '场景智能体', avatar: '🏗️', description: '提供钻井设计优化、复杂情况预警及提速提效建议。' },
+    { id: 'agent-pro-4', name: '邻井压裂参数优选', role: '场景智能体', avatar: '🧪', description: '针对新井自动筛选最优邻井，继承最佳历史分段压裂参数，输出推荐参数包。' },
+    
+    // Enterprise specific
+    { 
+      id: 'agent-ent-1', 
+      name: '生产管理专家', 
+      role: '岗位数字员工', 
+      avatar: '👨‍💼', 
+      description: '全面负责生产管理业务，协同多个场景智能体完成复杂任务。', 
+      status: 'Running', 
+      tags: ['产量分析', '异常诊断', '报告生成'],
+      scenarios: [
+        { 
+          id: 's1', 
+          name: '产量波动归因分析', 
+          triggers: ['Data', 'Threshold', 'Schedule'], 
+          isEnabled: true, 
+          priority: 10,
+          description: '当产量数据波动超过±5%时自动触发' 
+        },
+        { 
+          id: 's2', 
+          name: '区块状态评估', 
+          triggers: ['Schedule'], 
+          isEnabled: true, 
+          priority: 5,
+          description: '每周定期对全区块生产效率进行综合评分' 
+        }
+      ],
+      instructions: {
+        systemPrompt: '由大模型驱动的资深生产管理专家，具备深厚的油气田开发背景。你将作为数字化岗位的核心，协调各场景智能体进行数据深度挖掘，并在发现异常时自动展开下钻分析。',
+        taskPrompt: '1. 检索昨日全区生产动态；2. 识别日产波动超过10%的单井；3. 协同产量分析Agent进行压力与液量关联分析；4. 输出含有根因定位与措施建议的日报。',
+        outputFormat: 'Report',
+        constraints: '严禁在未获得实时压力数据的情况下进行产量预测。所有措施建议需备注对应的作业安全规范编号。'
+      },
+      resultHandling: {
+        outputs: ['Report', 'Table'],
+        notifications: ['站内通知'],
+        approvalMode: 'AnomalyOnly',
+        storagePath: '/成果空间/生产分析',
+        archiveMode: 'Date'
+      }
+    },
+    { id: 'agent-ent-2', name: '勘探决策专家', role: '岗位数字员工', avatar: '🧠', description: '辅助勘探决策，集成地质、物探、钻井多学科分析能力。', status: 'Idle', tags: ['圈闭评价', '资源估算'] },
+    { id: 'agent-ent-3', name: '钻井指挥专家', role: '岗位数字员工', avatar: '📡', description: '实时指挥钻井作业，确保安全高效，实现岗位级业务闭环。', status: 'Stopped', tags: ['安全预警', '参数优化'] },
   ]);
 
   const displayAgents = useMemo(() => {
     if (workspaceVersion === 'foundation') {
-      return [
-        { id: 'agent-1', name: 'Leader', role: '需求理解与任务调度', avatar: '👑', description: '负责理解用户意图，拆解任务并分发给对应的数字专家，最后汇总答案。', isLeader: true },
-        { id: 'agent-2', name: '智能问数', role: '数据查询与统计', avatar: <i className="fas fa-robot"></i>, description: '精通SQL和数据分析，能够快速从海量数据中提取关键指标。' },
-        { id: 'agent-chart', name: '数据成图', role: '可视化成图', avatar: <i className="fas fa-robot"></i>, description: '擅长将数据转化为直观的图表和可视化看板。' },
-        { id: 'agent-3', name: '文档检索专家', role: '知识库问答', avatar: '📚', description: '熟悉各类技术文档和规范，能够准确回答专业问题。' },
-        { id: 'agent-4', name: '报告生成专家', role: '内容总结与排版', avatar: '📝', description: '擅长将零散的信息整理成结构清晰、格式规范的报告。' },
-      ];
+      return agents.filter(a => ['agent-1', 'agent-2', 'agent-3', 'agent-4', 'agent-chart'].includes(a.id));
     }
     if (workspaceVersion === 'professional') {
-      return [
-        { id: 'agent-1', name: 'Leader', role: '需求理解与任务调度', avatar: '👑', description: '负责理解用户意图，拆解任务并分发给对应的数字专家，最后汇总答案。', isLeader: true },
-        { id: 'agent-pro-1', name: '生产分析岗', role: '场景智能体', avatar: '🏭', description: '专注于生产动态分析、产量波动诊断及稳产方案建议。' },
-        { id: 'agent-pro-2', name: '勘探评价岗', role: '场景智能体', avatar: '🔍', description: '负责圈闭评价、资源量估算及勘探风险识别。' },
-        { id: 'agent-pro-3', name: '钻井工程岗', role: '场景智能体', avatar: '🏗️', description: '提供钻井设计优化、复杂情况预警及提速提效建议。' },
-        { id: 'agent-pro-4', name: '邻井压裂参数优选', role: '场景智能体', avatar: '🧪', description: '针对新井自动筛选最优邻井，继承最佳历史分段压裂参数，输出推荐参数包。' },
-      ];
+      return agents.filter(a => ['agent-1', 'agent-pro-1', 'agent-pro-2', 'agent-pro-3', 'agent-pro-4'].includes(a.id));
     }
-    if (workspaceVersion === 'enterprise' || workspaceVersion === 'flagship') {
-      return [
-        { id: 'agent-1', name: 'Leader', role: '需求理解与任务调度', avatar: '👑', description: '负责理解用户意图，拆解任务并分发给对应的数字专家，最后汇总答案。', isLeader: true },
-        { id: 'agent-ent-1', name: '生产管理专家', role: '岗位数字员工', avatar: '👨‍💼', description: '全面负责生产管理业务，协同多个场景智能体完成复杂任务。' },
-        { id: 'agent-ent-2', name: '勘探决策专家', role: '岗位数字员工', avatar: '🧠', description: '辅助勘探决策，集成地质、物探、钻井多学科分析能力。' },
-        { id: 'agent-ent-3', name: '钻井指挥专家', role: '岗位数字员工', avatar: '📡', description: '实时指挥钻井作业，确保安全高效，实现岗位级业务闭环。' },
-      ];
+    if (workspaceVersion === 'enterprise') {
+      return agents.filter(a => ['agent-1', 'agent-ent-1', 'agent-ent-2', 'agent-ent-3'].includes(a.id));
     }
     return agents;
   }, [workspaceVersion, agents]);
@@ -191,6 +224,7 @@ const App: React.FC = () => {
     }
     setSelectedMessage(null);
     setIsTracePanelOpen(true);
+    setIsResourcePanelOpen(true);
     setEditingDoc(null);
   };
 
@@ -203,6 +237,7 @@ const App: React.FC = () => {
   useEffect(() => {
     setMultiAgentMessages([]);
     setMessages([]);
+    setConfigAgentId(null);
   }, [workspaceVersion]);
 
   // Global Workspace Handlers
@@ -917,9 +952,17 @@ const App: React.FC = () => {
                                     </button>
                                     <div className="w-px h-4 bg-slate-200 mx-1"></div>
                                     <button 
+                                        onClick={() => setIsResourcePanelOpen(!isResourcePanelOpen)}
+                                        className={`p-2 rounded-lg transition-colors ${!isResourcePanelOpen ? 'text-indigo-600 bg-indigo-50' : 'hover:text-slate-600 hover:bg-slate-100'}`}
+                                        title={isResourcePanelOpen ? "收起资源面板" : "展开资源面板"}
+                                    >
+                                        <i className="fas fa-bars"></i>
+                                    </button>
+                                    <div className="w-px h-4 bg-slate-200 mx-1"></div>
+                                    <button 
                                         onClick={() => setIsTracePanelOpen(!isTracePanelOpen)}
                                         className={`p-2 rounded-lg transition-colors ${isTracePanelOpen ? 'text-indigo-600 bg-indigo-50' : 'hover:text-slate-600 hover:bg-slate-100'}`}
-                                        title={isTracePanelOpen ? "收起侧边栏" : "展开侧边栏"}
+                                        title={isTracePanelOpen ? "收起工具面板" : "展开工具面板"}
                                     >
                                         <i className="fas fa-columns"></i>
                                     </button>
@@ -930,100 +973,114 @@ const App: React.FC = () => {
                         {/* CONTENT CONTAINER */}
                         <div className="flex-1 flex flex-row overflow-hidden relative">
                             {/* Left Panel: Facts & Resources */}
-                            <div className="w-96 h-full flex-shrink-0 z-20 shadow-lg bg-white border-r border-gray-200 flex flex-col">
-                                <div className="flex-1 overflow-hidden">
-                                    <ResourceTree 
-                                        treeData={resourceTree}
-                                        selectedResources={selectedResources} 
-                                        onToggleResource={handleToggleResource} 
-                                        onSelectNode={() => {}}
-                                        onAddResource={handleAddResource}
-                                        onDeleteResources={handleDeleteResources}
-                                        onTogglePublic={handleTogglePublic}
-                                        onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
-                                        lang={lang}
-                                    />
-                                </div>
-                                
-                                {/* Selected Object Scope Section */}
-                                <div className={`border-t border-slate-200 flex flex-col bg-white overflow-hidden transition-all duration-300 ${isObjectScopeExpanded ? 'h-1/3' : 'h-10'}`}>
-                                    <div 
-                                        className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors"
-                                        onClick={() => setIsObjectScopeExpanded(!isObjectScopeExpanded)}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
-                                            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.1em] font-mono">
-                                                {lang === 'zh' ? '已选对象范围' : 'Selected Objects'}
-                                            </h3>
-                                            <span className="ml-1 text-[10px] font-mono text-slate-400">
-                                                [{activeWorkspaceData?.objects?.length || 0}]
-                                            </span>
-                                        </div>
-                                        <i className={`fas fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300 ${isObjectScopeExpanded ? 'rotate-180' : ''}`}></i>
+                            <div className={`${isResourcePanelOpen ? 'w-96 border-r' : 'w-0 border-none'} h-full flex-shrink-0 z-20 shadow-lg bg-white border-slate-200 flex flex-col transition-all duration-300 ease-in-out overflow-hidden`}>
+                                <div className="w-96 flex-1 flex flex-col overflow-hidden">
+                                    <div className="flex-1 overflow-hidden">
+                                        <ResourceTree 
+                                            treeData={resourceTree}
+                                            selectedResources={selectedResources} 
+                                            onToggleResource={handleToggleResource} 
+                                            onSelectNode={() => {}}
+                                            onAddResource={handleAddResource}
+                                            onDeleteResources={handleDeleteResources}
+                                            onTogglePublic={handleTogglePublic}
+                                            onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
+                                            lang={lang}
+                                        />
                                     </div>
                                     
-                                    {isObjectScopeExpanded && (
-                                        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-white animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                            {activeWorkspaceData?.objects && activeWorkspaceData.objects.length > 0 ? (
-                                                <div className="grid grid-cols-1 gap-2">
-                                                    {activeWorkspaceData.objects.map((obj: any) => (
-                                                        <div 
-                                                            key={obj.id}
-                                                            className="group flex items-center justify-between p-2 rounded border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-blue-200 hover:shadow-sm transition-all duration-200"
-                                                        >
-                                                            <div className="flex items-center gap-3 min-w-0">
-                                                                <div className="w-8 h-8 rounded bg-white border border-slate-100 flex items-center justify-center text-blue-500 group-hover:text-blue-600 transition-colors">
-                                                                    <i className="fas fa-cube text-xs"></i>
-                                                                </div>
-                                                                <div className="flex flex-col min-w-0">
-                                                                    <span className="text-xs font-medium text-slate-700 truncate">{obj.label}</span>
-                                                                    <span className="text-[9px] font-mono text-slate-400 uppercase tracking-tight">ID: {obj.id.split('-').pop()}</span>
-                                                                </div>
-                                                            </div>
-                                                            <button className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-500 transition-all">
-                                                                <i className="fas fa-times text-[10px]"></i>
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="h-full flex flex-col items-center justify-center text-slate-300 py-8">
-                                                    <div className="w-12 h-12 rounded-full border border-dashed border-slate-200 flex items-center justify-center mb-2">
-                                                        <i className="fas fa-layer-group text-lg opacity-40"></i>
-                                                    </div>
-                                                    <p className="text-[10px] font-medium uppercase tracking-wider">{lang === 'zh' ? '暂未选择对象' : 'No objects selected'}</p>
-                                                </div>
-                                            )}
+                                    {/* Selected Object Scope Section */}
+                                    <div className={`border-t border-slate-200 flex flex-col bg-white overflow-hidden transition-all duration-300 ${isObjectScopeExpanded ? 'h-1/3' : 'h-10'}`}>
+                                        <div 
+                                            className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors"
+                                            onClick={() => setIsObjectScopeExpanded(!isObjectScopeExpanded)}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                                                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.1em] font-mono">
+                                                    {lang === 'zh' ? '已选对象范围' : 'Selected Objects'}
+                                                </h3>
+                                                <span className="ml-1 text-[10px] font-mono text-slate-400">
+                                                    [{activeWorkspaceData?.objects?.length || 0}]
+                                                </span>
+                                            </div>
+                                            <i className={`fas fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300 ${isObjectScopeExpanded ? 'rotate-180' : ''}`}></i>
                                         </div>
-                                    )}
+                                        
+                                        {isObjectScopeExpanded && (
+                                            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-white animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                                {activeWorkspaceData?.objects && activeWorkspaceData.objects.length > 0 ? (
+                                                    <div className="grid grid-cols-1 gap-2">
+                                                        {activeWorkspaceData.objects.map((obj: any) => (
+                                                            <div 
+                                                                key={obj.id}
+                                                                className="group flex items-center justify-between p-2 rounded border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-blue-200 hover:shadow-sm transition-all duration-200"
+                                                            >
+                                                                <div className="flex items-center gap-3 min-w-0">
+                                                                    <div className="w-8 h-8 rounded bg-white border border-slate-100 flex items-center justify-center text-blue-500 group-hover:text-blue-600 transition-colors">
+                                                                        <i className="fas fa-cube text-xs"></i>
+                                                                    </div>
+                                                                    <div className="flex flex-col min-w-0">
+                                                                        <span className="text-xs font-medium text-slate-700 truncate">{obj.label}</span>
+                                                                        <span className="text-[9px] font-mono text-slate-400 uppercase tracking-tight">ID: {obj.id.split('-').pop()}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <button className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-500 transition-all">
+                                                                    <i className="fas fa-times text-[10px]"></i>
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="h-full flex flex-col items-center justify-center text-slate-300 py-8">
+                                                        <div className="w-12 h-12 rounded-full border border-dashed border-slate-200 flex items-center justify-center mb-2">
+                                                            <i className="fas fa-layer-group text-lg opacity-40"></i>
+                                                        </div>
+                                                        <p className="text-[10px] font-medium uppercase tracking-wider">{lang === 'zh' ? '暂未选择对象' : 'No objects selected'}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Center Panel: Chat */}
+                            {/* Center Panel: Chat or Config */}
                             <div className="flex-1 h-full min-w-0 z-0 bg-gray-50">
-                                <MultiAgentChatPanel 
-                                    messages={multiAgentMessages}
-                                    setMessages={setMultiAgentMessages}
-                                    selectedResources={selectedResources}
-                                    allResources={resourceTree}
-                                    onSelectMessage={setSelectedMessage}
-                                    onChatStart={() => setIsTracePanelOpen(true)}
-                                    onAddResource={handleAddResource}
-                                    currentWorkspace={activeWorkspaceData}
-                                    onUpdateWorkspaceName={(name) => activeWorkspaceId && handleUpdateWorkspace(activeWorkspaceId, { name })}
-                                    lang={lang}
-                                    onEditReport={handleEditReport}
-                                    onToggleTracePanel={() => setIsTracePanelOpen(!isTracePanelOpen)}
-                                    isTracePanelOpen={isTracePanelOpen}
-                                    agents={displayAgents}
-                                    workspaceVersion={workspaceVersion}
-                                    onSaveOutcome={handleOpenSaveOutcome}
-                                />
+                                {workspaceVersion === 'enterprise' && configAgentId ? (
+                                    <AgentConfigWizard 
+                                        agent={displayAgents.find(a => a.id === configAgentId) || displayAgents[1]}
+                                        onSave={(updated) => {
+                                            setAgents(prev => prev.map(a => a.id === updated.id ? { ...updated, status: 'Running' } : a));
+                                            setAlertMessage(`数字员工 ${updated.name} 的运行任务已成功部署！`);
+                                            setConfigAgentId(null);
+                                        }}
+                                        onCancel={() => setConfigAgentId(null)}
+                                    />
+                                ) : (
+                                    <MultiAgentChatPanel 
+                                        messages={multiAgentMessages}
+                                        setMessages={setMultiAgentMessages}
+                                        selectedResources={selectedResources}
+                                        allResources={resourceTree}
+                                        onSelectMessage={setSelectedMessage}
+                                        onChatStart={() => setIsTracePanelOpen(true)}
+                                        onAddResource={handleAddResource}
+                                        currentWorkspace={activeWorkspaceData}
+                                        onUpdateWorkspaceName={(name) => activeWorkspaceId && handleUpdateWorkspace(activeWorkspaceId, { name })}
+                                        lang={lang}
+                                        onEditReport={handleEditReport}
+                                        onToggleTracePanel={() => setIsTracePanelOpen(!isTracePanelOpen)}
+                                        isTracePanelOpen={isTracePanelOpen}
+                                        agents={displayAgents}
+                                        workspaceVersion={workspaceVersion}
+                                        onSaveOutcome={handleOpenSaveOutcome}
+                                    />
+                                )}
                             </div>
 
-                            {/* Right Panel: Trace & Audit or Agents Panel */}
-                            {workspaceVersion === 'foundation' || workspaceVersion === 'professional' || workspaceVersion === 'enterprise' || workspaceVersion === 'flagship' ? (
+                            {/* Right Panel: Trace & Audit or Enterprise Agents Panel */}
+                            {workspaceVersion === 'enterprise' || workspaceVersion === 'professional' || workspaceVersion === 'foundation' ? (
                                 <div className={`${isTracePanelOpen ? 'w-96 border-l' : 'w-0 border-none'} h-full flex-shrink-0 border-gray-200 z-10 bg-white transition-all duration-300 ease-in-out overflow-hidden`}>
                                     <div className="w-96 h-full">
                                         <TracePanel 
@@ -1033,20 +1090,13 @@ const App: React.FC = () => {
                                             onToggle={() => setIsTracePanelOpen(!isTracePanelOpen)}
                                             workspaceVersion={workspaceVersion}
                                             onCreateReport={() => setIsReportModalOpen(true)}
-                                        />
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className={`${isTracePanelOpen ? 'w-96 border-l' : 'w-0 border-none'} h-full flex-shrink-0 border-gray-200 z-10 bg-white transition-all duration-300 ease-in-out overflow-hidden`}>
-                                    <div className="w-96 h-full">
-                                        <AgentsPanel 
+                                            onSelectAgent={(id) => setConfigAgentId(id)}
+                                            onViewAllHistory={() => setIsExecutionHistoryPageOpen(true)}
                                             agents={displayAgents}
-                                            onAddAgent={() => alert(lang === 'zh' ? '添加智能体功能开发中...' : 'Add agent feature in development...')}
-                                            lang={lang}
                                         />
                                     </div>
                                 </div>
-                            )}
+                            ) : null}
                         </div>
 
                         {/* Modal Overlay for Add Resource */}
@@ -1058,6 +1108,16 @@ const App: React.FC = () => {
                                 initialTree={resourceTree}
                                 workspaceId={activeWorkspaceId}
                             />
+                        )}
+
+                        {isExecutionHistoryPageOpen && (
+                            <div className="absolute inset-0 z-[100] bg-white animate-in slide-in-from-right-10 duration-500">
+                                <ExecutionHistoryPage 
+                                    agents={agents}
+                                    onBack={() => setIsExecutionHistoryPageOpen(false)}
+                                    lang={lang}
+                                />
+                            </div>
                         )}
 
                         {/* Full Screen Document Editor */}

@@ -7,7 +7,7 @@ export const UserMessageCard = ({ message, avatar = 'ME' }: { message: Message, 
   return (
     <div className="max-w-[720px] mx-auto mb-6">
       <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs flex-shrink-0 mt-0.5">
+        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-xs flex-shrink-0 mt-0.5">
           {avatar}
         </div>
         <div className="flex-1 min-w-0">
@@ -79,7 +79,7 @@ export const AgentExecutionCard = ({
   status: string, 
   progress?: number,
   details?: any,
-  version?: 'foundation' | 'professional' | 'enterprise' | 'flagship'
+  version?: 'foundation' | 'professional' | 'enterprise'
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -155,8 +155,8 @@ export const AgentExecutionCard = ({
 
                 {version === 'professional' && details.type === 'workflow' && (
                   <div className="space-y-3">
-                    <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-100">
-                      <div className="text-[10px] font-bold text-indigo-800 mb-2 flex items-center gap-2">
+                    <div className="bg-purple-50 rounded-lg p-3 border border-purple-100">
+                      <div className="text-[10px] font-bold text-purple-800 mb-2 flex items-center gap-2">
                         <i className="fas fa-list-ol"></i> 标准 Workflow 步骤
                       </div>
                       <div className="space-y-2">
@@ -164,12 +164,12 @@ export const AgentExecutionCard = ({
                           <div key={index} className="flex items-center gap-3">
                             <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold ${
                               index + 1 < details.currentStep ? 'bg-green-500 text-white' :
-                              index + 1 === details.currentStep ? 'bg-indigo-600 text-white' :
+                              index + 1 === details.currentStep ? 'bg-purple-600 text-white' :
                               'bg-gray-200 text-gray-500'
                             }`}>
                               {index + 1 < details.currentStep ? <i className="fas fa-check"></i> : index + 1}
                             </div>
-                            <span className={`text-[11px] ${index + 1 === details.currentStep ? 'text-indigo-700 font-bold' : 'text-gray-600'}`}>
+                            <span className={`text-[11px] ${index + 1 === details.currentStep ? 'text-purple-700 font-bold' : 'text-gray-600'}`}>
                               {step}
                             </span>
                           </div>
@@ -185,7 +185,7 @@ export const AgentExecutionCard = ({
                       <div key={i} className="bg-gray-50 p-2 rounded-lg border border-gray-100">
                         <div className="text-[10px] font-bold text-gray-800 mb-0.5">{scene.name}</div>
                         <div className="text-[9px] text-gray-500 mb-1 truncate">{scene.task}</div>
-                        <div className={`text-[9px] font-bold px-1.5 py-0.5 rounded w-fit ${scene.status === '已完成' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                        <div className={`text-[9px] font-bold px-1.5 py-0.5 rounded w-fit ${scene.status === '已完成' ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'}`}>
                           {scene.status}
                         </div>
                       </div>
@@ -634,7 +634,7 @@ export const UnifiedResponseCard = ({ messages, agents, version, onSaveOutcome }
                               <div className="flex items-center gap-2 min-w-0">
                                 <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                                   sc.status === 'completed' ? 'bg-green-500' : 
-                                  sc.status === 'processing' ? 'bg-blue-500 animate-pulse' : 'bg-gray-300'
+                                  sc.status === 'processing' ? 'bg-purple-500 animate-pulse' : 'bg-gray-300'
                                 }`}></div>
                                 <span className="text-xs text-gray-700 truncate font-medium">{sc.name}</span>
                               </div>
@@ -703,8 +703,8 @@ export const UnifiedResponseCard = ({ messages, agents, version, onSaveOutcome }
                                         </div>
                                       )}
                                       {step.details.action && step.details.action.length > 0 && (
-                                        <div className="bg-white/80 rounded-lg p-2 border border-indigo-100/50">
-                                          <div className="text-[9px] font-bold text-indigo-800 mb-0.5 flex items-center gap-1.5"><i className="fas fa-bolt"></i> 行动</div>
+                                        <div className="bg-white/80 rounded-lg p-2 border border-purple-100/50">
+                                          <div className="text-[9px] font-bold text-purple-800 mb-0.5 flex items-center gap-1.5"><i className="fas fa-bolt"></i> 行动</div>
                                           <ul className="list-disc list-inside text-[10px] text-gray-600 space-y-0.5">
                                             {step.details.action.map((a: string, i: number) => <li key={i}>{a}</li>)}
                                           </ul>

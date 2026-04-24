@@ -60,6 +60,71 @@ export interface Message {
   payload?: any;
 }
 
+export interface AgentScenario {
+  id: string;
+  name: string;
+  description: string;
+  isEnabled: boolean;
+  triggers: string[];
+  priority: number;
+}
+
+export interface AgentInstruction {
+  systemPrompt: string;
+  taskPrompt: string;
+  outputFormat: 'Report' | 'Summary' | 'Table' | 'Text';
+  contextFiles?: string[];
+  constraints: string;
+}
+
+export interface AgentSchedule {
+  id?: string;
+  name?: string;
+  mode: 'Frequency' | 'Cron' | 'DataDriven' | 'Threshold' | 'Schedule';
+  config?: string;
+  nextRunAt?: string;
+  isEnabled?: boolean;
+  frequency?: 'Daily' | 'Weekly' | 'Monthly';
+  time?: string;
+}
+
+export interface AgentResultHandling {
+  formats?: string[];
+  storagePath: string;
+  notifications: string[];
+  notifyCondition?: 'Always' | 'ErrorOnly' | 'ImportantOnly';
+  requireApproval?: 'Always' | 'ErrorOnly' | 'Never';
+  archiveStrategy?: 'ByDate' | 'ByScenario' | 'ByImportance';
+  // New fields for the wizard
+  outputs?: ('Report' | 'Table' | 'Push')[];
+  approvalMode?: 'Always' | 'AnomalyOnly' | 'Never';
+  archiveMode?: 'Date' | 'Scenario';
+}
+
+export interface AgentRunHistory {
+  id: string;
+  timestamp: string;
+  scenarioName: string;
+  status: 'Success' | 'Failed' | 'Timeout' | 'PendingApproval' | 'Rejected';
+  summary: string;
+  fullContent?: string;
+  metadata?: {
+    duration: string;
+    dataSources: string[];
+    tokenUsage?: number;
+    modelName?: string;
+  };
+  feedback?: {
+    rating: number;
+    comment?: string;
+  };
+  approvalInfo?: {
+    approver: string;
+    time: string;
+    note?: string;
+  };
+}
+
 export interface Agent {
   id: string;
   name: string;
@@ -70,6 +135,14 @@ export interface Agent {
   isEnabled?: boolean;
   updatedAt?: string;
   updatedBy?: string;
+  tags?: string[];
+  // Enterprise fields
+  scenarios?: AgentScenario[];
+  instructions?: AgentInstruction;
+  schedules?: AgentSchedule[];
+  resultHandling?: AgentResultHandling;
+  runHistory?: AgentRunHistory[];
+  status?: 'Running' | 'Idle' | 'Stopped' | 'Error';
 }
 
 export interface ChatSession {
