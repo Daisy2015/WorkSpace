@@ -3,10 +3,18 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { translations } from '../i18n';
 import { Language, AuditLogEntry, FeedbackEntry } from '../types';
+import { AdminModelManagement } from './AdminModelManagement';
+import { AdminLLMManagement } from './AdminLLMManagement';
+import { AdminLLMConfig } from './AdminLLMConfig';
+import { AdminCorpusManagement } from './AdminCorpusManagement';
+import { AdminTrainingSetManagement } from './AdminTrainingSetManagement';
 import { AdminAgentManagement } from './AdminAgentManagement';
+import { AdminSkillManagement } from './AdminSkillManagement';
+import { AdminToolManagement } from './AdminToolManagement';
 import { AdminWorkflowManagement } from './AdminWorkflowManagement';
+import { AdminSemanticManagement } from './AdminSemanticManagement';
 
-interface AdminPanelProps {
+interface IntelligencePlatformProps {
   lang: Language;
 }
 
@@ -61,9 +69,9 @@ const MOCK_FEEDBACK: FeedbackEntry[] = [
     { id: 'fb-4', timestamp: '2024-05-17 14:00', user: '王建国', mbu: '地震解释', notebookName: '构造解释 NB-04', type: 'Error', status: 'Resolved', content: '层位追踪出现明显偏差。', processor: '管理员', result: '已修正知识库索引' },
 ];
 
-type AdminModule = 'audit' | 'feedback' | 'agentManagement' | 'workflowManagement';
+type AdminModule = 'audit' | 'feedback' | 'agentManagement' | 'toolManagement' | 'skillManagement' | 'workflowManagement' | 'semanticManagement' | 'nerModelManagement' | 'llmManagement' | 'llmConfig' | 'corpusManagement' | 'trainingSetManagement';
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
+export const IntelligencePlatform: React.FC<IntelligencePlatformProps> = ({ lang }) => {
   const t = translations[lang];
   const [activeModule, setActiveModule] = useState<AdminModule>('agentManagement');
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(true);
@@ -83,28 +91,77 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
     <div className="w-64 bg-white border-r border-gray-200 flex flex-col h-full flex-shrink-0">
         <div className="p-6 border-b border-gray-100">
             <h2 className="text-lg font-bold text-gray-800 flex items-center">
-                <i className="fas fa-shield-alt text-blue-600 mr-2"></i> {t.adminPanel}
+                <i className="fas fa-brain text-purple-600 mr-2"></i> {t.intelligencePlatform}
             </h2>
-            <p className="text-xs text-gray-500 mt-1">{t.adminSubtitle}</p>
+            <p className="text-xs text-gray-500 mt-1">{t.intelligenceSubtitle}</p>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
             {[
                 { id: 'agentManagement', label: lang === 'zh' ? '智能体管理' : 'Agent Management', icon: 'fa-robot' },
+                { id: 'toolManagement', label: t.toolManagement, icon: 'fa-tools' },
+                { id: 'skillManagement', label: t.skillsManagement, icon: 'fa-toolbox' },
                 { id: 'workflowManagement', label: lang === 'zh' ? '模板管理' : 'Template Management', icon: 'fa-project-diagram' },
+                { id: 'semanticManagement', label: t.semanticManagement, icon: 'fa-brain' },
             ].map((item) => (
                 <button
                     key={item.id}
                     onClick={() => setActiveModule(item.id as AdminModule)}
                     className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
                         activeModule === item.id 
-                        ? 'bg-blue-50 text-blue-700' 
+                        ? 'bg-purple-50 text-purple-700' 
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                 >
-                    <i className={`fas ${item.icon} w-6 text-center mr-2 ${activeModule === item.id ? 'text-blue-600' : 'text-gray-400'}`}></i>
+                    <i className={`fas ${item.icon} w-6 text-center mr-2 ${activeModule === item.id ? 'text-purple-600' : 'text-gray-400'}`}></i>
                     {item.label}
                 </button>
             ))}
+
+            {/* Nested Model Management */}
+            <div className="space-y-1">
+                <button
+                    onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
+                    className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-600 hover:bg-gray-50 hover:text-gray-900`}
+                >
+                    <div className="flex items-center">
+                        <i className={`fas fa-microchip w-6 text-center mr-2 text-gray-400`}></i>
+                        {t.modelManagement}
+                    </div>
+                    <i className={`fas fa-chevron-${isModelMenuOpen ? 'down' : 'right'} text-[10px] text-gray-400`}></i>
+                </button>
+                
+                <AnimatePresence>
+                    {isModelMenuOpen && (
+                        <motion.div 
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden pl-8 space-y-1"
+                        >
+                            {[
+                                { id: 'nerModelManagement', label: t.nerModelManagement, icon: 'fa-tags' },
+                                { id: 'corpusManagement', label: t.corpusManagement, icon: 'fa-database' },
+                                { id: 'trainingSetManagement', label: t.trainingSetManagement, icon: 'fa-layer-group' },
+                                { id: 'llmManagement', label: t.llmManagement, icon: 'fa-brain' },
+                                { id: 'llmConfig', label: t.llmConfig, icon: 'fa-sliders-h' },
+                            ].map((sub) => (
+                                <button
+                                    key={sub.id}
+                                    onClick={() => setActiveModule(sub.id as AdminModule)}
+                                    className={`w-full flex items-center px-4 py-2.5 text-xs font-medium rounded-lg transition-colors ${
+                                        activeModule === sub.id 
+                                        ? 'bg-purple-50 text-purple-700' 
+                                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                                    }`}
+                                >
+                                    <i className={`fas ${sub.icon} w-5 text-center mr-2 ${activeModule === sub.id ? 'text-purple-600' : 'text-gray-400'}`}></i>
+                                    {sub.label}
+                                </button>
+                            ))}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
         </nav>
 
         <div className="p-4 border-t border-gray-100 space-y-1 bg-gray-50/50">
@@ -117,11 +174,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
                     onClick={() => setActiveModule(item.id as AdminModule)}
                     className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
                         activeModule === item.id 
-                        ? 'bg-blue-50 text-blue-700' 
+                        ? 'bg-purple-50 text-purple-700' 
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                 >
-                    <i className={`fas ${item.icon} w-6 text-center mr-2 ${activeModule === item.id ? 'text-blue-600' : 'text-gray-400'}`}></i>
+                    <i className={`fas ${item.icon} w-6 text-center mr-2 ${activeModule === item.id ? 'text-purple-600' : 'text-gray-400'}`}></i>
                     {item.label}
                 </button>
             ))}
@@ -155,14 +212,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                         {MOCK_AUDIT_LOGS.map(log => (
-                            <tr key={log.id} className="hover:bg-blue-50 transition-colors">
+                            <tr key={log.id} className="hover:bg-purple-50 transition-colors">
                                 <td className="px-6 py-4 text-gray-500 font-mono text-xs">{log.timestamp}</td>
                                 <td className="px-6 py-4 font-medium text-gray-800">{log.user}</td>
                                 <td className="px-6 py-4 text-gray-600">{log.mbu}</td>
                                 <td className="px-6 py-4">
                                     <span className={`px-2 py-1 rounded text-xs font-bold ${
-                                        log.type === 'QA' ? 'bg-blue-100 text-blue-700' : 
-                                        log.type === 'StatusChange' ? 'bg-purple-100 text-purple-700' :
+                                        log.type === 'QA' ? 'bg-purple-100 text-purple-700' : 
+                                        log.type === 'StatusChange' ? 'bg-fuchsia-100 text-fuchsia-700' :
                                         log.type === 'ResourceEdit' ? 'bg-orange-100 text-orange-700' :
                                         log.type === 'Save' ? 'bg-green-100 text-green-700' :
                                         log.type === 'Generate' ? 'bg-teal-100 text-teal-700' :
@@ -176,7 +233,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
                                 <td className="px-6 py-4 text-right">
                                     <button 
                                         onClick={() => setSelectedLog(log)}
-                                        className="text-blue-600 hover:text-blue-800 font-medium text-xs border border-blue-200 px-3 py-1 rounded hover:bg-blue-50"
+                                        className="text-purple-600 hover:text-purple-800 font-medium text-xs border border-purple-200 px-3 py-1 rounded hover:bg-purple-50"
                                     >
                                         {t.viewDetail}
                                     </button>
@@ -204,7 +261,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
                                 <div><span className="text-gray-500 text-xs block mb-1">ID</span><span className="text-sm font-mono">{selectedLog.id}</span></div>
                                 <div><span className="text-gray-500 text-xs block mb-1">{t.colTime}</span><span className="text-sm">{selectedLog.timestamp}</span></div>
                                 <div><span className="text-gray-500 text-xs block mb-1">{t.colUser}</span><span className="text-sm font-bold">{selectedLog.user}</span></div>
-                                <div><span className="text-gray-500 text-xs block mb-1">{t.colMbu}</span><span className="text-sm text-blue-600">{selectedLog.mbu}</span></div>
+                                <div><span className="text-gray-500 text-xs block mb-1">{t.colMbu}</span><span className="text-sm text-purple-600">{selectedLog.mbu}</span></div>
                                 <div><span className="text-gray-500 text-xs block mb-1">{t.colType}</span><span className="text-sm font-bold">{selectedLog.type}</span></div>
                                 <div><span className="text-gray-500 text-xs block mb-1">{t.colObject}</span><span className="text-sm">{selectedLog.object}</span></div>
                             </div>
@@ -213,7 +270,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
                         {/* Block 2: Input / Action */}
                         <section>
                             <h4 className="text-xs font-bold text-gray-400 uppercase mb-3 tracking-wider">{t.originalInput} / Action Data</h4>
-                            <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-900 border border-blue-100">
+                            <div className="bg-purple-50 p-4 rounded-lg text-sm text-purple-900 border border-purple-100">
                                 {selectedLog.details.input}
                             </div>
                         </section>
@@ -288,7 +345,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
             <div className="flex bg-gray-100 p-1 rounded-lg">
                 <button 
                     onClick={() => setFeedbackStatusTab('Pending')}
-                    className={`px-4 py-1.5 text-sm font-bold rounded-md transition-all ${feedbackStatusTab === 'Pending' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`px-4 py-1.5 text-sm font-bold rounded-md transition-all ${feedbackStatusTab === 'Pending' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                     {t.tabPending}
                 </button>
@@ -305,7 +362,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
                 <select 
                     value={feedbackTypeFilter}
                     onChange={(e) => setFeedbackTypeFilter(e.target.value)}
-                    className="border border-gray-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500 bg-white"
+                    className="border border-gray-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-purple-500 bg-white"
                 >
                     <option value="all">{t.filterAllTypes}</option>
                     <option value="Useful">Useful</option>
@@ -333,7 +390,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {filteredFeedback.map(fb => (
-                                <tr key={fb.id} className={`hover:bg-blue-50 transition-colors cursor-pointer ${selectedFeedback?.id === fb.id ? 'bg-blue-50' : ''}`} onClick={() => setSelectedFeedback(fb)}>
+                                <tr key={fb.id} className={`hover:bg-purple-50 transition-colors cursor-pointer ${selectedFeedback?.id === fb.id ? 'bg-purple-50' : ''}`} onClick={() => setSelectedFeedback(fb)}>
                                     <td className="px-6 py-4 text-gray-500 text-xs">{fb.timestamp}</td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 rounded text-xs font-bold ${fb.type === 'Error' ? 'bg-red-100 text-red-700' : fb.type === 'Useful' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
@@ -356,7 +413,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
                                         </td>
                                     )}
                                     <td className="px-6 py-4 text-right">
-                                        <button className="text-blue-600 hover:text-blue-800 text-xs font-medium">{t.process}</button>
+                                        <button className="text-purple-600 hover:text-purple-800 text-xs font-medium">{t.process}</button>
                                     </td>
                                 </tr>
                             ))}
@@ -400,11 +457,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
                          {/* Revision Input */}
                          <div>
                             <label className="text-xs font-bold text-blue-500 uppercase mb-2 block">{t.revisionSuggestion}</label>
-                            <textarea className="w-full h-32 border border-gray-300 rounded p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder={t.enterRevision}></textarea>
+                            <textarea className="w-full h-32 border border-gray-300 rounded p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder={t.enterRevision}></textarea>
                          </div>
                     </div>
                     <div className="p-4 border-t border-gray-200 bg-gray-50 rounded-b-lg flex gap-3">
-                         <button onClick={() => alert('已写入知识库')} className="flex-1 bg-blue-600 text-white py-2 rounded text-sm font-bold hover:bg-blue-700 shadow-sm">{t.writeToKb}</button>
+                         <button onClick={() => alert('已写入知识库')} className="flex-1 bg-purple-600 text-white py-2 rounded text-sm font-bold hover:bg-purple-700 shadow-sm">{t.writeToKb}</button>
                          <button onClick={() => alert('已转入成果审核')} className="flex-1 bg-indigo-500 text-white py-2 rounded text-sm font-bold hover:bg-indigo-600 shadow-sm">{t.convertToOutcome}</button>
                          <button onClick={() => setSelectedFeedback(null)} className="px-4 py-2 border border-gray-300 text-gray-600 rounded text-sm hover:bg-gray-100">{t.ignore}</button>
                     </div>
@@ -423,6 +480,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
     </div>
   );
 
+  const renderSemanticManagement = () => (
+    <AdminSemanticManagement lang={lang} />
+  );
+
+  const renderNERModelManagement = () => (
+    <AdminModelManagement 
+      lang={lang} 
+      pendingTrainingSet={pendingTrainingSet} 
+      onClearPending={() => setPendingTrainingSet(null)}
+    />
+  );
+
+  const renderLLMManagement = () => (
+    <AdminLLMManagement lang={lang} />
+  );
+
+  const renderLLMConfig = () => (
+    <AdminLLMConfig lang={lang} />
+  );
+
+  const renderCorpusManagement = () => (
+    <AdminCorpusManagement lang={lang} />
+  );
+
+  const renderTrainingSetManagement = () => (
+    <AdminTrainingSetManagement 
+      lang={lang} 
+      onTrainRequest={(version) => {
+        setPendingTrainingSet(version);
+        setActiveModule('nerModelManagement');
+      }}
+    />
+  );
+
   return (
     <div className="flex h-full w-full">
       {renderSidebar()}
@@ -430,7 +521,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
          {activeModule === 'audit' && renderAuditLogs()}
          {activeModule === 'feedback' && renderFeedback()}
          {activeModule === 'agentManagement' && <AdminAgentManagement lang={lang} />}
+         {activeModule === 'skillManagement' && <AdminSkillManagement lang={lang} />}
+         {activeModule === 'toolManagement' && <AdminToolManagement lang={lang} />}
          {activeModule === 'workflowManagement' && <AdminWorkflowManagement lang={lang} />}
+         {activeModule === 'semanticManagement' && renderSemanticManagement()}
+         {activeModule === 'nerModelManagement' && renderNERModelManagement()}
+         {activeModule === 'llmManagement' && renderLLMManagement()}
+         {activeModule === 'llmConfig' && renderLLMConfig()}
+         {activeModule === 'corpusManagement' && renderCorpusManagement()}
+         {activeModule === 'trainingSetManagement' && renderTrainingSetManagement()}
       </div>
     </div>
   );

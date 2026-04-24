@@ -133,6 +133,8 @@ export const translations = {
     reportTemplates: '报告模版管理',
     mbuAnalytics: 'MBU 统计分析',
     systemSettings: '系统管理',
+    intelligencePlatform: '智能平台',
+    intelligenceSubtitle: '系统能力与模型治理',
     // Audit Log Columns
     colTime: '时间',
     colUser: '用户',
@@ -577,6 +579,8 @@ export const translations = {
     reportTemplates: 'Report Templates',
     mbuAnalytics: 'MBU Analytics',
     systemSettings: 'System Settings',
+    intelligencePlatform: 'Smart Platform',
+    intelligenceSubtitle: 'System Capabilities & Model Governance',
     // Audit Log Columns
     colTime: 'Time',
     colUser: 'User',

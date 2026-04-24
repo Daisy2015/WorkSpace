@@ -10,6 +10,7 @@ import { AddResourcePage } from './components/AddResourcePage';
 import { ExecutionHistoryPage } from './components/enterprise/ExecutionHistoryPage';
 import { Dashboard } from './components/Dashboard';
 import { AdminPanel } from './components/AdminPanel';
+import { IntelligencePlatform } from './components/IntelligencePlatform';
 import { KnowledgeBase } from './components/KnowledgeBase';
 import { DocumentEditor } from './components/DocumentEditor';
 import { IntegratedSearchPanel } from './components/IntegratedSearchPanel';
@@ -28,7 +29,7 @@ import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESO
 import { Message, ResourceNode, Language, Workspace, KnowledgeItem, WorkspaceStatus, WorkspaceTemplate, Agent } from './types';
 import { translations } from './i18n';
 
-type MainTab = 'dashboard' | 'workspaces' | 'admin' | 'knowledge' | 'integration' | 'templates' | 'construction' | 'construction-completion';
+type MainTab = 'dashboard' | 'workspaces' | 'admin' | 'intelligence' | 'knowledge' | 'integration' | 'templates' | 'construction' | 'construction-completion';
 
 const App: React.FC = () => {
   // Navigation State
@@ -601,6 +602,14 @@ const App: React.FC = () => {
                   {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.adminPanel}</span>}
               </button>
               <button 
+                onClick={() => handleTabChange('intelligence')}
+                className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'intelligence' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
+                title={isSidebarExpanded ? '' : t.intelligencePlatform}
+              >
+                  <i className="fas fa-brain text-lg min-w-[1.25rem] text-center"></i>
+                  {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.intelligencePlatform}</span>}
+              </button>
+              <button 
                 onClick={() => handleTabChange('integration')}
                 className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'integration' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
                 title={isSidebarExpanded ? '' : t.integrationDemo}
@@ -673,6 +682,11 @@ const App: React.FC = () => {
         {/* Scenario 2: Admin View */}
         {currentTab === 'admin' && (
             <AdminPanel lang={lang} />
+        )}
+
+        {/* Scenario: Intelligence Platform View */}
+        {currentTab === 'intelligence' && (
+            <IntelligencePlatform lang={lang} />
         )}
 
         {/* Scenario 3: Knowledge Base View */}

@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import Markdown from 'react-markdown';
 import { Language, WorkflowEntry } from '../types';
 
 interface AdminWorkflowStudioProps {
@@ -30,12 +31,231 @@ const INITIAL_NODES: WorkflowNode[] = [
 const MOCK_TOOLS = ['对象基本信息查询', '空间距离计算', '指标数据查询', '参数抽取'];
 const MOCK_SKILLS = ['地震剖面识别', '邻井发现', '储层相似性评分', '生产评价'];
 
+interface BusinessNode {
+  id: string;
+  name: string;
+  inputs: string[];
+  outputs: string[];
+  method: string;
+  skillDescription: string;
+}
+
+const BUSINESS_NODES: BusinessNode[] = [
+  {
+    id: 'b1',
+    name: '井基本信息',
+    inputs: ['钻井设计书', '完井报告', '井身结构图', '录井资料', '井表'],
+    outputs: ['井基本信息结构化数据'],
+    method: '文档解析 + 结构化数据库读取',
+    skillDescription: `# ✅ Skill名称
+
+**井基本信息节点解析与语义描述 Skill**
+
+---
+
+# ✅ 一句话定义
+
+对“井基本信息”节点进行结构化语义建模，完整描述其数据构成、来源、用途及可计算能力，为智能体提供标准化理解基础。
+
+---
+
+# ✅ Skill作用（系统视角）
+
+用于把“井基本信息”从一个**静态节点**，转化为一个**可被大模型理解与调用的结构化数据对象**，支撑：
+
+* 智能问数（问井相关问题）
+* 报告生成（自动填充基础信息）
+* 邻井分析（筛选对比对象）
+* 参数推荐（作为基础约束条件）
+* 数据校核（基础字段一致性校验）
+
+---
+
+# ✅ Skill核心能力拆解
+
+### 1️⃣ 节点语义定义能力
+
+明确该节点在整个工作空间中的定位：
+
+* 属于：基础数据节点 / 元信息节点
+* 粒度：井级
+* 生命周期：全流程长期有效
+* 是否可被引用：✅ 强引用节点
+
+---
+
+### 2️⃣ 成果资料挂载与解析能力
+
+#### 📂 关联成果资料类型（示例）
+
+* 钻井设计书
+* 完井报告
+* 井身结构图
+* 录井资料
+* 基础数据库表（井表）
+
+#### 📑 每类资料需描述：
+
+| 维度    | 内容               |
+| ----- | ---------------- |
+| 资料名称  | 如：钻井设计书          |
+| 数据类型  | 文档 / 表格 / 图件     |
+| 来源系统  | 如：勘探开发数据库 / 人工上传 |
+| 更新方式  | 自动同步 / 人工维护      |
+| 可信度等级 | 高 / 中 / 低        |
+
+---
+
+### 3️⃣ 数据项结构定义（核心）
+
+#### 📊 数据项分类
+
+**（1）基础属性类**
+
+* 井名
+* 井号
+* 所属区块
+* 井型（直井 / 定向井 / 水平井）
+* 完井方式
+
+**（2）空间位置类**
+
+* 经度
+* 纬度
+* 构造位置
+* 埋深
+
+**（3）时间类**
+
+* 开钻日期
+* 完钻日期
+* 投产日期
+
+**（4）工程参数类**
+
+* 设计井深
+* 实际井深
+* 水平段长度
+
+---
+
+#### 📌 每个数据项需描述（关键）
+
+| 属性    | 示例          |
+| ----- | ----------- |
+| 字段名称  | well_depth  |
+| 中文名称  | 井深          |
+| 数据类型  | 数值          |
+| 单位    | m           |
+| 来源    | 钻井设计书 / 数据库 |
+| 生成方式  | 文档解析 / 系统写入 |
+| 是否可缺失 | 否           |
+| 质量要求  | 精度±1m       |
+| 用途    | 压裂设计 / 邻井筛选 |
+
+---
+
+### 4️⃣ 数据来源与生产路径（非常关键）
+
+描述数据是**怎么来的**：
+
+#### 🔄 数据产生路径类型：
+
+* 文档解析（NLP抽取）
+* 结构化数据库读取
+* 人工录入
+* 计算生成（如井深差）
+
+#### 示例表达：
+
+> 井深字段优先来源于数据库井表，如缺失则从钻井设计书中通过文档解析获取。
+
+---
+
+### 5️⃣ 数据使用场景（给大模型看的重点）
+
+明确告诉模型：**这些数据可以用来干什么**
+
+#### 🎯 可支撑场景：
+
+* 邻井优选
+
+  * 条件筛选：井型 + 深度 + 区块
+* 压裂参数推荐
+
+  * 作为约束条件（深度、水平段长度）
+* 报告生成
+
+  * 自动填充“井基本情况”章节
+* 风险分析
+
+  * 判断异常井（超深井、异常井型）
+
+---
+
+### 6️⃣ 规则与约束（可选但建议有）
+
+#### ⚠️ 示例规则：
+
+* 井深必须 > 0
+* 完钻日期 ≥ 开钻日期
+* 水平段长度 ≤ 总井深
+
+用于：
+👉 报告校核
+👉 数据质量控制
+
+---
+
+### 7️⃣ 对外能力（给Agent调用）
+
+这个 Skill 对外提供的能力应该是：
+
+#### 🧠 可调用接口（逻辑层）
+
+* 获取井基础信息（结构化输出）
+* 按条件筛选井
+* 获取某字段来源说明
+* 校验井信息完整性`
+  },
+  {
+    id: 'b2',
+    name: '测井曲线处理',
+    inputs: ['LAS/DLIS原始数据'],
+    outputs: ['数字化曲线', '曲线解释结果'],
+    method: '深度对齐 + 曲线标准化',
+    skillDescription: '# ✅ Skill名称\n\n**测井曲线自动化处理与标准化 Skill**\n\n...'
+  },
+  {
+    id: 'b3',
+    name: '地震构造解释',
+    inputs: ['SEGY数据', '层位框架'],
+    outputs: ['构造图', '断层模型'],
+    method: '深度学习识别 + 专家修正',
+    skillDescription: '# ✅ Skill名称\n\n**地震智能解释与其空间建模 Skill**\n\n...'
+  }
+];
+
 export const AdminWorkflowStudio: React.FC<AdminWorkflowStudioProps> = ({ lang, workflow, onBack }) => {
   const [nodes, setNodes] = useState<WorkflowNode[]>(INITIAL_NODES);
   const [selectedNodeId, setSelectedNodeId] = useState<string>(INITIAL_NODES[0].id);
   const [processingMethod, setProcessingMethod] = useState<'Component' | 'Software' | 'LLM' | 'Tool' | 'Skill'>('LLM');
+  const [selectedBusinessNodeId, setSelectedBusinessNodeId] = useState<string>('');
+  const [isEditingSkill, setIsEditingSkill] = useState(false);
+  const [currentSkillDesc, setCurrentSkillDesc] = useState('');
 
   const selectedNode = nodes.find(n => n.id === selectedNodeId);
+  const selectedBusinessNode = BUSINESS_NODES.find(b => b.id === selectedBusinessNodeId);
+
+  const handleBusinessNodeChange = (id: string) => {
+    setSelectedBusinessNodeId(id);
+    const bNode = BUSINESS_NODES.find(b => b.id === id);
+    if (bNode) {
+      setCurrentSkillDesc(bNode.skillDescription);
+    } else {
+      setCurrentSkillDesc('');
+    }
+  };
 
   const handleAddNode = (parentId?: string) => {
     const newNode: WorkflowNode = {
@@ -185,27 +405,30 @@ export const AdminWorkflowStudio: React.FC<AdminWorkflowStudioProps> = ({ lang, 
                 <div className="grid grid-cols-2 gap-8">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">关联最小业务节点</label>
-                    <input 
-                      type="text" 
-                      placeholder="选择或输入业务节点名称..."
+                    <select 
+                      value={selectedBusinessNodeId}
+                      onChange={(e) => handleBusinessNodeChange(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                    />
+                    >
+                      <option value="">请选择业务节点...</option>
+                      {BUSINESS_NODES.map(b => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">处理方式</label>
-                    <div className="flex p-1 bg-slate-100 rounded-xl">
+                    <div className="flex bg-slate-50 border border-slate-200 rounded-xl p-1 gap-1">
                       {[
-                        { id: 'Component', label: '组件' },
-                        { id: 'Software', label: '专业软件' },
-                        { id: 'Tool', label: '工具' },
-                        { id: 'Skill', label: '技能包' },
-                        { id: 'LLM', label: '大模型' }
+                        { id: 'logic', label: '逻辑处理' },
+                        { id: 'math', label: '数学运算' },
+                        { id: 'ai', label: '人工智能' }
                       ].map(method => (
                         <button
                           key={method.id}
                           onClick={() => setProcessingMethod(method.id as any)}
                           className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
-                            processingMethod === method.id 
+                            (selectedBusinessNode ? selectedBusinessNode.method.includes(method.label) : processingMethod === method.id)
                             ? 'bg-white text-indigo-600 shadow-sm' 
                             : 'text-slate-500 hover:text-slate-700'
                           }`}
@@ -217,112 +440,51 @@ export const AdminWorkflowStudio: React.FC<AdminWorkflowStudioProps> = ({ lang, 
                   </div>
                 </div>
 
-                {/* Input/Output */}
+                {/* Input/Output Display */}
                 <div className="grid grid-cols-2 gap-8">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">输入成果</label>
-                    <div className="min-h-[100px] bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
-                      <div className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-100 text-[10px] text-slate-600 font-bold">
-                        <span>井位坐标数据.json</span>
-                        <i className="fas fa-times cursor-pointer hover:text-rose-500"></i>
-                      </div>
-                      <button className="w-full py-2 border border-dashed border-slate-300 rounded-lg text-[10px] text-slate-400 hover:bg-white hover:border-indigo-300 hover:text-indigo-500 transition-all">
-                        + 添加输入成果
-                      </button>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                      {selectedBusinessNode ? (
+                        <div className="flex items-center gap-2 p-2 bg-indigo-50/50 rounded-lg border border-indigo-100 text-[10px] text-indigo-700 font-bold">
+                          <i className="fas fa-file-alt"></i>
+                          <span>{selectedBusinessNode.inputs[0]}</span>
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-slate-400 italic font-medium p-2 text-center bg-white border border-dashed border-slate-200 rounded-lg">未关联节点</div>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">输出成果</label>
-                    <div className="min-h-[100px] bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
-                      <div className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-100 text-[10px] text-slate-600 font-bold">
-                        <span>邻井筛选结果.csv</span>
-                        <i className="fas fa-times cursor-pointer hover:text-rose-500"></i>
-                      </div>
-                      <button className="w-full py-2 border border-dashed border-slate-300 rounded-lg text-[10px] text-slate-400 hover:bg-white hover:border-indigo-300 hover:text-indigo-500 transition-all">
-                        + 添加输出成果
-                      </button>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                      {selectedBusinessNode ? (
+                        <div className="flex items-center gap-2 p-2 bg-emerald-50/50 rounded-lg border border-emerald-100 text-[10px] text-emerald-700 font-bold">
+                          <i className="fas fa-check-circle"></i>
+                          <span>{selectedBusinessNode.outputs[0]}</span>
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-slate-400 italic font-medium p-2 text-center bg-white border border-dashed border-slate-200 rounded-lg">未关联节点</div>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Dynamic Parameters */}
-                <div className="space-y-4 pt-4 border-t border-slate-100">
-                  <h4 className="text-xs font-bold text-slate-800 flex items-center gap-2">
-                    <i className="fas fa-sliders-h text-indigo-500"></i>
-                    处理参数配置
-                  </h4>
-                  
-                  {processingMethod === 'LLM' && (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">选择模型</label>
-                        <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
-                          <option>Gemini 1.5 Pro (Petroleum Optimized)</option>
-                          <option>GPT-4o</option>
-                          <option>Claude 3.5 Sonnet</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">处理指令 (Prompt)</label>
-                        <textarea 
-                          className="w-full h-48 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs text-indigo-100 font-mono placeholder:text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
-                          placeholder="请输入大模型处理指令，例如：基于输入的邻井列表，结合储层厚度、渗透率等参数，计算相似性评分..."
-                        />
-                      </div>
+                {/* Skill Description Editor (Editable directly) */}
+                {selectedBusinessNode && (
+                  <div className="space-y-4 pt-6 border-t border-slate-100">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">业务节点 Skill 描述 (Markdown)</label>
+                    <div className="bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl">
+                      <textarea
+                        value={currentSkillDesc}
+                        onChange={(e) => setCurrentSkillDesc(e.target.value)}
+                        className="w-full h-[500px] p-8 text-xs font-mono leading-relaxed bg-transparent text-indigo-100 focus:outline-none transition-all resize-none custom-scrollbar"
+                        placeholder="输入 Skill Markdown 描述..."
+                      />
                     </div>
-                  )}
-
-                  {processingMethod === 'Component' && (
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">组件名称</label>
-                        <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
-                          <option>空间距离计算组件</option>
-                          <option>数据清洗组件</option>
-                          <option>格式转换组件</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">超时时间 (s)</label>
-                        <input type="number" defaultValue={30} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
-                      </div>
-                    </div>
-                  )}
-
-                  {processingMethod === 'Tool' && (
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">选择工具</label>
-                        <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
-                          {MOCK_TOOLS.map(tool => <option key={tool}>{tool}</option>)}
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">调用参数 (JSON)</label>
-                        <input type="text" placeholder='{"key": "value"}' className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all" />
-                      </div>
-                    </div>
-                  )}
-
-                  {processingMethod === 'Skill' && (
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">选择技能包</label>
-                        <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
-                          {MOCK_SKILLS.map(skill => <option key={skill}>{skill}</option>)}
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">执行优先级</label>
-                        <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
-                          <option>High</option>
-                          <option>Medium</option>
-                          <option>Low</option>
-                        </select>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                    <p className="text-[10px] text-slate-400 italic text-right">* 支持实时编辑，Markdown 内容将用于 Agent 语义寻址</p>
+                  </div>
+                )}
               </div>
             </div>
 

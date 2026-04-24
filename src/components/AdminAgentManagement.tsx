@@ -35,6 +35,8 @@ interface ManagedAgent {
   selectedSkills?: string[];
   selectedTools?: string[];
   fallbackStrategy?: string;
+  selectedScenarioAgents?: string[];
+  selectedGeneralAgents?: string[];
 }
 
 const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
@@ -83,7 +85,8 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     ioSchema: 'Fracturing Params',
     reasoningMode: 'Expert Logic',
     tags: ['Fracturing', 'Optimization'],
-    industry: 'Oil & Gas'
+    industry: 'Oil & Gas',
+    selectedGeneralAgents: ['Leader Agent', '数据合规 Agent']
   },
   {
     id: 'agent-003',
@@ -343,7 +346,73 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     reasoningMode: 'Summarization',
     tags: ['Summary', 'NLP'],
     industry: 'General'
-  }
+  },
+  {
+    id: 'agent-015',
+    name: '生产管理专家',
+    type: 'Role',
+    version: '企业版',
+    skillsCount: 8,
+    toolsCount: 5,
+    recentCalls: 3400,
+    currentVersion: 'v1.0.0',
+    isEnabled: true,
+    updateTime: '2024-05-23 09:00',
+    description: '负责油田生产全过程监控、异常诊断及优化调度，确保生产目标达成。',
+    prompt: '你是一个资深的生产管理专家，负责监控油气田生产动态，识别生产瓶颈，制定日度/月度生产优化方案。',
+    roleConstraints: '优先级：安全生产 > 产量达标 > 成本控制\n数据引用必须附带时间戳和井号\n异常报警需分类分级处理',
+    selectedSkills: ['生产动态分析', '异常诊断', '调度优化'],
+    selectedTools: ['实时监控系统', '生产调度平台', 'KPI 仪表盘'],
+    ioSchema: 'Production Plan/Report',
+    reasoningMode: 'Operational Logic',
+    tags: ['Production', 'Management'],
+    industry: 'Oil & Gas',
+    selectedScenarioAgents: ['压后产能预测 Agent', '生产动态评价 Agent']
+  },
+  {
+    id: 'agent-016',
+    name: '勘探决策专家',
+    type: 'Role',
+    version: '企业版',
+    skillsCount: 10,
+    toolsCount: 6,
+    recentCalls: 1200,
+    currentVersion: 'v1.0.0',
+    isEnabled: true,
+    updateTime: '2024-05-23 10:00',
+    description: '综合地质、地震、测井数据进行区块评估与井位部署建议，提升勘探成功率。',
+    prompt: '你是一个勘探决策专家，负责在新区块或现有区块进行资源量评估、有利区优选、井位论证及勘探方案评审。',
+    roleConstraints: '客观评估地质风险\n多评价体系交叉验证\n遵循行业标准评价规范',
+    selectedSkills: ['区块评估', '评价准则制定', '风险概率模型'],
+    selectedTools: ['地质建模软件', 'GIS 地图服务', '资源量计算器'],
+    ioSchema: 'Exploration Strategy/Proposal',
+    reasoningMode: 'Multi-Criteria Decision',
+    tags: ['Exploration', 'Decision'],
+    industry: 'Oil & Gas',
+    selectedScenarioAgents: ['类比井推荐 Agent', '地质风险评估 Agent']
+  },
+  {
+    id: 'agent-017',
+    name: '钻井指挥专家',
+    type: 'Role',
+    version: '企业版',
+    skillsCount: 7,
+    toolsCount: 8,
+    recentCalls: 2800,
+    currentVersion: 'v1.0.0',
+    isEnabled: true,
+    updateTime: '2024-05-23 11:00',
+    description: '实施钻井过程中的实时指令分发、复杂事故预警与工程进度管控。',
+    prompt: '你是一个钻井指挥专家，负责钻井作业现场的实时指挥调度、工程风险预警、非生产时间 analysis 及优化建议。',
+    roleConstraints: '实时性响应要求 < 1s\n事故预警必须包含应急处置方案建议\n工程作业记录精确到分钟',
+    selectedSkills: ['实时指挥', '工程预警', '钻井工艺优化'],
+    selectedTools: ['钻井仪表板', '预警系统', '进度看板'],
+    ioSchema: 'Drilling Instruction/Log',
+    reasoningMode: 'Real-time Control',
+    tags: ['Drilling', 'Execution'],
+    industry: 'Oil & Gas',
+    selectedScenarioAgents: ['钻井工程预警 Agent', '施工参数优化 Agent']
+  },
 ];
 
 export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang }) => {
@@ -384,9 +453,9 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
           <div className="h-6 w-px bg-slate-200 mx-2"></div>
           <div className="flex bg-slate-100 p-1 rounded-xl">
             {[
-              { id: 'Role', label: lang === 'zh' ? '岗位' : 'Role', icon: 'fa-user-tie' },
-              { id: 'Scenario', label: lang === 'zh' ? '场景' : 'Scenario', icon: 'fa-cube' },
               { id: 'General', label: lang === 'zh' ? '通用' : 'General', icon: 'fa-bolt' },
+              { id: 'Scenario', label: lang === 'zh' ? '场景' : 'Scenario', icon: 'fa-cube' },
+              { id: 'Role', label: lang === 'zh' ? '岗位' : 'Role', icon: 'fa-user-tie' },
             ].map(item => (
               <button
                 key={item.id}
@@ -646,15 +715,55 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
 
                   {activeTab === 'capabilities' && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                      {selectedAgent.type !== 'General' && (
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '模版选择' : 'Template Selection'}</label>
-                          <select className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option>{selectedAgent.selectedTemplate || (lang === 'zh' ? '请选择模版' : 'Select Template')}</option>
-                            <option>通用调度模版</option>
-                            <option>新井邻井压裂参数优选</option>
-                            <option>单井产量分析模版</option>
-                          </select>
+                      {selectedAgent.type === 'Scenario' && (
+                        <div className="space-y-6">
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '模版选择' : 'Template Selection'}</label>
+                            <select className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                              <option>{selectedAgent.selectedTemplate || (lang === 'zh' ? '请选择模版' : 'Select Template')}</option>
+                              <option>通用调度模版</option>
+                              <option>新井邻井压裂参数优选</option>
+                              <option>单井产量分析模版</option>
+                            </select>
+                          </div>
+                          
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '通用智能体选择' : 'General Agent Selection'}</label>
+                              <button className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700">+ {lang === 'zh' ? '添加通用智能体' : 'Add General Agent'}</button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {(selectedAgent.selectedGeneralAgents || []).map(ga => (
+                                <span key={ga} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold flex items-center gap-2">
+                                  {ga}
+                                  <i className="fas fa-times cursor-pointer hover:text-blue-800"></i>
+                                </span>
+                              ))}
+                              {(selectedAgent.selectedGeneralAgents || []).length === 0 && (
+                                <div className="text-xs text-slate-400 italic py-2">{lang === 'zh' ? '尚未绑定通用智能体' : 'No general agents bound'}</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedAgent.type === 'Role' && (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '场景智能体选择' : 'Scenario Agent Selection'}</label>
+                            <button className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700">+ {lang === 'zh' ? '添加场景智能体' : 'Add Scenario Agent'}</button>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {(selectedAgent.selectedScenarioAgents || []).map(sa => (
+                              <span key={sa} className="px-3 py-1.5 bg-purple-50 text-purple-600 rounded-lg text-xs font-bold flex items-center gap-2">
+                                {sa}
+                                <i className="fas fa-times cursor-pointer hover:text-purple-800"></i>
+                              </span>
+                            ))}
+                            {(selectedAgent.selectedScenarioAgents || []).length === 0 && (
+                              <div className="text-xs text-slate-400 italic py-2">{lang === 'zh' ? '尚未绑定场景智能体' : 'No scenario agents bound'}</div>
+                            )}
+                          </div>
                         </div>
                       )}
 
