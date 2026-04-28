@@ -39,10 +39,11 @@ export const WorkspaceConstructionLoading: React.FC<WorkspaceConstructionLoading
   onComplete 
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const [isFinished, setIsFinished] = useState(false);
   const steps = lang === 'zh' ? steps_zh : steps_en;
 
   useEffect(() => {
-    const totalDuration = 6000; // 6 seconds
+    const totalDuration = 12000; // Increased to 12 seconds
     const stepDuration = totalDuration / steps.length;
 
     const stepInterval = setInterval(() => {
@@ -54,7 +55,7 @@ export const WorkspaceConstructionLoading: React.FC<WorkspaceConstructionLoading
     }, stepDuration);
 
     const timeout = setTimeout(() => {
-      onComplete();
+      setIsFinished(true);
     }, totalDuration + 500);
 
     return () => {
@@ -188,16 +189,34 @@ export const WorkspaceConstructionLoading: React.FC<WorkspaceConstructionLoading
         </div>
 
         {/* Estimated Time Badge */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-white shadow-xl px-8 py-4 rounded-[1.5rem] flex items-center gap-4 text-slate-900 font-bold border border-slate-100"
-        >
-          <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[11px] shadow-lg shadow-blue-600/20">
-            <i className="fas fa-clock"></i>
-          </div>
-          <span className="text-sm tracking-wide">{lang === 'zh' ? '预计耗时：5-10秒' : 'Estimated: 5-10s'}</span>
-        </motion.div>
+        <div className="flex flex-col items-center gap-6">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white shadow-xl px-8 py-4 rounded-[1.5rem] flex items-center gap-4 text-slate-900 font-bold border border-slate-100"
+          >
+            <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[11px] shadow-lg shadow-blue-600/20">
+              <i className="fas fa-clock"></i>
+            </div>
+            <span className="text-sm tracking-wide">
+              {isFinished ? (lang === 'zh' ? '已准备就绪' : 'Ready') : (lang === 'zh' ? '预计耗时：10-20秒' : 'Estimated: 10-20s')}
+            </span>
+          </motion.div>
+
+          {isFinished && (
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onComplete}
+              className="px-10 py-5 bg-blue-600 text-white rounded-3xl font-bold text-xl shadow-2xl shadow-blue-600/30 hover:bg-blue-700 transition-all flex items-center gap-4"
+            >
+              <i className="fas fa-rocket"></i>
+              {lang === 'zh' ? '进入研究空间' : 'Enter Workspace'}
+            </motion.button>
+          )}
+        </div>
 
       </div>
 

@@ -341,7 +341,7 @@ export const AdminModelManagement: React.FC<AdminModelManagementProps> = ({ lang
                             {t.useModel}
                           </button>
                         )}
-                        {model.status === 'Success' && (
+                        {model.isActive && (
                           <button 
                             onClick={() => setSelectedModelForTest(model)}
                             className="text-blue-600 hover:text-blue-800 text-xs font-bold px-2 py-1 border border-blue-200 rounded hover:bg-blue-50"

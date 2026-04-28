@@ -18,10 +18,12 @@ import { WorkspaceTemplates } from './components/WorkspaceTemplates';
 import { MultiAgentChatPanel } from './components/MultiAgentChatPanel';
 import { AgentsPanel } from './components/AgentsPanel';
 import { IntelligentConstruction } from './components/IntelligentConstruction';
+import WorkspaceStrategyConfig from './components/WorkspaceStrategyConfig';
 import { MbuExplorer } from './components/MbuExplorer';
 import { VersionComparisonModal } from './components/VersionComparisonModal';
 import { ReportTemplateModal } from './components/ReportTemplateModal';
 import { SaveOutcomeModal } from './components/SaveOutcomeModal';
+import { WorkspaceFeatureOverview } from './components/WorkspaceFeatureOverview';
 import { AgentConfigWizard } from './components/enterprise/AgentConfigWizard';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
@@ -50,11 +52,13 @@ const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [multiAgentMessages, setMultiAgentMessages] = useState<Message[]>([]);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [leftPanelTab, setLeftPanelTab] = useState<'resources' | 'overview'>('resources');
   const [isAddResourcePageOpen, setIsAddResourcePageOpen] = useState(false);
   const [isExecutionHistoryPageOpen, setIsExecutionHistoryPageOpen] = useState(false);
   const [isTracePanelOpen, setIsTracePanelOpen] = useState(true);
   const [isResourcePanelOpen, setIsResourcePanelOpen] = useState(true);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isStrategyConfirmationOpen, setIsStrategyConfirmationOpen] = useState(false);
   const [configAgentId, setConfigAgentId] = useState<string | null>(null);
 
   // MBU Explorer State (for construction completion)
@@ -187,7 +191,7 @@ const App: React.FC = () => {
       }
   };
 
-  const handleSelectWorkspace = (id: string, name?: string, description?: string, objects?: any[]) => {
+  const handleSelectWorkspace = (id: string, name?: string, description?: string, objects?: any[], autoOpenAddResource: boolean = false) => {
     let finalId = id;
     
     if (id === 'new-demo') {
@@ -217,11 +221,11 @@ const App: React.FC = () => {
     if (id === 'new-demo') {
         setResourceTree(JSON.parse(JSON.stringify(EMPTY_RESOURCE_TREE)));
         setMessages([]); // Empty messages to show summary/recommendations
-        setIsAddResourcePageOpen(false);
+        setIsAddResourcePageOpen(autoOpenAddResource);
     } else {
         setResourceTree(JSON.parse(JSON.stringify(DRILLING_RESOURCE_TREE)));
         setMessages([]); // Empty messages to show summary/recommendations
-        setIsAddResourcePageOpen(false);
+        setIsAddResourcePageOpen(autoOpenAddResource);
     }
     setSelectedMessage(null);
     setIsTracePanelOpen(true);
@@ -349,7 +353,7 @@ const App: React.FC = () => {
       t.id === template.id ? { ...t, usageCount: t.usageCount + 1 } : t
     ));
 
-    handleSelectWorkspace(newWorkspace.id, name, description, objects);
+    handleSelectWorkspace(newWorkspace.id, name, description, objects, true);
   };
 
   // Knowledge Base Integration Handler
@@ -618,7 +622,11 @@ const App: React.FC = () => {
                   {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.integrationDemo}</span>}
               </button>
               <button 
-                onClick={() => handleTabChange('construction')}
+                onClick={() => {
+                  if (currentTab !== 'construction') {
+                    setIsStrategyConfirmationOpen(true);
+                  }
+                }}
                 className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'construction' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
                 title={isSidebarExpanded ? '' : t.intelligentConstruction}
               >
@@ -989,18 +997,40 @@ const App: React.FC = () => {
                             {/* Left Panel: Facts & Resources */}
                             <div className={`${isResourcePanelOpen ? 'w-96 border-r' : 'w-0 border-none'} h-full flex-shrink-0 z-20 shadow-lg bg-white border-slate-200 flex flex-col transition-all duration-300 ease-in-out overflow-hidden`}>
                                 <div className="w-96 flex-1 flex flex-col overflow-hidden">
-                                    <div className="flex-1 overflow-hidden">
-                                        <ResourceTree 
-                                            treeData={resourceTree}
-                                            selectedResources={selectedResources} 
-                                            onToggleResource={handleToggleResource} 
-                                            onSelectNode={() => {}}
-                                            onAddResource={handleAddResource}
-                                            onDeleteResources={handleDeleteResources}
-                                            onTogglePublic={handleTogglePublic}
-                                            onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
-                                            lang={lang}
-                                        />
+                                    {/* Panel Tabs */}
+                                    <div className="flex border-b border-slate-100 flex-shrink-0">
+                                        <button 
+                                            onClick={() => setLeftPanelTab('resources')}
+                                            className={`flex-1 py-3 text-[11px] font-bold uppercase tracking-widest transition-all ${leftPanelTab === 'resources' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/30' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
+                                        >
+                                            {lang === 'zh' ? '资源目录' : 'Resources'}
+                                        </button>
+                                        <button 
+                                            onClick={() => setLeftPanelTab('overview')}
+                                            className={`flex-1 py-3 text-[11px] font-bold uppercase tracking-widest transition-all ${leftPanelTab === 'overview' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/30' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
+                                        >
+                                            {lang === 'zh' ? '能力视图' : 'Capabilities'}
+                                        </button>
+                                    </div>
+
+                                    <div className="flex-1 overflow-hidden relative">
+                                        {leftPanelTab === 'resources' ? (
+                                            <ResourceTree 
+                                                treeData={resourceTree}
+                                                selectedResources={selectedResources} 
+                                                onToggleResource={handleToggleResource} 
+                                                onSelectNode={() => {}}
+                                                onAddResource={handleAddResource}
+                                                onDeleteResources={handleDeleteResources}
+                                                onTogglePublic={handleTogglePublic}
+                                                onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
+                                                lang={lang}
+                                            />
+                                        ) : (
+                                            <div className="h-full overflow-y-auto p-6 custom-scrollbar bg-slate-50/30">
+                                                <WorkspaceFeatureOverview lang={lang} />
+                                            </div>
+                                        )}
                                     </div>
                                     
                                     {/* Selected Object Scope Section */}
@@ -1263,33 +1293,96 @@ const App: React.FC = () => {
             lang={lang}
         />
 
-        <SaveOutcomeModal 
-          isOpen={isSaveOutcomeModalOpen}
-          onClose={() => setIsSaveOutcomeModalOpen(false)}
-          lang={lang}
-          resourceTree={resourceTree}
-          initialName={outcomeToSave?.name || ''}
-          objectScope={constructionObjectScope}
-          onConfirm={(data) => {
-            const newOutcome: ResourceNode = {
-              id: `outcome-${Date.now()}`,
-              name: data.name,
-              type: 'artifact',
-              meta: {
-                sourceType: 'system',
-                fileType: 'Outcome',
-                isPublic: data.isPublic,
-                date: new Date().toISOString(),
-                outcomeType: data.outcomeType,
-                objectId: data.objectId,
-                isArtifactOutcome: data.isArtifactOutcome
-              }
-            };
-            handleAddResource(data.mbuId, newOutcome);
-            setIsSaveOutcomeModalOpen(false);
-            setAlertMessage(lang === 'zh' ? '成果保存成功！已添加到资源树，并标记为深度分析成果。' : 'Outcome saved successfully! Added to resource tree and marked as deep analysis artifact.');
-          }}
-        />
+        {isSaveOutcomeModalOpen && (
+          <SaveOutcomeModal 
+            isOpen={isSaveOutcomeModalOpen}
+            onClose={() => setIsSaveOutcomeModalOpen(false)}
+            lang={lang}
+            resourceTree={resourceTree}
+            initialName={outcomeToSave?.name || ''}
+            objectScope={constructionObjectScope}
+            onConfirm={(data) => {
+              const newOutcome: ResourceNode = {
+                id: `outcome-${Date.now()}`,
+                name: data.name,
+                type: 'artifact',
+                meta: {
+                  sourceType: 'system',
+                  fileType: 'Outcome',
+                  isPublic: data.isPublic,
+                  date: new Date().toISOString(),
+                  outcomeType: data.outcomeType,
+                  objectId: data.objectId,
+                  isArtifactOutcome: data.isArtifactOutcome
+                }
+              };
+              handleAddResource(data.mbuId, newOutcome);
+              setIsSaveOutcomeModalOpen(false);
+              setAlertMessage(lang === 'zh' ? '成果保存成功！已添加到资源树，并标记为深度分析成果。' : 'Outcome saved successfully! Added to resource tree and marked as deep analysis artifact.');
+            }}
+          />
+        )}
+
+        {/* Global Strategy Confirmation Dialog */}
+        {isStrategyConfirmationOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className="bg-white rounded-[2.5rem] shadow-2xl w-[900px] h-[800px] flex flex-col overflow-hidden border border-white/20"
+            >
+                {/* Modal Header */}
+                <div className="p-8 border-b border-slate-100 bg-white flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm">
+                            <i className="fas fa-cog fa-spin text-xl"></i>
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">智能构建策略确认</h2>
+                            <p className="text-sm text-slate-500 font-medium">系统将基于以下策略自动化生产协作研究空间</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => setIsStrategyConfirmationOpen(false)}
+                        className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-all"
+                    >
+                        <i className="fas fa-times"></i>
+                    </button>
+                </div>
+
+                {/* Modal Content - Scrollable area */}
+                <div className="flex-1 overflow-y-auto p-8 bg-slate-50/30 custom-scrollbar">
+                    <WorkspaceStrategyConfig onChange={() => {}} />
+                </div>
+
+                {/* Modal Footer */}
+                <div className="p-6 border-t border-slate-100 bg-white flex items-center justify-between">
+                    <div className="flex items-center gap-3 text-slate-400">
+                        <i className="fas fa-shield-check text-indigo-500"></i>
+                        <span className="text-xs font-medium italic">所选策略将应用于本次智能构建全过程</span>
+                    </div>
+                    <div className="flex gap-4">
+                        <button 
+                            onClick={() => setIsStrategyConfirmationOpen(false)}
+                            className="px-6 py-3 border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all"
+                        >
+                            取消构建
+                        </button>
+                        <button 
+                            onClick={() => {
+                                setIsStrategyConfirmationOpen(false);
+                                handleTabChange('construction');
+                            }}
+                            className="px-10 py-3 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 shadow-xl shadow-blue-600/20 transition-all flex items-center gap-3"
+                        >
+                            确认策略并开始构建
+                            <i className="fas fa-arrow-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </motion.div>
+          </div>
+        )}
       </div>
     </div>
   );

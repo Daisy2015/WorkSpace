@@ -31,6 +31,7 @@ export const IntelligentConstruction: React.FC<IntelligentConstructionProps> = (
   const t = translations[lang];
   const [currentStageIdx, setCurrentStageIdx] = useState(0);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [isFinished, setIsFinished] = useState(false);
   const [discoveredResources, setDiscoveredResources] = useState({
     objects: ['A1井', 'B2井'],
     neighbors: ['A2', 'A3', 'B1'],
@@ -98,7 +99,7 @@ export const IntelligentConstruction: React.FC<IntelligentConstructionProps> = (
 
         // Simulate progress
         for (let p = 0; p <= 100; p += 10) {
-          await new Promise(resolve => setTimeout(resolve, 150));
+          await new Promise(resolve => setTimeout(resolve, 400));
           setStages(prev => prev.map((s, idx) => idx === i ? { ...s, progress: p } : s));
           
           if (p === 30) {
@@ -123,13 +124,11 @@ export const IntelligentConstruction: React.FC<IntelligentConstructionProps> = (
         if (i === 0) setDiscoveredResources(prev => ({ ...prev, objects: ['A1井', 'B2井', 'C3井'] }));
         if (i === 2) setDiscoveredResources(prev => ({ ...prev, knowledgeNodes: 45, neighbors: ['A2', 'A3', 'B1', 'B2', 'C1'] }));
         
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
       addLog('智能构建过程全部完成！', 'success');
-      if (onComplete) {
-        setTimeout(onComplete, 2000);
-      }
+      setIsFinished(true);
     };
 
     runProcess();
@@ -163,10 +162,24 @@ export const IntelligentConstruction: React.FC<IntelligentConstructionProps> = (
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-            {lang === 'zh' ? '实时构建中' : 'Live Constructing'}
-          </div>
+          {isFinished ? (
+            <motion.button
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onComplete}
+              className="px-6 py-2 rounded-xl bg-green-600 text-white text-sm font-bold shadow-lg shadow-green-600/20 hover:bg-green-700 transition-all flex items-center gap-2"
+            >
+              <i className="fas fa-check-circle"></i>
+              {lang === 'zh' ? '进入完成预览' : 'Enter Completion Preview'}
+            </motion.button>
+          ) : (
+            <div className="px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+              {lang === 'zh' ? '实时构建中' : 'Live Constructing'}
+            </div>
+          )}
         </div>
       </div>
 

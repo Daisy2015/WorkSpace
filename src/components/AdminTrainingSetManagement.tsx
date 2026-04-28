@@ -45,6 +45,7 @@ export const AdminTrainingSetManagement: React.FC<AdminTrainingSetManagementProp
   const [trainingSets, setTrainingSets] = useState<TrainingSet[]>(MOCK_TRAINING_SETS);
   const [selectedSetId, setSelectedSetId] = useState<string | null>(trainingSets[0].id);
   const [samples, setSamples] = useState<TrainingSample[]>(MOCK_SAMPLES);
+  const [selectedSampleIds, setSelectedSampleIds] = useState<Set<string>>(new Set());
   const [isSplitModalOpen, setIsSplitModalOpen] = useState(false);
   const [isAddSampleModalOpen, setIsAddSampleModalOpen] = useState(false);
   const [newSampleText, setNewSampleText] = useState('');
@@ -60,6 +61,33 @@ export const AdminTrainingSetManagement: React.FC<AdminTrainingSetManagementProp
   const selectedSet = useMemo(() => 
     trainingSets.find(s => s.id === selectedSetId) || null
   , [trainingSets, selectedSetId]);
+
+  const toggleSelectAll = () => {
+    if (selectedSampleIds.size === filteredSamples.length) {
+      setSelectedSampleIds(new Set());
+    } else {
+      setSelectedSampleIds(new Set(filteredSamples.map(s => s.id)));
+    }
+  };
+
+  const toggleSelectSample = (id: string) => {
+    const newSelected = new Set(selectedSampleIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedSampleIds(newSelected);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedSampleIds.size === 0) return;
+    if (window.confirm(`确定要删除选中的 ${selectedSampleIds.size} 个样本吗？`)) {
+      setSamples(samples.filter(s => !selectedSampleIds.has(s.id)));
+      setSelectedSampleIds(new Set());
+      setAlertMessage('已成功删除选中的样本');
+    }
+  };
 
   return (
     <div className="h-full flex flex-col bg-gray-50 overflow-hidden">
@@ -108,46 +136,42 @@ export const AdminTrainingSetManagement: React.FC<AdminTrainingSetManagementProp
       {/* Main Content: Two Columns */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Training Set List */}
-        <div className="w-[450px] bg-white border-r border-gray-200 flex flex-col">
+        <div className="w-[240px] bg-white border-r border-gray-200 flex flex-col shrink-0 transition-all">
           <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-            <h3 className="text-sm font-bold text-gray-700 flex items-center">
-              <i className="fas fa-list text-blue-500 mr-2"></i>
+            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
               {t.versionList}
             </h3>
           </div>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
             {trainingSets.map(set => (
               <div 
                 key={set.id}
                 onClick={() => setSelectedSetId(set.id)}
-                className={`p-4 border-b border-gray-50 cursor-pointer transition-all ${selectedSetId === set.id ? 'bg-blue-50/50 border-l-4 border-l-blue-600' : 'hover:bg-gray-50'}`}
+                className={`p-4 border-b border-gray-50 cursor-pointer transition-all ${selectedSetId === set.id ? 'bg-indigo-50/50 border-r-2 border-r-indigo-600' : 'hover:bg-gray-50'}`}
               >
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-bold text-gray-900">{set.name}</h4>
-                  <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-bold uppercase">{set.version}</span>
+                <div className="flex justify-end items-center mb-1.5">
+                  <span className="text-[10px] text-slate-400">{set.updateTime.split(' ')[0]}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-y-2 text-[11px]">
-                  <div className="flex items-center text-gray-500">
-                    <i className="fas fa-database w-4"></i>
+                <h4 className={`font-bold text-sm truncate ${selectedSetId === set.id ? 'text-indigo-600' : 'text-slate-700'}`}>{set.name}</h4>
+                <div className="mt-2 flex items-center justify-between">
+                  <div className="flex items-center text-[10px] text-slate-400 font-medium">
+                    <i className="fas fa-database mr-1.5 opacity-50"></i>
                     <span>{set.sampleCount.toLocaleString()} 样本</span>
                   </div>
-                  <div className="flex items-center text-gray-500">
-                    <i className="fas fa-link w-4"></i>
-                    <span>{set.source === 'Template' ? t.fromTemplate : t.manualImport}</span>
-                  </div>
-                  <div className="flex items-center text-gray-500">
-                    <i className="fas fa-chart-pie w-4"></i>
-                    <span>{set.splitRatio.train}/{set.splitRatio.val}/{set.splitRatio.test}</span>
-                  </div>
-                  <div className="flex items-center text-gray-500">
-                    <i className="fas fa-check-circle w-4"></i>
-                    <span>{t.qualityScore}: <span className="text-green-600 font-bold">{set.quality.score}</span></span>
-                  </div>
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <button className="text-[10px] font-bold text-blue-600 hover:underline">查看</button>
-                  <button className="text-[10px] font-bold text-gray-400 hover:underline">编辑</button>
-                  <button className="text-[10px] font-bold text-red-500 hover:underline">删除</button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(lang === 'zh' ? '确定要删除该训练集吗？' : 'Are you sure you want to delete this training set?')) {
+                        setTrainingSets(prev => prev.filter(s => s.id !== set.id));
+                        if (selectedSetId === set.id) {
+                          setSelectedSetId(null);
+                        }
+                      }
+                    }}
+                    className="text-[10px] font-bold text-red-500 hover:text-red-700"
+                  >
+                    {lang === 'zh' ? '删除' : 'Delete'}
+                  </button>
                 </div>
               </div>
             ))}
@@ -184,7 +208,13 @@ export const AdminTrainingSetManagement: React.FC<AdminTrainingSetManagementProp
               >
                 <i className="fas fa-plus mr-1"></i> 手动添加样本
               </button>
-              <button className="text-xs text-red-500 font-bold hover:underline">批量删除</button>
+              <button 
+                onClick={handleBulkDelete}
+                disabled={selectedSampleIds.size === 0}
+                className={`text-xs font-bold hover:underline ${selectedSampleIds.size > 0 ? 'text-red-500' : 'text-gray-300 cursor-not-allowed'}`}
+              >
+                批量删除 ({selectedSampleIds.size})
+              </button>
             </div>
           </div>
 
@@ -192,6 +222,14 @@ export const AdminTrainingSetManagement: React.FC<AdminTrainingSetManagementProp
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50 text-gray-500 font-bold border-b border-gray-100 sticky top-0 z-10">
                 <tr>
+                  <th className="px-6 py-3 w-10">
+                    <input 
+                      type="checkbox" 
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      checked={filteredSamples.length > 0 && selectedSampleIds.size === filteredSamples.length}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
                   <th className="px-6 py-3">样本文本</th>
                   <th className="px-6 py-3">来源模板</th>
                   <th className="px-6 py-3 text-right">操作</th>
@@ -199,7 +237,15 @@ export const AdminTrainingSetManagement: React.FC<AdminTrainingSetManagementProp
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filteredSamples.map(sample => (
-                  <tr key={sample.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={sample.id} className={`hover:bg-gray-50 transition-colors ${selectedSampleIds.has(sample.id) ? 'bg-blue-50/30' : ''}`}>
+                    <td className="px-6 py-4">
+                      <input 
+                        type="checkbox" 
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        checked={selectedSampleIds.has(sample.id)}
+                        onChange={() => toggleSelectSample(sample.id)}
+                      />
+                    </td>
                     <td className="px-6 py-4 max-w-md">
                       <p className="text-xs text-gray-800 leading-relaxed">{sample.text}</p>
                     </td>
@@ -218,46 +264,6 @@ export const AdminTrainingSetManagement: React.FC<AdminTrainingSetManagementProp
                 ))}
               </tbody>
             </table>
-          </div>
-
-          {/* Bottom Split & Quality Info */}
-          <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
-            <div className="flex gap-8">
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-gray-500">{t.splitRatio}:</span>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                    <span className="text-[10px] text-gray-600">Train {selectedSet?.splitRatio.train}%</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                    <span className="text-[10px] text-gray-600">Val {selectedSet?.splitRatio.val}%</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                    <span className="text-[10px] text-gray-600">Test {selectedSet?.splitRatio.test}%</span>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setIsSplitModalOpen(true)}
-                  className="ml-2 text-[10px] text-blue-600 font-bold hover:underline"
-                >
-                  调整比例
-                </button>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-gray-500">{t.dataQuality}:</span>
-                <div className="flex gap-4">
-                  <span className="text-[10px] text-gray-600">{t.completeness}: <span className="text-green-600 font-bold">{selectedSet?.quality.completeness}%</span></span>
-                  <span className="text-[10px] text-gray-600">{t.duplicationRate}: <span className="text-orange-600 font-bold">{selectedSet?.quality.duplication}%</span></span>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-gray-500">版本:</span>
-              <span className="px-2 py-0.5 bg-blue-600 text-white rounded text-[10px] font-bold">{selectedSet?.version}</span>
-            </div>
           </div>
         </div>
       </div>

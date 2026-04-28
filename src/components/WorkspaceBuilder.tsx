@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Workspace, WorkspaceStatus, Language, WorkspaceTemplate } from '../types';
 import { WorkspaceConstructionLoading } from './WorkspaceConstructionLoading';
+import WorkspaceStrategyConfig from './WorkspaceStrategyConfig';
 
 interface WorkspaceBuilderProps {
   workspaceName: string;
@@ -41,6 +42,8 @@ export const WorkspaceBuilder: React.FC<WorkspaceBuilderProps> = ({
   const [completeness, setCompleteness] = useState(72);
   const [completingStep, setCompletingStep] = useState(0);
   const [isSmartModalOpen, setIsSmartModalOpen] = useState(false);
+  const [isStrategyOpen, setIsStrategyOpen] = useState(false);
+  const [strategyConfig, setStrategyConfig] = useState<any>(null);
 
   const completingSteps = [
     "正在识别缺失内容...",
@@ -53,12 +56,12 @@ export const WorkspaceBuilder: React.FC<WorkspaceBuilderProps> = ({
     setCompletingStep(0);
     
     // Simulate steps
-    setTimeout(() => setCompletingStep(1), 1500);
-    setTimeout(() => setCompletingStep(2), 3000);
+    setTimeout(() => setCompletingStep(1), 3000);
+    setTimeout(() => setCompletingStep(2), 6000);
     setTimeout(() => {
       setState(BuilderState.COMPLETED);
       setCompleteness(100);
-    }, 4500);
+    }, 9000);
   };
 
   const renderNormalState = () => (
@@ -334,7 +337,7 @@ export const WorkspaceBuilder: React.FC<WorkspaceBuilderProps> = ({
             {state === BuilderState.NORMAL && (
               <>
                 <button 
-                  onClick={() => setIsSmartModalOpen(true)}
+                  onClick={() => setIsStrategyOpen(true)}
                   className="px-5 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl font-bold hover:bg-indigo-100 flex items-center gap-2 transition-all border border-indigo-100"
                 >
                   <i className="fas fa-robot"></i> 智能创建
@@ -384,6 +387,67 @@ export const WorkspaceBuilder: React.FC<WorkspaceBuilderProps> = ({
           </div>
         )}
       </div>
+
+      {/* Smart Strategy Configuration Modal */}
+      {isStrategyOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className="bg-white rounded-[2.5rem] shadow-2xl w-[900px] h-[800px] flex flex-col overflow-hidden border border-white/20"
+            >
+                {/* Modal Header */}
+                <div className="p-8 border-b border-slate-100 bg-white flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm">
+                            <i className="fas fa-cog fa-spin text-xl"></i>
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">智能构建策略确认</h2>
+                            <p className="text-sm text-slate-500 font-medium">系统将基于以下策略自动化生产协作研究空间</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => setIsStrategyOpen(false)}
+                        className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-all"
+                    >
+                        <i className="fas fa-times"></i>
+                    </button>
+                </div>
+
+                {/* Modal Content - Scrollable area */}
+                <div className="flex-1 overflow-y-auto p-8 bg-slate-50/30 custom-scrollbar">
+                    <WorkspaceStrategyConfig onChange={setStrategyConfig} />
+                </div>
+
+                {/* Modal Footer */}
+                <div className="p-6 border-t border-slate-100 bg-white flex items-center justify-between">
+                    <div className="flex items-center gap-3 text-slate-400">
+                        <i className="fas fa-shield-check text-indigo-500"></i>
+                        <span className="text-xs font-medium italic">所选策略将应用于本次智能构建全过程</span>
+                    </div>
+                    <div className="flex gap-4">
+                        <button 
+                            onClick={() => setIsStrategyOpen(false)}
+                            className="px-6 py-3 border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-slate-50 transition-all"
+                        >
+                            取消构建
+                        </button>
+                        <button 
+                            onClick={() => {
+                                setIsStrategyOpen(false);
+                                setIsSmartModalOpen(true);
+                            }}
+                            className="px-10 py-3 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 shadow-xl shadow-blue-600/20 transition-all flex items-center gap-3"
+                        >
+                            确认策略并开始构建
+                            <i className="fas fa-arrow-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </motion.div>
+        </div>
+      )}
 
       {/* Smart Workspace Construction Loading */}
       {isSmartModalOpen && (

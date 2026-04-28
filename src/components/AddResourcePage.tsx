@@ -367,9 +367,6 @@ export const AddResourcePage: React.FC<AddResourcePageProps> = ({ onClose, onCon
     const selectedNames = getSelectedNames(DRILLING_RESOURCE_TREE);
 
     const filtered = MOCK_SYSTEM_MBUS.filter(mbu => {
-        // Match Object Domain (Dropdown)
-        const matchObject = filters.object.length === 0 || filters.object.includes(mbu.objectDomain);
-        
         // Match Tree Selection (Business, Work, Professional)
         // If nothing selected in tree, allow all (or maybe allow none? Let's say allow all if empty for better UX)
         const noTreeSelection = selectedTreeIds.size === 0;
@@ -382,7 +379,7 @@ export const AddResourcePage: React.FC<AddResourcePageProps> = ({ onClose, onCon
             name.includes(mbu.professionalDomain)
         );
 
-        return matchObject && matchTree;
+        return matchTree;
     });
     
     setMbuList(filtered);

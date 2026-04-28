@@ -421,6 +421,13 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
   const [activeTab, setActiveTab] = useState<'basic' | 'capabilities'>('basic');
   const [filterType, setFilterType] = useState<string | null>(null);
 
+  const handleUpdateAgent = (id: string, updates: Partial<ManagedAgent>) => {
+    if (selectedAgent && selectedAgent.id === id) {
+      setSelectedAgent({ ...selectedAgent, ...updates });
+    }
+    // In a real app, we'd update a global state or API
+  };
+
   const filteredAgents = useMemo(() => {
     return MOCK_MANAGED_AGENTS.filter(agent => {
       const matchesSearch = agent.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -729,18 +736,42 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
                           
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '通用智能体选择' : 'General Agent Selection'}</label>
-                              <button className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700">+ {lang === 'zh' ? '添加通用智能体' : 'Add General Agent'}</button>
+                              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '绑定通用智能体 (多选)' : 'Bind General Agents (Multi-select)'}</label>
+                              <button 
+                                onClick={() => {
+                                  // Mocking adding a general agent
+                                  const options = ['数据解析', '知识百科', '创意写作', '代码助手'];
+                                  const current = selectedAgent.selectedGeneralAgents || [];
+                                  const next = options.find(o => !current.includes(o));
+                                  if (next) {
+                                    handleUpdateAgent(selectedAgent.id, { 
+                                      selectedGeneralAgents: [...current, next] 
+                                    });
+                                  }
+                                }}
+                                className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2 py-1 rounded"
+                              >
+                                + {lang === 'zh' ? '选择智能体' : 'Select Agents'}
+                              </button>
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {(selectedAgent.selectedGeneralAgents || []).map(ga => (
-                                <span key={ga} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold flex items-center gap-2">
+                                <span key={ga} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold flex items-center gap-2 border border-blue-100 group">
                                   {ga}
-                                  <i className="fas fa-times cursor-pointer hover:text-blue-800"></i>
+                                  <i 
+                                    className="fas fa-times cursor-pointer text-blue-300 hover:text-blue-600"
+                                    onClick={() => {
+                                      handleUpdateAgent(selectedAgent.id, {
+                                        selectedGeneralAgents: (selectedAgent.selectedGeneralAgents || []).filter(item => item !== ga)
+                                      });
+                                    }}
+                                  ></i>
                                 </span>
                               ))}
                               {(selectedAgent.selectedGeneralAgents || []).length === 0 && (
-                                <div className="text-xs text-slate-400 italic py-2">{lang === 'zh' ? '尚未绑定通用智能体' : 'No general agents bound'}</div>
+                                <div className="text-xs text-slate-400 italic py-2 bg-slate-50/50 w-full text-center border-2 border-dashed border-slate-100 rounded-xl">
+                                  {lang === 'zh' ? '尚未绑定通用智能体，请从模版下方选择' : 'No general agents bound'}
+                                </div>
                               )}
                             </div>
                           </div>
@@ -750,18 +781,41 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
                       {selectedAgent.type === 'Role' && (
                         <div className="space-y-4">
                           <div className="flex items-center justify-between">
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '场景智能体选择' : 'Scenario Agent Selection'}</label>
-                            <button className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700">+ {lang === 'zh' ? '添加场景智能体' : 'Add Scenario Agent'}</button>
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '绑定场景智能体 (多选)' : 'Bind Scenario Agents (Multi-select)'}</label>
+                            <button 
+                              onClick={() => {
+                                const options = ['生产动态分析', '圈闭评价', '钻井风险预警'];
+                                const current = selectedAgent.selectedScenarioAgents || [];
+                                const next = options.find(o => !current.includes(o));
+                                if (next) {
+                                  handleUpdateAgent(selectedAgent.id, { 
+                                    selectedScenarioAgents: [...current, next] 
+                                  });
+                                }
+                              }}
+                              className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2 py-1 rounded"
+                            >
+                              + {lang === 'zh' ? '选择场景' : 'Select Scenarios'}
+                            </button>
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {(selectedAgent.selectedScenarioAgents || []).map(sa => (
-                              <span key={sa} className="px-3 py-1.5 bg-purple-50 text-purple-600 rounded-lg text-xs font-bold flex items-center gap-2">
+                              <span key={sa} className="px-3 py-1.5 bg-purple-50 text-purple-600 rounded-lg text-xs font-bold flex items-center gap-2 border border-purple-100">
                                 {sa}
-                                <i className="fas fa-times cursor-pointer hover:text-purple-800"></i>
+                                <i 
+                                  className="fas fa-times cursor-pointer text-purple-300 hover:text-purple-600"
+                                  onClick={() => {
+                                    handleUpdateAgent(selectedAgent.id, {
+                                      selectedScenarioAgents: (selectedAgent.selectedScenarioAgents || []).filter(item => item !== sa)
+                                    });
+                                  }}
+                                ></i>
                               </span>
                             ))}
                             {(selectedAgent.selectedScenarioAgents || []).length === 0 && (
-                              <div className="text-xs text-slate-400 italic py-2">{lang === 'zh' ? '尚未绑定场景智能体' : 'No scenario agents bound'}</div>
+                              <div className="text-xs text-slate-400 italic py-2 bg-slate-50/50 w-full text-center border-2 border-dashed border-slate-100 rounded-xl">
+                                {lang === 'zh' ? '尚未绑定场景智能体' : 'No scenario agents bound'}
+                              </div>
                             )}
                           </div>
                         </div>
@@ -769,14 +823,35 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
 
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '技能选择' : 'Skill Selection'}</label>
-                          <button className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700">+ {lang === 'zh' ? '添加技能' : 'Add Skill'}</button>
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '技能绑定 (多选)' : 'Skill Binding (Multi-select)'}</label>
+                          <button 
+                            onClick={() => {
+                              const options = ['SQL生成', 'Python执行', '文档向量化', '图像识别'];
+                              const current = selectedAgent.selectedSkills || [];
+                              const next = options.find(o => !current.includes(o));
+                              if (next) {
+                                handleUpdateAgent(selectedAgent.id, { 
+                                  selectedSkills: [...current, next] 
+                                });
+                              }
+                            }}
+                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2 py-1 rounded"
+                          >
+                            + {lang === 'zh' ? '添加技能' : 'Add Skill'}
+                          </button>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {(selectedAgent.selectedSkills || []).map(skill => (
-                            <span key={skill} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex items-center gap-2">
+                            <span key={skill} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex items-center gap-2 border border-indigo-100">
                               {skill}
-                              <i className="fas fa-times cursor-pointer hover:text-indigo-800"></i>
+                              <i 
+                                className="fas fa-times cursor-pointer text-indigo-300 hover:text-indigo-600"
+                                onClick={() => {
+                                  handleUpdateAgent(selectedAgent.id, {
+                                    selectedSkills: (selectedAgent.selectedSkills || []).filter(item => item !== skill)
+                                  });
+                                }}
+                              ></i>
                             </span>
                           ))}
                         </div>
@@ -784,14 +859,35 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
 
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '工具选择' : 'Tool Selection'}</label>
-                          <button className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700">+ {lang === 'zh' ? '添加工具' : 'Add Tool'}</button>
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '工具绑定 (多选)' : 'Tool Binding (Multi-select)'}</label>
+                          <button 
+                            onClick={() => {
+                              const options = ['Google Search', 'Weather API', 'Code Interpreter', 'Calculator'];
+                              const current = selectedAgent.selectedTools || [];
+                              const next = options.find(o => !current.includes(o));
+                              if (next) {
+                                handleUpdateAgent(selectedAgent.id, { 
+                                  selectedTools: [...current, next] 
+                                });
+                              }
+                            }}
+                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2 py-1 rounded"
+                          >
+                            + {lang === 'zh' ? '添加工具' : 'Add Tool'}
+                          </button>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {(selectedAgent.selectedTools || []).map(tool => (
-                            <span key={tool} className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold flex items-center gap-2">
+                            <span key={tool} className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold flex items-center gap-2 border border-emerald-100">
                               {tool}
-                              <i className="fas fa-times cursor-pointer hover:text-emerald-800"></i>
+                              <i 
+                                className="fas fa-times cursor-pointer text-emerald-300 hover:text-emerald-600"
+                                onClick={() => {
+                                  handleUpdateAgent(selectedAgent.id, {
+                                    selectedTools: (selectedAgent.selectedTools || []).filter(item => item !== tool)
+                                  });
+                                }}
+                              ></i>
                             </span>
                           ))}
                         </div>
