@@ -23,7 +23,6 @@ import { MbuExplorer } from './components/MbuExplorer';
 import { VersionComparisonModal } from './components/VersionComparisonModal';
 import { ReportTemplateModal } from './components/ReportTemplateModal';
 import { SaveOutcomeModal } from './components/SaveOutcomeModal';
-import { WorkspaceFeatureOverview } from './components/WorkspaceFeatureOverview';
 import { AgentConfigWizard } from './components/enterprise/AgentConfigWizard';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
@@ -52,7 +51,6 @@ const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [multiAgentMessages, setMultiAgentMessages] = useState<Message[]>([]);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
-  const [leftPanelTab, setLeftPanelTab] = useState<'resources' | 'overview'>('resources');
   const [isAddResourcePageOpen, setIsAddResourcePageOpen] = useState(false);
   const [isExecutionHistoryPageOpen, setIsExecutionHistoryPageOpen] = useState(false);
   const [isTracePanelOpen, setIsTracePanelOpen] = useState(true);
@@ -997,40 +995,18 @@ const App: React.FC = () => {
                             {/* Left Panel: Facts & Resources */}
                             <div className={`${isResourcePanelOpen ? 'w-96 border-r' : 'w-0 border-none'} h-full flex-shrink-0 z-20 shadow-lg bg-white border-slate-200 flex flex-col transition-all duration-300 ease-in-out overflow-hidden`}>
                                 <div className="w-96 flex-1 flex flex-col overflow-hidden">
-                                    {/* Panel Tabs */}
-                                    <div className="flex border-b border-slate-100 flex-shrink-0">
-                                        <button 
-                                            onClick={() => setLeftPanelTab('resources')}
-                                            className={`flex-1 py-3 text-[11px] font-bold uppercase tracking-widest transition-all ${leftPanelTab === 'resources' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/30' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
-                                        >
-                                            {lang === 'zh' ? '资源目录' : 'Resources'}
-                                        </button>
-                                        <button 
-                                            onClick={() => setLeftPanelTab('overview')}
-                                            className={`flex-1 py-3 text-[11px] font-bold uppercase tracking-widest transition-all ${leftPanelTab === 'overview' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/30' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
-                                        >
-                                            {lang === 'zh' ? '能力视图' : 'Capabilities'}
-                                        </button>
-                                    </div>
-
                                     <div className="flex-1 overflow-hidden relative">
-                                        {leftPanelTab === 'resources' ? (
-                                            <ResourceTree 
-                                                treeData={resourceTree}
-                                                selectedResources={selectedResources} 
-                                                onToggleResource={handleToggleResource} 
-                                                onSelectNode={() => {}}
-                                                onAddResource={handleAddResource}
-                                                onDeleteResources={handleDeleteResources}
-                                                onTogglePublic={handleTogglePublic}
-                                                onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
-                                                lang={lang}
-                                            />
-                                        ) : (
-                                            <div className="h-full overflow-y-auto p-6 custom-scrollbar bg-slate-50/30">
-                                                <WorkspaceFeatureOverview lang={lang} />
-                                            </div>
-                                        )}
+                                        <ResourceTree 
+                                            treeData={resourceTree}
+                                            selectedResources={selectedResources} 
+                                            onToggleResource={handleToggleResource} 
+                                            onSelectNode={() => {}}
+                                            onAddResource={handleAddResource}
+                                            onDeleteResources={handleDeleteResources}
+                                            onTogglePublic={handleTogglePublic}
+                                            onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
+                                            lang={lang}
+                                        />
                                     </div>
                                     
                                     {/* Selected Object Scope Section */}
