@@ -1,15 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Message, ResourceNode, Language, Workspace, Agent } from '../types';
-import { generateResponse, initializeGemini } from '../services/geminiService';
 import { translations } from '../i18n';
-import { UserMessageCard, LeaderCard, FinalResultCard, LoopCard, StageResultCard, ChartCard, WorkflowCard, AgentExecutionCard, UnifiedResponseCard } from './MultiAgentCards';
+import { UserMessageCard, UnifiedResponseCard } from './MultiAgentCards';
 
 interface MultiAgentChatPanelProps {
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   selectedResources: Set<string>;
   allResources: ResourceNode[];
-  onSelectMessage: (msg: Message) => void;
+  onSelectMessage: (msg: Message | null) => void;
   onChatStart: () => void;
   onAddResource: (parentId: string, node: ResourceNode) => void;
   currentWorkspace: Workspace | null;
@@ -43,6 +42,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
 }) => {
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [showMentionMenu, setShowMentionMenu] = useState(false);
   const [mentionFilter, setMentionFilter] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -51,12 +51,50 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
 
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historySearchQuery, setHistorySearchQuery] = useState('');
+  const [sessionActionOpen, setSessionActionOpen] = useState<string | null>(null);
   const [historySessions, setHistorySessions] = useState([
-    { id: 'h1', title: 'X-1井产量下降分析', date: '2024-04-09 14:30', preview: '分析 X-1井近7天产量下降原因...' },
-    { id: 'h2', title: '日产量变化统计', date: '2024-04-08 10:15', preview: '请统计 X-1井近7天日产量变化...' },
-    { id: 'h3', title: '压力与含水率诊断', date: '2024-04-07 16:45', preview: '为什么 X-1井近7天日产量下降？请结合压力...' },
-    { id: 'h4', title: '井位优选建议', date: '2024-04-06 09:20', preview: '针对区块-X，请给出井位优选建议...' },
+    { id: 'h1', title: 'X-1井产量下降分析', date: '2026-05-19 14:30', preview: '分析 X-1井近7天产量下降原因...', isPinned: false },
+    { id: 'h2', title: '日产量变化统计', date: '2026-05-18 10:15', preview: '请统计 X-1井近7天日产量变化...', isPinned: true },
+    { id: 'h3', title: '压力与含水率诊断', date: '2026-05-10 16:45', preview: '为什么 X-1井近7天日产量下降？请结合压力...', isPinned: false },
+    { id: 'h4', title: '井位优选建议', date: '2026-04-20 09:20', preview: '针对区块-X，请给出井位优选建议...', isPinned: false },
   ]);
+
+  const groupHistoryByTime = (sessions: any[]) => {
+    const sorted = [...sessions].sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+
+    const grouped: { label: string; items: any[], isPinned?: boolean }[] = [];
+    
+    // Separate Pinned
+    const pinnedItems = sorted.filter(s => s.isPinned && (s.title.includes(historySearchQuery) || s.preview.includes(historySearchQuery)));
+    if (pinnedItems.length > 0) {
+      grouped.push({ label: lang === 'zh' ? '置顶' : 'Pinned', items: pinnedItems, isPinned: true });
+    }
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const lastWeek = new Date(today);
+    lastWeek.setDate(today.getDate() - 7);
+    const lastMonth = new Date(today);
+    lastMonth.setDate(today.getDate() - 30);
+
+    const categories = [
+      { label: lang === 'zh' ? '今天' : 'Today', filter: (d: Date) => d >= today },
+      { label: lang === 'zh' ? '近一周' : 'Last Week', filter: (d: Date) => d >= lastWeek && d < today },
+      { label: lang === 'zh' ? '近一个月' : 'Last Month', filter: (d: Date) => d >= lastMonth && d < lastWeek },
+      { label: lang === 'zh' ? '更早' : 'Earlier', filter: (d: Date) => d < lastMonth },
+    ];
+
+    categories.forEach(cat => {
+      const items = sorted.filter(s => !s.isPinned && cat.filter(new Date(s.date)) && (s.title.includes(historySearchQuery) || s.preview.includes(historySearchQuery)));
+      if (items.length > 0) {
+        grouped.push({ label: cat.label, items });
+      }
+    });
+
+    return grouped;
+  };
 
   const leaderAgent = agents.find(a => a.isLeader) || agents[0];
 
@@ -78,459 +116,6 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
   }, [messages]);
 
   useEffect(() => {
-    // Automatic population of mock messages has been disabled.
-    if (false && messages.length === 0) {
-      if (workspaceVersion === 'enterprise') {
-        const enterpriseMockMessages: Message[] = [
-          {
-            id: `msg-ent-1`,
-            role: 'user',
-            content: '请分析 X-1井近7天产量下降原因，并给出未来3天稳产优化建议。',
-            timestamp: Date.now() - 10000
-          },
-          {
-            id: `msg-ent-2`,
-            role: 'model',
-            agentId: leaderAgent.id,
-            content: '已识别任务目标：产量下降归因 + 风险趋势预测 + 稳产优化建议',
-            timestamp: Date.now() - 9000,
-            status: 'completed',
-            subTasks: [
-              { id: 't1', agentId: agents.find(a => a.name === '生产分析岗')?.id || agents[1].id, task: '正在调度：生产分析岗智能体', status: 'completed' },
-              { id: 't2', agentId: leaderAgent.id, task: '由岗位智能体拆分多个分析场景并并行执行', status: 'completed' }
-            ]
-          },
-          {
-            id: `msg-ent-3`,
-            role: 'model',
-            agentId: agents.find(a => a.name === '生产分析岗')?.id || agents[1].id,
-            content: '任务拆解中',
-            timestamp: Date.now() - 8000,
-            status: 'completed',
-            payload: {
-              scenes: [
-                { name: '场景1: 产量波动归因 Agent', task: '找下降原因', status: '已完成' },
-                { name: '场景2: 压力系统诊断 Agent', task: '看压力是否异常', status: '已完成' },
-                { name: '场景3: 措施有效性评估 Agent', task: '历史措施是否失效', status: '已完成' },
-                { name: '场景4: 未来稳产预测 Agent', task: '未来3天产量预测', status: '已完成' }
-              ],
-              interimAnswer: '当前怀疑：压力递减异常 + 含水上升'
-            }
-          },
-          {
-            id: `msg-ent-4`,
-            role: 'model',
-            agentId: agents.find(a => a.name === '生产分析岗')?.id || agents[1].id,
-            content: '',
-            timestamp: Date.now() - 7000,
-            status: 'completed',
-            cardType: 'loop',
-            payload: {
-              title: '第1轮｜产量波动归因 Agent',
-              status: 'completed',
-              thought: '需要确认产量下降是地层原因还是措施衰减。',
-              action: ['调用：趋势分析通用智能体', '时序取数工具', '曲线平滑工具', '异常点检测工具', '邻井对比工具'],
-              observation: '近7日产量下降 18%，含水率同步上升 9%。',
-              plan: '进一步调用压力诊断场景智能体确认系统影响。'
-            }
-          },
-          {
-            id: `msg-ent-5`,
-            role: 'model',
-            agentId: agents.find(a => a.name === '生产分析岗')?.id || agents[1].id,
-            content: '',
-            timestamp: Date.now() - 6000,
-            status: 'completed',
-            cardType: 'loop',
-            payload: {
-              title: '第2轮｜压力系统诊断 Agent',
-              status: 'completed',
-              thought: '压力递减速率异常，需要定位是否为井底供液不足。',
-              action: ['调用：诊断推理通用智能体', '实时压力取数工具', '历史井底流压工具', '压降速率计算工具', '阈值规则库工具'],
-              observation: '井底流压近48小时下降超经验阈值 15%。',
-              plan: '验证最近酸化措施效果衰减情况。'
-            }
-          },
-          {
-            id: `msg-ent-6`,
-            role: 'model',
-            agentId: leaderAgent.id,
-            content: '',
-            timestamp: Date.now() - 5000,
-            status: 'completed',
-            cardType: 'stage_result',
-            payload: {
-              title: '阶段结论 1',
-              finding: '供液能力下降为一级主因',
-              points: ['井底流压48小时下降超阈值 15%', '产量下降与压力下降趋势高度相关', '含水率上升加剧供液压力']
-            }
-          },
-          {
-            id: `msg-ent-7`,
-            role: 'model',
-            agentId: agents.find(a => a.name === '生产分析岗')?.id || agents[1].id,
-            content: '',
-            timestamp: Date.now() - 4000,
-            status: 'completed',
-            cardType: 'loop',
-            payload: {
-              title: '第3轮｜措施有效性评估 Agent',
-              status: 'completed',
-              thought: '需要判断最近酸化措施有效期是否结束。',
-              action: ['调用：经验评估通用智能体', '措施记录检索工具', '历史类比井工具', '措施寿命预测工具', '经验知识库工具'],
-              observation: '上次酸化措施有效周期预计 18 天，当前已进入衰减尾期。',
-              plan: '汇总诊断结果，生成优化建议。'
-            }
-          },
-          {
-            id: `msg-ent-8`,
-            role: 'model',
-            agentId: leaderAgent.id,
-            content: '',
-            timestamp: Date.now() - 3000,
-            status: 'completed',
-            cardType: 'stage_result',
-            payload: {
-              title: '阶段结论 2',
-              finding: '措施衰减与供液不足共同导致产量下降',
-              points: ['酸化措施已进入衰减尾期（第18天）', '历史类比井在相同周期出现类似下降', '供液能力与措施效果存在强耦合关系']
-            }
-          },
-          {
-            id: `msg-ent-9`,
-            role: 'model',
-            agentId: agents.find(a => a.name === '生产分析岗')?.id || agents[1].id,
-            content: '',
-            timestamp: Date.now() - 2000,
-            status: 'completed',
-            cardType: 'loop',
-            payload: {
-              title: '第4轮｜未来稳产预测 Agent',
-              status: 'completed',
-              thought: '需要预测未来3天自然递减趋势。',
-              action: ['调用：时序预测通用智能体', 'Prophet预测工具', '邻井模式工具', '递减曲线工具', '风险阈值告警工具'],
-              observation: '若不采取措施，未来3日产量预计继续下降 6~8%。',
-              plan: '汇总所有场景结果，生成稳产建议。'
-            }
-          },
-          {
-            id: `msg-ent-10`,
-            role: 'model',
-            agentId: leaderAgent.id,
-            content: '综合各位专家的分析结果',
-            timestamp: Date.now() - 1000,
-            status: 'completed',
-            payload: {
-              conclusion: 'X-1井产量下降主要由以下因素共同导致：井底供液能力下降、含水率持续上升、酸化措施进入衰减尾期',
-              recommendations: [
-                '① 【一级动作·立即】48小时内实施补充酸化',
-                '② 【二级动作·优化】调整生产压差控制策略',
-                '③ 【三级动作·监控】提升含水率监控频率至 2h/次'
-              ],
-              outputs: ['稳产优化日报', '未来3天预测图', '措施建议单', '风险预警卡']
-            }
-          }
-        ];
-        setMessages(enterpriseMockMessages);
-      } else if (workspaceVersion === 'foundation') {
-        const foundationMockMessages: Message[] = [
-          {
-            id: `msg-fnd-1`,
-            role: 'user',
-            content: '请统计 X-1井近7天日产量变化，并生成趋势图。',
-            timestamp: Date.now() - 5000
-          },
-          {
-            id: `msg-fnd-2`,
-            role: 'model',
-            agentId: leaderAgent.id,
-            content: '已识别任务目标：获取 X-1井近7天日产量 + 输出趋势图',
-            timestamp: Date.now() - 4000,
-            status: 'completed',
-            subTasks: [
-              { id: 't1', agentId: agents.find(a => a.name === '数据分析专家')?.id || agents[1].id, task: '调用：数据分析通用智能体', status: 'completed' }
-            ]
-          },
-          {
-            id: `msg-fnd-3`,
-            role: 'model',
-            agentId: agents.find(a => a.name === '数据分析专家')?.id || agents[1].id,
-            content: '',
-            timestamp: Date.now() - 3000,
-            status: 'completed',
-            cardType: 'loop',
-            payload: {
-              title: '第1轮｜智能问数',
-              status: 'completed',
-              thought: '需要先获取 X-1井近7天日产量数据。',
-              action: ['调用工具：NL2SQL', '生成 SQL：SELECT date, daily_output FROM production_daily WHERE well_name = "X-1" AND date >= CURRENT_DATE - 7 ORDER BY date'],
-              observation: '已返回数据：4月4日：102.3, 4月5日：101.8, 4月6日：99.5, 4月7日：98.7, 4月8日：97.6, 4月9日：96.8, 4月10日：95.9',
-              plan: '基于结果生成日产量趋势图。'
-            }
-          },
-          {
-            id: `msg-fnd-4`,
-            role: 'model',
-            agentId: leaderAgent.id,
-            content: '',
-            timestamp: Date.now() - 2500,
-            status: 'completed',
-            cardType: 'stage_result',
-            payload: {
-              title: '阶段结论',
-              finding: 'X-1井近7日产量呈持续小幅下降趋势。',
-              points: []
-            }
-          },
-          {
-            id: `msg-fnd-5`,
-            role: 'model',
-            agentId: agents.find(a => a.name === '数据分析专家')?.id || agents[2].id,
-            content: '',
-            timestamp: Date.now() - 2000,
-            status: 'completed',
-            cardType: 'loop',
-            payload: {
-              title: '第2轮｜趋势成图',
-              status: 'completed',
-              thought: '需要将日产量变化趋势可视化。',
-              action: ['调用工具：ECharts MCP'],
-              observation: '正在生成图表...',
-              plan: '等待用户继续追问或追加分析维度。'
-            }
-          },
-          {
-            id: `msg-fnd-6`,
-            role: 'model',
-            agentId: agents.find(a => a.name === '数据分析专家')?.id || agents[1].id,
-            content: '',
-            timestamp: Date.now() - 1500,
-            status: 'completed',
-            cardType: 'chart',
-            payload: {
-              title: 'X-1井近7天日产量趋势图',
-              observation: '近7日产量累计下降约 6.3%。'
-            }
-          },
-          {
-            id: `msg-fnd-7`,
-            role: 'model',
-            agentId: leaderAgent.id,
-            content: '查询完成',
-            timestamp: Date.now() - 1000,
-            status: 'completed',
-            payload: {
-              conclusion: 'X-1井近7天日产量由 102.3 → 95.9，整体呈稳定下降趋势。',
-              recommendations: [
-                '继续分析含水率',
-                '加入井底压力',
-                '生成日报摘要'
-              ],
-              outputs: ['查询结果表', '趋势折线图']
-            }
-          }
-        ];
-        setMessages(foundationMockMessages);
-      } else if (workspaceVersion === 'professional') {
-        const professionalMockMessages: Message[] = [
-          {
-            id: `msg-pro-1`,
-            role: 'user',
-            content: '为什么 X-1井近7天日产量下降？请结合压力和含水率进行诊断，并生成分析图。',
-            timestamp: Date.now() - 8000
-          },
-          {
-            id: `msg-pro-2`,
-            role: 'model',
-            agentId: leaderAgent.id,
-            content: '已识别任务目标：诊断产量下降原因 + 联合分析压力与含水率 + 输出诊断图件',
-            timestamp: Date.now() - 7000,
-            status: 'completed',
-            subTasks: [
-              { id: 't1', agentId: agents.find(a => a.name === '生产分析岗')?.id || agents[1].id, task: '调用：产量下降诊断场景智能体', status: 'completed' }
-            ]
-          },
-          {
-            id: `msg-pro-3`,
-            role: 'model',
-            agentId: agents.find(a => a.name === '生产分析岗')?.id || agents[1].id,
-            content: '',
-            timestamp: Date.now() - 6500,
-            status: 'completed',
-            cardType: 'workflow',
-            payload: {
-              title: '产量下降诊断',
-              steps: ['产量趋势分析', '压力变化诊断', '含水率异常检测', '多指标联动归因', '诊断图件生成'],
-              currentStep: 1,
-              status: '正在执行：步骤 1 / 5'
-            }
-          },
-          {
-            id: `msg-pro-4`,
-            role: 'model',
-            agentId: agents.find(a => a.name === '生产分析岗')?.id || agents[1].id,
-            content: '',
-            timestamp: Date.now() - 6000,
-            status: 'completed',
-            cardType: 'loop',
-            payload: {
-              title: '第1轮｜产量趋势分析',
-              status: 'completed',
-              thought: '先确认近7日产量是否为持续下降，而非偶发波动。',
-              action: ['调用：趋势分析通用智能体', 'NL2SQL', '递减率计算工具'],
-              observation: '近7日产量由 102.3 下降至 95.9，累计下降 6.3%。',
-              plan: '下一步联合分析井底压力变化。'
-            }
-          },
-          {
-            id: `msg-pro-5`,
-            role: 'model',
-            agentId: leaderAgent.id,
-            content: '',
-            timestamp: Date.now() - 5500,
-            status: 'completed',
-            cardType: 'stage_result',
-            payload: {
-              title: '阶段结论',
-              finding: '存在稳定递减趋势',
-              points: []
-            }
-          },
-          {
-            id: `msg-pro-6`,
-            role: 'model',
-            agentId: agents.find(a => a.name === '生产分析岗')?.id || agents[1].id,
-            content: '',
-            timestamp: Date.now() - 5000,
-            status: 'completed',
-            cardType: 'loop',
-            payload: {
-              title: '第2轮｜压力变化诊断',
-              status: 'completed',
-              thought: '需要判断产量递减是否由供液压力下降导致。',
-              action: ['调用：压力诊断通用智能体', 'NL2CQL', '压降速率工具', '阈值规则库'],
-              observation: '井底压力近7天下降 8.1%，与产量递减同步。',
-              plan: '继续验证含水率变化是否叠加影响。'
-            }
-          },
-          {
-            id: `msg-pro-7`,
-            role: 'model',
-            agentId: leaderAgent.id,
-            content: '',
-            timestamp: Date.now() - 4500,
-            status: 'completed',
-            cardType: 'stage_result',
-            payload: {
-              title: '阶段结论',
-              finding: '压力下降为一级影响因子',
-              points: []
-            }
-          },
-          {
-            id: `msg-pro-8`,
-            role: 'model',
-            agentId: agents.find(a => a.name === '生产分析岗')?.id || agents[1].id,
-            content: '',
-            timestamp: Date.now() - 4000,
-            status: 'completed',
-            cardType: 'loop',
-            payload: {
-              title: '第3轮｜含水率异常检测',
-              status: 'completed',
-              thought: '需要判断是否存在含水抬升导致有效产液下降。',
-              action: ['调用：异常检测通用智能体', 'NL2SQL', '含水率异常点检测', '邻井类比工具'],
-              observation: '含水率由 32% 上升至 37%。',
-              plan: '汇总多指标归因并生成诊断图。'
-            }
-          },
-          {
-            id: `msg-pro-9`,
-            role: 'model',
-            agentId: leaderAgent.id,
-            content: '',
-            timestamp: Date.now() - 3500,
-            status: 'completed',
-            cardType: 'stage_result',
-            payload: {
-              title: '阶段结论',
-              finding: '含水率抬升加剧了有效产量下降。',
-              points: []
-            }
-          },
-          {
-            id: `msg-pro-10`,
-            role: 'model',
-            agentId: agents.find(a => a.name === '生产分析岗')?.id || agents[1].id,
-            content: '',
-            timestamp: Date.now() - 3000,
-            status: 'completed',
-            cardType: 'loop',
-            payload: {
-              title: '第4轮｜多指标联动成图',
-              status: 'completed',
-              thought: '需要直观展示产量、压力、含水率联动关系。',
-              action: ['调用：ECharts MCP'],
-              observation: '三指标变化趋势高度同步。',
-              plan: '生成最终诊断结论。'
-            }
-          },
-          {
-            id: `msg-pro-11`,
-            role: 'model',
-            agentId: agents.find(a => a.name === '生产分析岗')?.id || agents[1].id,
-            content: '',
-            timestamp: Date.now() - 2500,
-            status: 'completed',
-            cardType: 'chart',
-            payload: {
-              title: 'X-1井产量-压力-含水率联动诊断图',
-              observation: '三指标变化趋势高度同步。'
-            }
-          },
-          {
-            id: `msg-pro-12`,
-            role: 'model',
-            agentId: leaderAgent.id,
-            content: '诊断完成',
-            timestamp: Date.now() - 1000,
-            status: 'completed',
-            payload: {
-              conclusion: 'X-1井近7日产量下降主要由井底压力持续下降（一级主因）和含水率持续抬升（二级叠加因素）共同导致。',
-              recommendations: [
-                '调整生产压差',
-                '关注供液能力',
-                '优化注采参数',
-                '提升含水监测频率'
-              ],
-              outputs: ['三指标联动诊断图', '原因分析摘要', '异常诊断报告']
-            }
-          }
-        ];
-        setMessages(professionalMockMessages);
-      } else {
-        const initialMessages: Message[] = [
-          {
-            id: `msg-init-1`,
-            role: 'user',
-            content: '你有哪些能力',
-            timestamp: Date.now() - 2000
-          },
-          {
-            id: `msg-init-2`,
-            role: 'model',
-            agentId: leaderAgent.id,
-            content: `您好！我是当前工作空间的 Leader Agent。在这个空间中，我协调了一支专业的数字专家团队来为您服务：\n\n${agents.filter(a => !a.isLeader).map(a => `- **${a.name}**：${a.description}`).join('\n')}\n\n您可以直接提问，我会为您分配最合适的专家；或者您也可以使用 \`@\` 符号直接呼叫特定的专家。请问有什么我可以帮您的吗？`,
-            timestamp: Date.now() - 1000,
-            status: 'completed'
-          }
-        ];
-        setMessages(initialMessages);
-      }
-    }
-  }, [workspaceVersion]);
-
-  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
@@ -538,7 +123,6 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
     const value = e.target.value;
     setInput(value);
 
-    // Check for @ mention
     const lastAtPos = value.lastIndexOf('@');
     if (lastAtPos !== -1) {
       const textAfterAt = value.substring(lastAtPos + 1);
@@ -551,6 +135,10 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
     } else {
       setShowMentionMenu(false);
     }
+
+    // Auto resize
+    e.target.style.height = 'auto';
+    e.target.style.height = e.target.scrollHeight + 'px';
   };
 
   const handleMentionSelect = (agent: Agent) => {
@@ -582,7 +170,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
         const offsetWellAgent = agents.find(a => a.id === 'agent-pro-4') || agents[1];
         try {
           // 1. Thought
-          const thoughtId = `msg-thought-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          const thoughtId = `msg-thought-${Date.now()}`;
           setMessages(prev => [...prev, {
             id: thoughtId,
             role: 'model',
@@ -601,7 +189,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
           await new Promise(resolve => setTimeout(resolve, 1000));
 
           // 2. Workflow Card
-          const workflowId = `msg-wf-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          const workflowId = `msg-wf-${Date.now()}`;
           const steps = [
             { name: 'Step 1: 区块 + 层位初筛', details: { thought: '先保证候选井在地质大背景上可参考。', action: ['过滤规则：区块=目标区块 AND 层位=目标层位'], observation: '初步筛选出 12 口同区块同层位候选井。' } },
             { name: 'Step 2: 距离相近筛选', details: { thought: '在同区块同层位井中找到真正具有空间参考价值的井。', action: ['计算井间距离', 'Top-5 最近邻推荐'], observation: '识别出 5 口空间邻近井，最近距离 450m。' } },
@@ -628,9 +216,8 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
             }
           }]);
 
-          // Simulate step progression
           for (let i = 2; i <= 6; i++) {
-            await new Promise(resolve => setTimeout(resolve, 1200));
+            await new Promise(resolve => setTimeout(resolve, 1000));
             setMessages(prev => prev.map(msg => 
               msg.id === workflowId ? {
                 ...msg,
@@ -653,12 +240,12 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
           ));
 
           // 3. Final Result
-          const finalId = `msg-final-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          const finalId = `msg-final-${Date.now()}`;
           setMessages(prev => [...prev, {
             id: finalId,
             role: 'model',
             agentId: leaderAgent.id,
-            content: '我推荐X-1井的压裂设计参数',
+            content: '推荐完成',
             timestamp: Date.now(),
             status: 'completed',
             payload: {
@@ -666,137 +253,122 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
               recommendations: [
                 '① 建议直接采用 X-10 井的加砂强度模板',
                 '② 针对 X-1 井局部高应力区，建议排量提升至 13m³/min',
-                '③ 一键生成新井压裂初设方案'
+                '③ 压裂液建议采用低伤害降阻水体系'
               ],
-              outputs: ['压裂参数推荐表.xlsx', '邻井对比分析报告.pdf', '新井压裂初设初稿.docx']
+              outputs: ['压裂设计参数推荐表', '参考井对比图', '储层相似度矩阵']
+            }
+          }]);
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setIsGenerating(false);
+        }
+        return;
+      } else if (input.includes('产量下降进行深度归因诊断')) {
+        const diagnosticAgent = agents.find(a => a.id === 'agent-pro-1') || agents[1];
+        try {
+          // 1. Thought
+          const thoughtId = `msg-thought-${Date.now()}`;
+          setMessages(prev => [...prev, {
+            id: thoughtId,
+            role: 'model',
+            agentId: leaderAgent.id,
+            content: `**问题理解**：用户需要针对 X-1 井近期产量下降进行深度归因诊断。
+**意图识别**：
+- 核心任务：产量递减原因分析与对策。
+- 业务逻辑：结合生产动态数据（流压、含水、产量）、防砂历史及最新静态资料，进行漏失分析、地层伤害识别及管柱结垢判断。
+
+**调度计划**：
+- 启动 **单井产量归因诊断** 场景智能体。
+- 执行标准 5 步 Workflow 流程。`,
+            timestamp: Date.now(),
+            status: 'completed'
+          }]);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          // 2. Workflow Card
+          const workflowId = `msg-wf-${Date.now()}`;
+          const steps = [
+            { name: 'Step 1: 异常波动自动预警', details: { thought: '识别产量的具体异常起始时间点。', action: ['扫描近30天生产曲线', '识别拐点'], observation: '识别出 5月12日 产量突降 15%，伴随流压下降。' } },
+            { name: 'Step 2: 关联动静态数据融合', details: { thought: '拉取周边井及当前井的压力、含水及维护历史。', action: ['提取：井史、检泵资料、地面压力'], observation: '发现由于近期地层亏空导致井底流压接近饱和压力。' } },
+            { name: 'Step 3: 多维度归因算法计算', details: { thought: '通过专家权重模型对漏失、结垢、供求不足等进行打分。', action: ['执行：不确定性归因引擎'], observation: '地层供能不足得分 0.82，结垢得分 0.15。' } },
+            { name: 'Step 4: 逻辑闭环冲突检测', details: { thought: '验证归因结果是否符合物理规律。', action: ['流体模拟校核'], observation: '校核通过，产量下降主因为动压下降过快。' } },
+            { name: 'Step 5: 诊断结论与建议生成', details: { thought: '沉淀最终诊断报告。', action: ['模板填充', '生成报告'], observation: '生产干预报告已生成。' } }
+          ];
+
+          setMessages(prev => [...prev, {
+            id: workflowId,
+            role: 'model',
+            agentId: diagnosticAgent.id,
+            content: '',
+            timestamp: Date.now(),
+            status: 'processing',
+            cardType: 'workflow',
+            payload: {
+              title: '单井产量归因诊断',
+              category: '场景智能体',
+              steps: steps,
+              currentStep: 1,
+              status: '正在进行异常波动自动预警...'
             }
           }]);
 
-        } catch (e) { console.error(e); } finally { setIsGenerating(false); }
-        return;
-      }
-
-      const scenarioAgent = agents.find(a => a.name === '生产分析岗') || agents[1];
-      try {
-        // 1. Thought (思考)
-        const thoughtId = `msg-thought-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        setMessages(prev => [...prev, {
-          id: thoughtId,
-          role: 'model',
-          agentId: leaderAgent.id,
-          content: `**问题理解**：针对 X-1 井近 7 天的产量下降情况进行深度诊断，并输出归因分析及优化建议。
-
-**意图识别**：
-- 场景识别：产量下降诊断场景。
-- 执行链路：产量趋势 -> 压力诊断 -> 含水异常 -> 联动归因 -> 图件生成。
-
-**调用计划**：
-1. 启动 **产量下降诊断** 场景智能体。
-2. 按照标准 Workflow 执行 5 个关键节点的分析。`,
-          timestamp: Date.now(),
-          status: 'completed'
-        }]);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // 2. Workflow Card
-        const workflowId = `msg-wf-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        const steps = [
-           { name: 'Step 1: 产量变化趋势分析', details: { thought: '首先确认日产量下降的具体数值与速率。', action: ['提取近7天日产量数据', '计算日递减率'], observation: '日产量由 102.3m³ 下降至 95.9m³，平均日降幅 0.9m³。' } },
-           { name: 'Step 2: 井底压力诊断', details: { thought: '检查地层能量或供液能力是否发生变化。', action: ['提取流压/套压数据', '分析压力与产量相关性'], observation: '井底流压由 25.2MPa 下降至 22.5MPa，呈同步下降趋势。' } },
-           { name: 'Step 3: 含水率波动监测', details: { thought: '排查是否因含水率上升导致产液量下降或油量下降。', action: ['比对含水分析报告'], observation: '含水率由 14.8% 上升至 17.2%，存在缓慢水淹迹象。' } },
-           { name: 'Step 4: 联动归因分析', details: { thought: '综合产量、压力、含水进行多指标联合归因。', action: ['多指标叠加分析', '计算贡献权重'], observation: '压力下降贡献度 70%，含水上升贡献度 30%。' } },
-           { name: 'Step 5: 优化建议生成', details: { thought: '给出针对性的稳产优化建议。', action: ['匹配优化策略库'], observation: '生成基于压力恢复与控水的综合建议。' } }
-        ];
-
-        setMessages(prev => [...prev, {
-          id: workflowId,
-          role: 'model',
-          agentId: scenarioAgent.id,
-          content: '',
-          timestamp: Date.now(),
-          status: 'processing',
-          cardType: 'workflow',
-          payload: {
-            title: '产量下降深度诊断',
-            category: '场景智能体',
-            steps: steps,
-            currentStep: 1,
-            status: '正在分析产量趋势...'
+          for (let i = 2; i <= 5; i++) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            setMessages(prev => prev.map(msg => 
+              msg.id === workflowId ? {
+                ...msg,
+                payload: {
+                  ...msg.payload,
+                  currentStep: i,
+                  status: `正在执行 ${steps[i-1].name}...`
+                }
+              } : msg
+            ));
           }
-        }]);
 
-        // Simulate step progression
-        for (let i = 2; i <= 5; i++) {
-          await new Promise(resolve => setTimeout(resolve, 1200));
+          await new Promise(resolve => setTimeout(resolve, 1000));
           setMessages(prev => prev.map(msg => 
             msg.id === workflowId ? {
               ...msg,
-              payload: {
-                ...msg.payload,
-                currentStep: i,
-                status: `正在执行 ${steps[i-1].name}...`
-              }
+              status: 'completed',
+              payload: { ...msg.payload, currentStep: 6, status: 'Workflow 执行完成' }
             } : msg
           ));
-        }
 
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setMessages(prev => prev.map(msg => 
-          msg.id === workflowId ? {
-            ...msg,
+          // 3. Final Result
+          const finalId = `msg-final-${Date.now()}`;
+          setMessages(prev => [...prev, {
+            id: finalId,
+            role: 'model',
+            agentId: leaderAgent.id,
+            content: '诊断完成',
+            timestamp: Date.now(),
             status: 'completed',
-            payload: { ...msg.payload, currentStep: 6, status: '诊断流程执行完成' }
-          } : msg
-        ));
-
-        // 3. Chart Card (联动诊断图)
-        const chartId = `msg-diag-chart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        setMessages(prev => [...prev, {
-          id: chartId,
-          role: 'model',
-          agentId: scenarioAgent.id,
-          content: '',
-          timestamp: Date.now(),
-          status: 'completed',
-          cardType: 'chart',
-          payload: { 
-            title: '多指标联动归因诊断图', 
-            observation: '图中清晰显示产量下降（蓝线）与压力下降（红线）的正相关性，同时含水率（绿线）呈缓慢上升趋势。',
-            data: [
-              { label: '产量 (m³/d)', values: [102, 101.5, 99.8, 98.2, 97.5, 96.8, 95.9], color: '#4f46e5' },
-              { label: '压力 (MPa)', values: [25.2, 24.8, 24.1, 23.5, 23.2, 22.8, 22.5], color: '#ef4444' },
-              { label: '含水率 (%)', values: [14.8, 15.1, 15.4, 15.9, 16.3, 16.7, 17.2], color: '#10b981' }
-            ]
-          }
-        }]);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // 4. Final Result
-        const finalId = `msg-final-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        setMessages(prev => [...prev, {
-          id: finalId,
-          role: 'model',
-          agentId: leaderAgent.id,
-          content: '诊断完成',
-          timestamp: Date.now(),
-          status: 'completed',
-          payload: {
-            conclusion: 'X-1井近7日产量下降主要由井底压力持续下降（一级主因）和含水率持续抬升（二级叠加因素）共同导致。',
-            recommendations: ['调整生产压差', '关注供液能力', '优化注采参数'],
-            outputs: ['多指标联动归因诊断图', '原因分析摘要']
-          }
-        }]);
-
-      } catch (e) { console.error(e); } finally { setIsGenerating(false); }
-      return;
+            payload: {
+              conclusion: `根据深度归因分析，X-1 井产量下降的 **核心原因（置信度 82%）** 是动压下降过快导致地层能量不足。伴随流感分析显示，目前工作制度下地层供给无法满足采油速度需求。`,
+              recommendations: [
+                '① 建议下调泵速至 3 次/min 以稳定液面',
+                '② 建议进行地层补能潜力评估并考虑注水吞吐',
+                '③ 建议在下次检泵时安装实时井底压力传感器'
+              ],
+              outputs: ['产量归因诊断报告', '压力-产量关联分析图', '专家逻辑树结论']
+            }
+          }]);
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setIsGenerating(false);
+        }
+        return;
+      }
     }
 
     if (workspaceVersion === 'foundation') {
       const dataAgent = agents.find(a => a.name === '智能问数') || agents[1];
-      const chartAgent = agents.find(a => a.name === '数据成图') || agents[2] ;
-      
+      const chartAgent = agents.find(a => a.name === '数据成图') || agents[2];
+
       try {
-        // 1. Leader Breakdown
         const leaderBreakdownId = `msg-leader-breakdown-${Date.now()}`;
         setMessages(prev => [...prev, {
           id: leaderBreakdownId,
@@ -824,7 +396,6 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
           subTasks: [{ id: 't1', agentId: dataAgent.id, task: `调用：${dataAgent.name}`, status: 'completed' }]
         } : msg));
 
-        // 2. Loop 1: NL2SQL
         const loop1Id = `msg-loop1-${Date.now()}`;
         setMessages(prev => [...prev, {
           id: loop1Id,
@@ -856,7 +427,6 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
           }
         } : msg));
 
-        // 3. Stage Result
         const stageId = `msg-stage-${Date.now()}`;
         setMessages(prev => [...prev, {
           id: stageId,
@@ -870,7 +440,6 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
         }]);
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // 4. Loop 2: ECharts
         const loop2Id = `msg-loop2-${Date.now()}`;
         setMessages(prev => [...prev, {
           id: loop2Id,
@@ -896,7 +465,6 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
           payload: { ...msg.payload, status: 'completed', observation: '图表已生成。', plan: '等待用户继续追问。' }
         } : msg));
 
-        // 5. Chart Card
         const chartId = `msg-chart-${Date.now()}`;
         setMessages(prev => [...prev, {
           id: chartId,
@@ -915,7 +483,6 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
         }]);
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // 6. Final Result
         const finalId = `msg-final-${Date.now()}`;
         setMessages(prev => [...prev, {
           id: finalId,
@@ -930,7 +497,11 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
             outputs: ['查询结果表', '趋势柱状图']
           }
         }]);
-      } catch (e) { console.error(e); } finally { setIsGenerating(false); }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsGenerating(false);
+      }
       return;
     }
 
@@ -938,136 +509,166 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
       const productionAgent = agents.find(a => a.name === '生产管理专家') || agents[1];
 
       try {
-        // 1. Thought (思考)
-        const thoughtId = `msg-thought-${Date.now()}`;
-        setMessages(prev => [...prev, {
-          id: thoughtId,
-          role: 'model',
-          agentId: leaderAgent.id,
-          content: `**问题理解**：作为岗位数字员工，我将针对 X-1 井的生产异常进行全方位的岗位级复盘与优化建议。
+        if (input.includes('复盘本月全区稳产情况')) {
+          // Comprehensive Enterprise Review
+          const thoughtId = `msg-thought-${Date.now()}`;
+          setMessages(prev => [...prev, {
+            id: thoughtId,
+            role: 'model',
+            agentId: leaderAgent.id,
+            content: `**问题理解**：针对全区本月稳产情况进行深度复盘。涉及产量达成率、异常损耗分析、重点措施井贡献及下月稳产风险预警。
+  
+**意图识别**：
+- 岗位职责：全区生产分析与辅助协调。
+- 业务闭环：从“现状分析”到“归因诊断”再到“措施指导”。
+
+**调度计划**：
+- 调度 **生产管理专家** 岗位智能体协同 **产量波动归因**、**措施有效性评估** 等场景智能体开展全区复盘工作。`,
+            timestamp: Date.now(),
+            status: 'completed'
+          }]);
+          await new Promise(resolve => setTimeout(resolve, 1500));
+
+          const positionDecompId = `msg-pos-decomp-${Date.now()}`;
+          const scenarios = [
+            { 
+              name: '场景1: 全区产量达成分析 Agent', 
+              task: '计算计划完成率', 
+              status: 'completed',
+              workflow: {
+                steps: [
+                  { 
+                    name: '指标获取', 
+                    details: {
+                      thought: '汇总全区 A、B、C 三个子区块的月度累计产量。',
+                      action: ['提取统计：SELECT area, SUM(daily) FROM prod'],
+                      observation: '本月累计产油 42.5 万吨，进度达成率 98.2%。',
+                      plan: '分析未达标缺口来源。'
+                    }
+                  }
+                ],
+                currentStep: 1
+              }
+            },
+            { name: '场景2: 关停井归因统计 Agent', task: '量化停产损失', status: 'processing' },
+            { name: '场景3: 重点稳产措施评估 Agent', task: '评价增产有效性', status: 'idle' },
+            { name: '场景4: 跨岗位协同预警 Agent', task: '识别供应链/设备风险', status: 'idle' }
+          ];
+
+          setMessages(prev => [...prev, {
+            id: positionDecompId,
+            role: 'model',
+            agentId: productionAgent.id,
+            content: '已启动岗位协同复盘流程。正在整合多场景智能体分析结果...',
+            timestamp: Date.now(),
+            status: 'completed',
+            payload: {
+              scenes: scenarios,
+              interimAnswer: '全区本月生产整体稳定，但 B 区块由于管网维护导致 3.5% 的产量缺口。'
+            }
+          }]);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          const finalId = `msg-final-${Date.now()}`;
+          setMessages(prev => [...prev, {
+            id: finalId,
+            role: 'model',
+            agentId: leaderAgent.id,
+            content: '复盘完成',
+            timestamp: Date.now(),
+            status: 'completed',
+            payload: {
+              conclusion: '本月全区稳产态势良好，累计产量达成率 98.2%。主要影响因素为 B 区中旬的管网例行停产维护。东部新区新井投产贡献超预期，抵消了由于 X 区块老井自然递减带来的压力。',
+              recommendations: [
+                '① 【调控】下月建议加大东部新区排采强度，冲刺 105% 目标',
+                '② 【维护】B 区管网已恢复，建议下周补齐缺失产量',
+                '③ 【预警】关注 C 区高含水井组，预防突发性淹没风险'
+              ],
+              outputs: ['月度生产复盘周报.pdf', '全区产量贡献矩阵图', '下月潜力井排名清单']
+            }
+          }]);
+        } else {
+          // General Enterprise Handler (X-1 Default)
+          const thoughtId = `msg-thought-${Date.now()}`;
+          setMessages(prev => [...prev, {
+            id: thoughtId,
+            role: 'model',
+            agentId: leaderAgent.id,
+            content: `**问题理解**：作为岗位数字员工，我将针对 X-1 井的生产异常进行全方位的岗位级复盘与优化建议。
 
 **意图识别**：
 - 岗位职责：生产管理与稳产优化。
 - 任务拆解：并行调度归因、诊断、评估、预测四个专业场景。
 
 **调用计划**：
-1. 调度 **生产管理专家** 岗位智能体。
-2. 岗位智能体将协同 4 个场景智能体并行工作。`,
-          timestamp: Date.now(),
-          status: 'completed'
-        }]);
-        await new Promise(resolve => setTimeout(resolve, 1500));
+1. 调度 **生产管理专家** 岗位智能体.
+2. 岗位智能体将协同 4 个场景智能体并行 work。`,
+            timestamp: Date.now(),
+            status: 'completed'
+          }]);
+          await new Promise(resolve => setTimeout(resolve, 1500));
 
-        // 2. Position Agent Task Decomposition
-        const positionDecompId = `msg-pos-decomp-${Date.now()}`;
-        const initialScenarios = [
-          { 
-            name: '场景1: 产量波动归因 Agent', 
-            task: '找下降原因', 
-            status: 'processing',
-            workflow: {
-              steps: [
-                { 
-                  name: '生产数据提取', 
-                  details: {
-                    thought: '从生产日报数据库中提取 X-1 井近 7 天的产量、含水、压力数据。',
-                    action: ['调用：NL2SQL 工具', '执行：SELECT * FROM prod_daily WHERE well="X-1"'],
-                    observation: '成功提取 7 条记录，产量呈递减趋势。',
-                    plan: '进行产量递减率计算。'
-                  }
-                },
-                { name: '递减特征识别', details: null },
-                { name: '关联因素分析', details: null }
-              ],
-              currentStep: 1
-            }
-          },
-          { 
-            name: '场景2: 压力系统诊断 Agent', 
-            task: '看压力是否异常', 
-            status: 'pending',
-            workflow: {
-              steps: [
-                { name: '压力剖面分析', details: null },
-                { name: '供液能力评估', details: null }
-              ],
-              currentStep: 0
-            }
-          },
-          { name: '场景3: 措施有效性评估 Agent', task: '历史措施是否失效', status: 'pending' },
-          { name: '场景4: 未来稳产预测 Agent', task: '未来3天产量预测', status: 'pending' }
-        ];
+          const positionDecompId = `msg-pos-decomp-${Date.now()}`;
+          const initialScenarios = [
+            { 
+              name: '场景1: 产量波动归因 Agent', 
+              task: '找下降原因', 
+              status: 'processing',
+              workflow: {
+                steps: [
+                  { 
+                    name: '生产数据提取', 
+                    details: {
+                      thought: '从生产日报数据库中提取 X-1 井近 7 天的产量、含水、压力数据。',
+                      action: ['调用：NL2SQL 工具', '执行：SELECT * FROM prod_daily WHERE well="X-1"'],
+                      observation: '成功提取 7 条记录，产量呈递减趋势。',
+                      plan: '进行产量递减率计算。'
+                    }
+                  },
+                  { name: '递减特征识别', details: null },
+                  { name: '关联因素分析', details: null }
+                ],
+                currentStep: 1
+              }
+            },
+            { name: '场景2: 压力系统诊断 Agent', task: '看压力是否异常', status: 'idle' },
+            { name: '场景3: 措施有效性评估 Agent', task: '历史措施是否失效', status: 'idle' },
+            { name: '场景4: 未来稳产预测 Agent', task: '未来3天产量预测', status: 'idle' }
+          ];
 
-        setMessages(prev => [...prev, {
-          id: positionDecompId,
-          role: 'model',
-          agentId: productionAgent.id,
-          content: '',
-          timestamp: Date.now(),
-          status: 'processing',
-          cardType: 'position',
-          payload: {
-            title: '生产管理专家',
-            scenarios: initialScenarios
-          }
-        }]);
-
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        setMessages(prev => prev.map(msg => 
-          msg.id === positionDecompId ? {
-            ...msg,
+          setMessages(prev => [...prev, {
+            id: positionDecompId,
+            role: 'model',
+            agentId: productionAgent.id,
+            content: '正在通过岗位智能体协同多个场景进行并行分析。',
+            timestamp: Date.now(),
             status: 'completed',
             payload: {
-              ...msg.payload,
-              scenarios: msg.payload.scenarios.map((s: any, i: number) => ({ 
-                ...s, 
-                status: 'completed',
-                workflow: s.workflow ? { ...s.workflow, currentStep: s.workflow.steps.length } : undefined
-              }))
+              scenes: initialScenarios,
+              interimAnswer: '正在汇总各场景分析结果...'
             }
-          } : msg
-        ));
+          }]);
+          await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // 3. Stage Result 1
-        const stageResult1Id = `msg-stage1-${Date.now()}`;
-        setMessages(prev => [...prev, {
-          id: stageResult1Id,
-          role: 'model',
-          agentId: leaderAgent.id,
-          content: '',
-          timestamp: Date.now(),
-          status: 'completed',
-          cardType: 'stage_result',
-          payload: {
-            title: '阶段结论 1',
-            finding: '供液能力下降为一级主因',
-            points: ['井底流压48小时下降超阈值 15%', '产量下降与压力下降趋势高度相关', '含水率上升加剧供液压力']
-          }
-        }]);
-
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // 4. Final Result
-        const finalResultId = `msg-final-${Date.now()}`;
-        setMessages(prev => [...prev, {
-          id: finalResultId,
-          role: 'model',
-          agentId: leaderAgent.id,
-          content: '综合各位专家的分析结果',
-          timestamp: Date.now(),
-          status: 'completed',
-          payload: {
-            conclusion: '分析显示该井目前处于酸化措施衰减期，伴随井底流压异常下降，建议立即实施稳产干预。',
-            recommendations: [
-              '① 【立即】实施补充酸化措施',
-              '② 【优化】调整生产压差至 3.5MPa',
-              '③ 【监控】加密含水率监测频率'
-            ],
-            outputs: ['诊断报告.pdf', '优化建议单.docx', '产量预测图.png']
-          }
-        }]);
-
+          const finalId = `msg-final-${Date.now()}`;
+          setMessages(prev => [...prev, {
+            id: finalId,
+            role: 'model',
+            agentId: leaderAgent.id,
+            content: '分析完成',
+            timestamp: Date.now(),
+            status: 'completed',
+            payload: {
+              conclusion: '分析显示该井目前处于酸化措施衰减期，伴随井底流压异常下降，建议立即实施稳产干预。',
+              recommendations: [
+                '① 【立即】实施补充酸化措施',
+                '② 【优化】调整生产压差至 3.5MPa',
+                '③ 【监控】加密含水率监测频率'
+              ],
+              outputs: ['诊断报告.pdf', '优化建议单.docx', '产量预测图.png']
+            }
+          }]);
+        }
       } catch (error) {
         console.error('Error in Agentic flow:', error);
       } finally {
@@ -1075,6 +676,20 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
       }
       return;
     }
+
+    // Default mock response if not handled above
+    setTimeout(() => {
+      const mockId = `msg-mock-${Date.now()}`;
+      setMessages(prev => [...prev, {
+        id: mockId,
+        role: 'model',
+        agentId: leaderAgent.id,
+        content: '好的，我已经收到您的请求，正在为您处理相关工作。',
+        timestamp: Date.now(),
+        status: 'completed'
+      }]);
+      setIsGenerating(false);
+    }, 1000);
   };
 
   const getAgent = (agentId?: string) => agents.find(a => a.id === agentId) || leaderAgent;
@@ -1087,7 +702,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
     }
     if (workspaceVersion === 'professional') {
       return lang === 'zh'
-        ? '当前为专业版空间，已集成生产分析、勘探评价等专业场景智能体。支持复杂业务流编排与多维度联动诊断。'
+        ? '当前为专业版空间，已集成生产分析、勘探评价等专业场景智能体。支持复杂业务流编排与多维度联动诊断分析。'
         : 'Current: Professional version. Integrated with production analysis and exploration agents. Supports workflow orchestration and multi-dimensional diagnosis.';
     }
     return lang === 'zh'
@@ -1119,14 +734,25 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-[#f8f9fa] relative">
-      {/* Top Right History Button */}
-      <div className="absolute top-4 right-6 z-20">
+      {/* Top Right Session Actions */}
+      <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
+        <button 
+          onClick={() => {
+            setMessages([]);
+            onSelectMessage(null);
+            setInput('');
+          }}
+          title={lang === 'zh' ? '新建会话' : 'New Chat'}
+          className="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-full shadow-lg hover:shadow-xl hover:bg-blue-50 text-gray-600 hover:text-blue-600 transition-all group"
+        >
+          <i className="fas fa-plus text-sm group-hover:scale-110 transition-transform"></i>
+        </button>
         <button 
           onClick={() => setIsHistoryModalOpen(true)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-full shadow-sm hover:shadow-md hover:bg-white text-gray-600 hover:text-indigo-600 transition-all text-xs font-medium"
+          title={lang === 'zh' ? '历史记录' : 'History'}
+          className="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-full shadow-lg hover:shadow-xl hover:bg-indigo-50 text-gray-600 hover:text-indigo-600 transition-all group"
         >
-          <i className="fas fa-history"></i>
-          {lang === 'zh' ? '历史记录' : 'History'}
+          <i className="fas fa-history text-sm group-hover:rotate-[-45deg] transition-transform"></i>
         </button>
       </div>
 
@@ -1147,7 +773,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
               </button>
             </div>
             
-            <div className="p-4 border-b border-gray-100">
+            <div className="p-4 border-b border-gray-100 flex flex-col gap-3">
               <div className="relative">
                 <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
                 <input 
@@ -1158,33 +784,101 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
                   className="w-full pl-9 pr-4 py-2 bg-gray-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
                 />
               </div>
+              <button 
+                onClick={() => {
+                  setMessages([]);
+                  onSelectMessage(null);
+                  setInput('');
+                  setIsHistoryModalOpen(false);
+                }}
+                className="w-full py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2"
+              >
+                <i className="fas fa-plus"></i>
+                {lang === 'zh' ? '新建会话' : 'New Chat'}
+              </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {historySessions.filter(s => s.title.includes(historySearchQuery) || s.preview.includes(historySearchQuery)).length > 0 ? (
-                historySessions.filter(s => s.title.includes(historySearchQuery) || s.preview.includes(historySearchQuery)).map(session => (
-                  <div key={session.id} className="group p-3 hover:bg-indigo-50 rounded-xl cursor-pointer transition-all border border-transparent hover:border-indigo-100">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-bold text-gray-800 text-sm truncate mb-0.5">{session.title}</div>
-                        <div className="text-[10px] text-gray-400 mb-1 flex items-center gap-1">
-                          <i className="far fa-clock"></i> {session.date}
-                        </div>
-                        <div className="text-xs text-gray-500 truncate">{session.preview}</div>
+            <div className="flex-1 overflow-y-auto p-2">
+              {groupHistoryByTime(historySessions).length > 0 ? (
+                groupHistoryByTime(historySessions).map((group, gIdx) => (
+                  <div key={group.label} className={gIdx > 0 ? "mt-4" : ""}>
+                    <div className="px-3 mb-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{group.label}</div>
+                    <div className="space-y-1">
+                      {group.items.map(session => (
+                        <div 
+                          key={session.id} 
+                          className={`group p-3 rounded-xl cursor-pointer transition-all border border-transparent relative flex items-center justify-between gap-3 ${group.isPinned ? 'bg-indigo-50/50 hover:bg-indigo-50 hover:border-indigo-100' : 'hover:bg-gray-50 hover:border-gray-100'}`}
+                          onClick={() => {
+                            if (window.confirm(lang === 'zh' ? '切换会话将清空当前内容，是否继续？' : 'Switching sessions will clear current content. Continue?')) {
+                              setMessages([]);
+                              setIsHistoryModalOpen(false);
+                            }
+                          }}
+                        >
+                          <div className="flex-1 min-w-0 flex items-center gap-2">
+                            {session.isPinned && <i className="fas fa-thumbtack text-[10px] text-indigo-500 transform -rotate-45"></i>}
+                            <div className="font-bold text-gray-800 text-sm truncate">{session.title}</div>
+                          </div>
+                          
+                          <div className="relative flex-shrink-0">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSessionActionOpen(sessionActionOpen === session.id ? null : session.id);
+                              }}
+                              className="w-7 h-7 rounded-lg hover:bg-white flex items-center justify-center text-gray-400 transition-all border border-transparent hover:border-gray-200"
+                            >
+                              <i className="fas fa-ellipsis-v text-[10px]"></i>
+                            </button>
+
+                              {sessionActionOpen === session.id && (
+                                <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-gray-100 rounded-xl shadow-xl z-[110] py-1 overflow-hidden animate-in fade-in zoom-in duration-100">
+                                  <button 
+                                    className="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-indigo-50 flex items-center gap-2"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const newTitle = window.prompt(lang === 'zh' ? '重命名会话' : 'Rename Session', session.title);
+                                      if (newTitle) {
+                                        setHistorySessions(prev => prev.map(s => s.id === session.id ? { ...s, title: newTitle } : s));
+                                      }
+                                      setSessionActionOpen(null);
+                                    }}
+                                  >
+                                    <i className="far fa-edit w-4"></i> {lang === 'zh' ? '重命名' : 'Rename'}
+                                  </button>
+                                  <button 
+                                    className="w-full px-3 py-2 text-left text-xs text-gray-700 hover:bg-indigo-50 flex items-center gap-2"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setHistorySessions(prev => prev.map(s => s.id === session.id ? { ...s, isPinned: !s.isPinned } : s));
+                                      setSessionActionOpen(null);
+                                    }}
+                                  >
+                                    <i className={`fas fa-thumbtack w-4 ${session.isPinned ? 'text-indigo-500' : ''}`}></i> 
+                                    {session.isPinned ? (lang === 'zh' ? '取消置顶' : 'Unpin') : (lang === 'zh' ? '置顶' : 'Pin')}
+                                  </button>
+                                  <div className="h-px bg-gray-50 my-1"></div>
+                                  <button 
+                                    className="w-full px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (window.confirm(lang === 'zh' ? '确定删除该会话吗？' : 'Are you sure you want to delete this session?')) {
+                                        setHistorySessions(prev => prev.filter(s => s.id !== session.id));
+                                      }
+                                      setSessionActionOpen(null);
+                                    }}
+                                  >
+                                    <i className="far fa-trash-alt w-4"></i> {lang === 'zh' ? '删除' : 'Delete'}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setHistorySessions(prev => prev.filter(s => s.id !== session.id));
-                        }}
-                        className="w-8 h-8 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-600 flex items-center justify-center text-gray-400 transition-all"
-                      >
-                        <i className="far fa-trash-alt"></i>
-                      </button>
                     </div>
-                  </div>
-                ))
-              ) : (
+                  ))
+                ) : (
                 <div className="py-12 flex flex-col items-center justify-center text-gray-400">
                   <i className="fas fa-search text-3xl mb-3 opacity-20"></i>
                   <p className="text-sm">{lang === 'zh' ? '未找到相关会话' : 'No sessions found'}</p>
@@ -1256,7 +950,6 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
               return <UserMessageCard key={group.messages[0].id} message={group.messages[0]} />;
             }
 
-            // Use UnifiedResponseCard for all versions to group model messages into a single card
             return <UnifiedResponseCard key={`group-${gIndex}`} messages={group.messages} agents={agents} version={workspaceVersion} onSaveOutcome={onSaveOutcome} />;
           })
         )}
@@ -1298,20 +991,20 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
             </div>
           )}
           <div className="relative flex items-end gap-2">
-            <div className="flex-1 relative bg-white border border-gray-200 rounded-2xl shadow-sm focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all flex items-end p-1">
-              <button className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors flex-shrink-0">
-                <i className="fas fa-paperclip"></i>
-              </button>
+            <div className="flex-1 relative bg-white border border-gray-200 rounded-2xl shadow-sm focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all flex items-center p-1">
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 rounded-xl border border-slate-100 ml-1">
+                <i className="fas fa-database text-[10px] text-indigo-500"></i>
+                <span className="text-[11px] font-bold text-slate-600">
+                  {selectedResources.size} {lang === 'zh' ? '资源' : 'Resources'}
+                </span>
+              </div>
               <button 
-                className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors flex-shrink-0"
-                onClick={() => {
-                  setInput(prev => prev + '@');
-                  setShowMentionMenu(true);
-                  setMentionFilter('');
-                  inputRef.current?.focus();
-                }}
+                onClick={() => setIsRecording(!isRecording)}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors flex-shrink-0 ${
+                  isRecording ? 'bg-red-50 text-red-500 animate-pulse' : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'
+                }`}
               >
-                <i className="fas fa-at"></i>
+                <i className={`fas ${isRecording ? 'fa-stop' : 'fa-microphone'}`}></i>
               </button>
               <textarea
                 ref={inputRef}
@@ -1323,7 +1016,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
                     handleSend();
                   }
                 }}
-                placeholder={lang === 'zh' ? '输入问题，输入 @ 呼叫专家...' : 'Type a message, use @ to mention...'}
+                placeholder={lang === 'zh' ? (isRecording ? '正在录音...' : '请输入您的问题...') : (isRecording ? 'Recording...' : 'Type a message...')}
                 className="flex-1 bg-transparent border-none px-2 py-2.5 text-sm focus:outline-none resize-none min-h-[40px] max-h-32"
                 rows={1}
                 style={{ height: 'auto' }}

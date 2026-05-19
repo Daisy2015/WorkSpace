@@ -91,7 +91,7 @@ const App: React.FC = () => {
 
   const [agents, setAgents] = useState<Agent[]>([
     { id: 'agent-1', name: 'Leader', role: '需求理解与任务调度', avatar: '👑', description: '负责理解用户意图，拆解任务并分发给对应的数字专家，最后汇总答案。', isLeader: true, status: 'Idle' },
-    { id: 'agent-2', name: '数据分析专家', role: '数据查询与统计', avatar: '📊', description: '精通SQL和数据分析，能够快速从海量数据中提取关键指标。' },
+    { id: 'agent-2', name: '智能问数', role: '数据查询与统计', avatar: '📊', description: '精通SQL和数据分析，能够快速从海量数据中提取关键指标。' },
     { id: 'agent-3', name: '文档检索专家', role: '知识库问答', avatar: '📚', description: '熟悉各类技术文档和规范，能够准确回答专业问题。' },
     { id: 'agent-4', name: '报告生成专家', role: '内容总结与排版', avatar: '📝', description: '擅长将零散的信息整理成结构清晰、格式规范的报告。' },
     { id: 'agent-chart', name: '数据成图', role: '可视化成图', avatar: <i className="fas fa-chart-bar"></i>, description: '擅长将数据转化为直观的图表和可视化看板。' },

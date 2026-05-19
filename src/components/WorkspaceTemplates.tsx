@@ -25,7 +25,7 @@ export const WorkspaceTemplates: React.FC<WorkspaceTemplatesProps> = ({
     
     // Tab filtering
     if (activeTab === 'my') {
-      result = result.filter(tpl => tpl.owner === '钻井专家组' || tpl.owner === '地质研究所'); // Mocking "My"
+      result = result.filter(tpl => tpl.owner === '陈力学' || tpl.owner === '王晓东'); // Mocking "My"
     } else if (activeTab === 'recent') {
       result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } else if (activeTab === 'recommended') {

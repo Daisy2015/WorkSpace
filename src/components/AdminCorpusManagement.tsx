@@ -10,6 +10,8 @@ interface AdminCorpusManagementProps {
 
 const MOCK_VARIABLE_POOL: VariablePool = {
   '对象名称': ['A1井', 'B2井', 'C3井', 'D4井'],
+  '数据集名称': ['2023测井报告', '重点区块地震数据', '井下施工照片'],
+  '数据项': ['压力指标', '地层描述', '开工日期'],
   '组件名称': ['套管', '钻头', '井口装置', '泥浆泵'],
   '成果名称': ['测井曲线', '录井报告', '试油报告'],
   '工序': ['钻井', '完井', '固井', '测井'],
@@ -31,6 +33,13 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
   const [isSelectingVersion, setIsSelectingVersion] = useState(false);
   const [newTemplateRaw, setNewTemplateRaw] = useState('');
   const [newTemplateName, setNewTemplateName] = useState('');
+  const [templateFilters, setTemplateFilters] = useState({
+    '对象名称': { type: '全部', regex: '' },
+    '数据集名称': { type: '全部', regex: '' },
+    '数据项': { type: '全部', regex: '' }
+  });
+
+  const hasVar = (varName: string) => newTemplateRaw.includes(`{${varName}}`);
 
   const selectedTemplate = useMemo(() => 
     templates.find(t => t.id === selectedTemplateId) || null
@@ -97,6 +106,17 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
     }
   };
 
+  const closeAddModal = () => {
+    setIsAddingTemplate(false);
+    setNewTemplateName('');
+    setNewTemplateRaw('');
+    setTemplateFilters({
+      '对象名称': { type: '全部', regex: '' },
+      '数据集名称': { type: '全部', regex: '' },
+      '数据项': { type: '全部', regex: '' }
+    });
+  };
+
   return (
     <div className="h-full flex flex-col bg-gray-50 overflow-hidden">
       {/* Header */}
@@ -151,7 +171,6 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
                   </th>
                   <th className="px-4 py-3">{t.colTemplateName}</th>
                   <th className="px-4 py-3">{t.colRawTemplate}</th>
-                  <th className="px-4 py-3 text-center">{t.colVarCount}</th>
                   <th className="px-4 py-3">{t.colUpdateTime}</th>
                 </tr>
               </thead>
@@ -172,7 +191,6 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
                     </td>
                     <td className="px-4 py-4 font-bold text-gray-900">{template.name}</td>
                     <td className="px-4 py-4 text-gray-500 font-mono text-xs max-w-xs truncate">{template.rawTemplate}</td>
-                    <td className="px-4 py-4 text-center text-blue-600 font-bold">{template.varCount}</td>
                     <td className="px-4 py-4 text-gray-400 text-xs">{template.updateTime}</td>
                   </tr>
                 ))}
@@ -195,14 +213,7 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {generatedSamples.map(sample => (
               <div key={sample.id} className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all group">
-                <p className="text-xs text-gray-800 leading-relaxed mb-2">{sample.text}</p>
-                <div className="flex flex-wrap gap-1">
-                  {sample.tags.map(tag => (
-                    <span key={tag} className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[9px] font-bold border border-blue-100">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+                <p className="text-xs text-gray-800 leading-relaxed">{sample.text}</p>
               </div>
             ))}
             {generatedSamples.length === 0 && (
@@ -231,7 +242,7 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setIsAddingTemplate(false)}
+              onClick={closeAddModal}
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             />
             <motion.div 
@@ -242,12 +253,12 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
             >
               <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                 <h2 className="text-xl font-bold text-gray-900">{t.newTemplate}</h2>
-                <button onClick={() => setIsAddingTemplate(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <button onClick={closeAddModal} className="text-gray-400 hover:text-gray-600 transition-colors">
                   <i className="fas fa-times text-xl"></i>
                 </button>
               </div>
               
-              <div className="p-8 space-y-6">
+              <div className="p-8 space-y-6 overflow-y-auto max-h-[70vh] custom-scrollbar">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-gray-700">{t.colTemplateName}</label>
                   <input 
@@ -269,7 +280,7 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
                   
                   {/* Quick Insert Area */}
                   <div className="flex flex-wrap gap-2 mb-2">
-                    {[t.objName, t.objType, t.compName, t.resultName, t.itemType].map(label => (
+                    {['对象名称', '数据集名称', '数据项'].map(label => (
                       <button 
                         key={label}
                         onClick={() => handleInsertVar(label)}
@@ -278,9 +289,6 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
                         + {label}
                       </button>
                     ))}
-                    <button className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-xs font-bold border border-gray-200 hover:bg-gray-200 transition-all">
-                      {t.insertVar} <i className="fas fa-chevron-down ml-1 text-[8px]"></i>
-                    </button>
                   </div>
 
                   <textarea 
@@ -292,22 +300,112 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
                   />
                 </div>
 
-                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                  <div className="flex gap-3">
-                    <i className="fas fa-info-circle text-blue-500 mt-1"></i>
-                    <div>
-                      <p className="text-xs text-blue-800 font-bold mb-1">变量生成逻辑</p>
-                      <p className="text-[10px] text-blue-600 leading-relaxed">
-                        系统将基于模板中的变量占位符，自动做笛卡尔组合生成训练样本。例如 2 个井名 × 3 个工序将自动生成 6 条语料。
-                      </p>
+                {/* Conditional Filtering Section */}
+                {(hasVar('对象名称') || hasVar('数据集名称') || hasVar('数据项')) && (
+                  <div className="space-y-3 pt-4 border-t border-gray-100">
+                    <h3 className="text-xs font-bold text-gray-500 flex items-center uppercase tracking-wider">
+                      <i className="fas fa-filter mr-2 text-blue-400"></i>
+                      变量约束配置
+                    </h3>
+                    
+                    <div className="space-y-2">
+                      {hasVar('对象名称') && (
+                        <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 flex items-center gap-4">
+                          <div className="w-20 shrink-0">
+                            <span className="text-[10px] font-bold py-1 bg-blue-50 text-blue-600 rounded-md border border-blue-100 block text-center">对象名称</span>
+                          </div>
+                          <div className="flex-1 grid grid-cols-2 gap-4">
+                            <div className="flex items-center gap-2">
+                              <label className="text-[10px] text-gray-400 font-bold shrink-0">类型</label>
+                              <select 
+                                value={templateFilters['对象名称'].type}
+                                onChange={(e) => setTemplateFilters({...templateFilters, '对象名称': {...templateFilters['对象名称'], type: e.target.value}})}
+                                className="flex-1 p-1 h-7 border border-gray-200 rounded text-[10px] bg-white focus:ring-1 focus:ring-blue-500 outline-none"
+                              >
+                                {['全部', '井', '油气田', '区块', '场站'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                              </select>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <label className="text-[10px] text-gray-400 font-bold shrink-0">正则</label>
+                              <input 
+                                type="text"
+                                value={templateFilters['对象名称'].regex}
+                                onChange={(e) => setTemplateFilters({...templateFilters, '对象名称': {...templateFilters['对象名称'], regex: e.target.value}})}
+                                placeholder="如: ^A.*"
+                                className="flex-1 px-2 h-7 border border-gray-200 rounded text-[10px] bg-white focus:ring-1 focus:ring-blue-500 outline-none"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {hasVar('数据集名称') && (
+                        <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 flex items-center gap-4">
+                          <div className="w-20 shrink-0">
+                            <span className="text-[10px] font-bold py-1 bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100 block text-center">数据集名称</span>
+                          </div>
+                          <div className="flex-1 grid grid-cols-2 gap-4">
+                            <div className="flex items-center gap-2">
+                              <label className="text-[10px] text-gray-400 font-bold shrink-0">类型</label>
+                              <select 
+                                value={templateFilters['数据集名称'].type}
+                                onChange={(e) => setTemplateFilters({...templateFilters, '数据集名称': {...templateFilters['数据集名称'], type: e.target.value}})}
+                                className="flex-1 p-1 h-7 border border-gray-200 rounded text-[10px] bg-white focus:ring-1 focus:ring-blue-500 outline-none"
+                              >
+                                {['全部', '文档', '图片', '结构化', '地震数据'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                              </select>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <label className="text-[10px] text-gray-400 font-bold shrink-0">正则</label>
+                              <input 
+                                type="text"
+                                value={templateFilters['数据集名称'].regex}
+                                onChange={(e) => setTemplateFilters({...templateFilters, '数据集名称': {...templateFilters['数据集名称'], regex: e.target.value}})}
+                                placeholder="如: .*报告$"
+                                className="flex-1 px-2 h-7 border border-gray-200 rounded text-[10px] bg-white focus:ring-1 focus:ring-blue-500 outline-none"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {hasVar('数据项') && (
+                        <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 flex items-center gap-4">
+                          <div className="w-20 shrink-0">
+                            <span className="text-[10px] font-bold py-1 bg-amber-50 text-amber-600 rounded-md border border-amber-100 block text-center">数据项</span>
+                          </div>
+                          <div className="flex-1 grid grid-cols-2 gap-4">
+                            <div className="flex items-center gap-2">
+                              <label className="text-[10px] text-gray-400 font-bold shrink-0">类型</label>
+                              <select 
+                                value={templateFilters['数据项'].type}
+                                onChange={(e) => setTemplateFilters({...templateFilters, '数据项': {...templateFilters['数据项'], type: e.target.value}})}
+                                className="flex-1 p-1 h-7 border border-gray-200 rounded text-[10px] bg-white focus:ring-1 focus:ring-blue-500 outline-none"
+                              >
+                                {['全部', '指标类', '描述类', '时间类', '坐标类'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                              </select>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <label className="text-[10px] text-gray-400 font-bold shrink-0">正则</label>
+                              <input 
+                                type="text"
+                                value={templateFilters['数据项'].regex}
+                                onChange={(e) => setTemplateFilters({...templateFilters, '数据项': {...templateFilters['数据项'], regex: e.target.value}})}
+                                placeholder="如: ^井.*"
+                                className="flex-1 px-2 h-7 border border-gray-200 rounded text-[10px] bg-white focus:ring-1 focus:ring-blue-500 outline-none"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
               <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
                 <button 
-                  onClick={() => setIsAddingTemplate(false)}
+                  onClick={closeAddModal}
                   className="px-6 py-2.5 text-gray-600 font-bold hover:bg-gray-100 rounded-xl transition-all"
                 >
                   {t.cancel}
@@ -331,6 +429,11 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
                       setIsAddingTemplate(false);
                       setNewTemplateName('');
                       setNewTemplateRaw('');
+                      setTemplateFilters({
+                        '对象名称': { type: '全部', regex: '' },
+                        '数据集名称': { type: '全部', regex: '' },
+                        '数据项': { type: '全部', regex: '' }
+                      });
                       setAlertMessage('模板已保存');
                     }}
                   className="px-8 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"

@@ -9,7 +9,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 8,
     usageCount: 0,
     createdAt: '2024-08-15',
-    owner: '勘探研究部',
+    owner: '张建国',
     tags: ['风险', '评价', '勘探'],
     category: '地质研究',
     icon: 'fa-exclamation-triangle'
@@ -21,7 +21,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 5,
     usageCount: 128,
     createdAt: '2024-01-15',
-    owner: '系统管理员',
+    owner: '李志刚',
     tags: ['钻井', '标准'],
     category: '钻完井工程',
     icon: 'fa-tools'
@@ -33,7 +33,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 8,
     usageCount: 45,
     createdAt: '2024-02-20',
-    owner: '地质专家组',
+    owner: '王晓东',
     tags: ['勘探', '风险'],
     category: '地质研究',
     icon: 'fa-chart-line'
@@ -57,7 +57,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 4,
     usageCount: 88,
     createdAt: '2024-06-01',
-    owner: '地质专家组',
+    owner: '王晓东',
     tags: ['地质', '钻井'],
     category: '地质研究',
     icon: 'fa-map-marked-alt'
@@ -69,7 +69,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 3,
     usageCount: 72,
     createdAt: '2024-06-05',
-    owner: '地质专家组',
+    owner: '王晓东',
     tags: ['测井', '评价'],
     category: '地质研究',
     icon: 'fa-database'
@@ -81,7 +81,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 5,
     usageCount: 56,
     createdAt: '2024-06-10',
-    owner: '地质专家组',
+    owner: '王晓东',
     tags: ['分析', '经验'],
     category: '地质研究',
     icon: 'fa-chart-area'
@@ -93,7 +93,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 6,
     usageCount: 30,
     createdAt: '2024-06-15',
-    owner: '地质专家组',
+    owner: '王晓东',
     tags: ['报告', '研究'],
     category: '地质研究',
     icon: 'fa-file-alt'
@@ -105,7 +105,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 5,
     usageCount: 95,
     createdAt: '2024-06-20',
-    owner: '钻井专家组',
+    owner: '陈力学',
     tags: ['钻井', '设计'],
     category: '钻完井工程',
     icon: 'fa-tools'
@@ -117,7 +117,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 4,
     usageCount: 60,
     createdAt: '2024-06-25',
-    owner: '钻井专家组',
+    owner: '陈力学',
     tags: ['完井', '设计'],
     category: '钻完井工程',
     icon: 'fa-tools'
@@ -129,7 +129,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 2,
     usageCount: 150,
     createdAt: '2024-06-30',
-    owner: '钻井专家组',
+    owner: '陈力学',
     tags: ['施工', '日报'],
     category: '钻完井工程',
     icon: 'fa-clipboard-check'
@@ -141,7 +141,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 3,
     usageCount: 40,
     createdAt: '2024-07-05',
-    owner: '钻井专家组',
+    owner: '陈力学',
     tags: ['完井', '总结'],
     category: '钻完井工程',
     icon: 'fa-file-signature'
@@ -153,7 +153,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 7,
     usageCount: 25,
     createdAt: '2024-07-10',
-    owner: '油藏专家组',
+    owner: '赵敏',
     tags: ['开发', '方案'],
     category: '油气藏工程',
     icon: 'fa-industry'
@@ -165,7 +165,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 4,
     usageCount: 50,
     createdAt: '2024-07-15',
-    owner: '油藏专家组',
+    owner: '赵敏',
     tags: ['产量', '分析'],
     category: '油气藏工程',
     icon: 'fa-chart-line'
@@ -177,7 +177,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 3,
     usageCount: 35,
     createdAt: '2024-07-20',
-    owner: '油藏专家组',
+    owner: '赵敏',
     tags: ['评价', '措施'],
     category: '油气藏工程',
     icon: 'fa-check-circle'
@@ -189,7 +189,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 3,
     usageCount: 200,
     createdAt: '2024-07-25',
-    owner: '生产管理组',
+    owner: '孙大海',
     tags: ['生产', '报表'],
     category: '生产管理',
     icon: 'fa-file-alt'
@@ -201,7 +201,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 4,
     usageCount: 150,
     createdAt: '2024-07-30',
-    owner: '生产管理组',
+    owner: '孙大海',
     tags: ['异常', '预警'],
     category: '生产管理',
     icon: 'fa-bell'
@@ -213,7 +213,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 3,
     usageCount: 80,
     createdAt: '2024-08-05',
-    owner: '生产管理组',
+    owner: '孙大海',
     tags: ['效率', '优化'],
     category: '生产管理',
     icon: 'fa-cogs'
@@ -225,7 +225,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     mbuCount: 4,
     usageCount: 120,
     createdAt: '2024-08-10',
-    owner: '生产管理组',
+    owner: '孙大海',
     tags: ['调度', '指令'],
     category: '生产管理',
     icon: 'fa-clipboard-list'
@@ -239,7 +239,7 @@ export const MOCK_WORKSPACES: Workspace[] = [
     mbuCount: 5,
     createdAt: '2024-05-21',
     status: WorkspaceStatus.DRAFT,
-    owner: '钻井工程师',
+    owner: '陈力学',
     description: 'X-1 井钻井工程核心工作台，集成设计、日报、参数及复杂情况分析。'
   },
   {
@@ -266,7 +266,7 @@ export const MOCK_WORKSPACES: Workspace[] = [
     mbuCount: 5,
     createdAt: '2024-01-15',
     status: WorkspaceStatus.ARCHIVED,
-    owner: '管理员',
+    owner: '李志刚',
     description: '东部扇区所有活跃油井的季度回顾。'
   },
   {
@@ -293,7 +293,7 @@ export const MOCK_WORKSPACES: Workspace[] = [
     mbuCount: 4,
     createdAt: '2024-02-10',
     status: WorkspaceStatus.ARCHIVED,
-    owner: '安全部',
+    owner: '周安全',
     description: '2023年度输油管道腐蚀检测与风险评估审计报告。'
   },
   {
@@ -311,7 +311,7 @@ export const MOCK_WORKSPACES: Workspace[] = [
     mbuCount: 2,
     createdAt: '2024-04-05',
     status: WorkspaceStatus.COMPLETED,
-    owner: 'HSE 团队',
+    owner: '王健康',
     description: '更新海上作业安全操作规程以符合最新法规。'
   },
   {

@@ -292,10 +292,17 @@ export const AdminWorkflowStudio: React.FC<AdminWorkflowStudioProps> = ({ lang, 
       .map(node => (
         <React.Fragment key={node.id}>
           <div className="relative group">
-            <button
+            <div
+              role="button"
+              tabIndex={0}
               onClick={() => setSelectedNodeId(node.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  setSelectedNodeId(node.id);
+                }
+              }}
               style={{ paddingLeft: `${level * 16 + 12}px` }}
-              className={`w-full flex items-center gap-2 py-2 pr-3 rounded-lg text-[11px] font-medium transition-all text-left ${
+              className={`w-full flex items-center gap-2 py-2 pr-3 rounded-lg text-[11px] font-medium transition-all text-left cursor-pointer ${
                 selectedNodeId === node.id 
                 ? 'bg-indigo-50 text-indigo-600 shadow-sm border border-indigo-100' 
                 : 'text-slate-600 hover:bg-slate-50 border border-transparent'
@@ -323,7 +330,7 @@ export const AdminWorkflowStudio: React.FC<AdminWorkflowStudioProps> = ({ lang, 
                   <i className="fas fa-times text-[8px]"></i>
                 </button>
               </div>
-            </button>
+            </div>
           </div>
           {renderNodes(node.id, level + 1)}
         </React.Fragment>

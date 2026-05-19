@@ -1,19 +1,19 @@
 import * as React from "react"
 import { cn } from "../../lib/utils"
 
+const RadioGroupContext = React.createContext<{ value?: string, onValueChange?: (value: string) => void }>({})
+
 const RadioGroup = React.forwardRef<HTMLDivElement, { value?: string, onValueChange?: (value: string) => void, children: React.ReactNode, className?: string }>(({ value, onValueChange, children, className }, ref) => (
-  <div className={cn("grid gap-2", className)} ref={ref}>
-    {React.Children.map(children, child => {
-      if (React.isValidElement(child)) {
-        return React.cloneElement(child as React.ReactElement<any>, { selectedValue: value, onValueChange })
-      }
-      return child
-    })}
-  </div>
+  <RadioGroupContext.Provider value={{ value, onValueChange }}>
+    <div className={cn("grid gap-2", className)} ref={ref}>
+      {children}
+    </div>
+  </RadioGroupContext.Provider>
 ))
 RadioGroup.displayName = "RadioGroup"
 
-const RadioGroupItem = React.forwardRef<HTMLButtonElement, { value: string, id?: string, className?: string, selectedValue?: string, onValueChange?: (value: string) => void }>(({ value, id, className, selectedValue, onValueChange }, ref) => {
+const RadioGroupItem = React.forwardRef<HTMLButtonElement, { value: string, id?: string, className?: string }>(({ value, id, className }, ref) => {
+  const { value: selectedValue, onValueChange } = React.useContext(RadioGroupContext)
   const isChecked = selectedValue === value
   return (
     <button

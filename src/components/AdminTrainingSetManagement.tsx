@@ -149,14 +149,14 @@ export const AdminTrainingSetManagement: React.FC<AdminTrainingSetManagementProp
                 onClick={() => setSelectedSetId(set.id)}
                 className={`p-4 border-b border-gray-50 cursor-pointer transition-all ${selectedSetId === set.id ? 'bg-indigo-50/50 border-r-2 border-r-indigo-600' : 'hover:bg-gray-50'}`}
               >
-                <div className="flex justify-end items-center mb-1.5">
-                  <span className="text-[10px] text-slate-400">{set.updateTime.split(' ')[0]}</span>
-                </div>
-                <h4 className={`font-bold text-sm truncate ${selectedSetId === set.id ? 'text-indigo-600' : 'text-slate-700'}`}>{set.name}</h4>
-                <div className="mt-2 flex items-center justify-between">
-                  <div className="flex items-center text-[10px] text-slate-400 font-medium">
-                    <i className="fas fa-database mr-1.5 opacity-50"></i>
-                    <span>{set.sampleCount.toLocaleString()} 样本</span>
+                <h4 className={`font-bold text-sm truncate mb-2 ${selectedSetId === set.id ? 'text-indigo-600' : 'text-slate-700'}`}>{set.name}</h4>
+                <div className="flex items-center justify-between text-[10px]">
+                  <div className="flex items-center gap-3 text-slate-400">
+                    <span>{set.updateTime.split(' ')[0]}</span>
+                    <div className="flex items-center">
+                      <i className="fas fa-database mr-1 opacity-50"></i>
+                      <span>{set.sampleCount.toLocaleString()}</span>
+                    </div>
                   </div>
                   <button 
                     onClick={(e) => {
@@ -168,7 +168,7 @@ export const AdminTrainingSetManagement: React.FC<AdminTrainingSetManagementProp
                         }
                       }
                     }}
-                    className="text-[10px] font-bold text-red-500 hover:text-red-700"
+                    className="font-bold text-red-500 hover:text-red-700 transition-colors"
                   >
                     {lang === 'zh' ? '删除' : 'Delete'}
                   </button>
