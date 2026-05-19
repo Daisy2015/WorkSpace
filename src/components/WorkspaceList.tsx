@@ -6,6 +6,7 @@ import { translations } from '../i18n';
 import { WorkspaceBuilder } from './WorkspaceBuilder';
 import { WorkspaceConstructionLoading } from './WorkspaceConstructionLoading';
 import WorkspaceStrategyConfig from './WorkspaceStrategyConfig';
+import { ShareWorkspaceModal } from './ShareWorkspaceModal';
 
 interface WorkspaceListProps {
   workspaces: Workspace[];
@@ -40,6 +41,12 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
   const [isWorkspaceBuilderOpen, setIsWorkspaceBuilderOpen] = useState(false);
   const [isConstructing, setIsConstructing] = useState(false);
   const [isStrategyOpen, setIsStrategyOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [sharingWorkspace, setSharingWorkspace] = useState<{ id: string, name: string } | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingWorkspace, setEditingWorkspace] = useState<{ id: string, name: string, description: string } | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDesc, setEditDesc] = useState('');
   const [strategyConfig, setStrategyConfig] = useState<any>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -129,11 +136,29 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
     }
   };
 
-  const handleShare = (e: React.MouseEvent, id: string) => {
+  const handleShare = (e: React.MouseEvent, id: string, name: string) => {
     e.stopPropagation();
-    // Mock share
-    navigator.clipboard.writeText(`https://aunit.app/workspace/${id}`);
-    setAlertMessage(t.shareSuccess);
+    setSharingWorkspace({ id, name });
+    setIsShareModalOpen(true);
+  };
+
+  const handleEdit = (e: React.MouseEvent, ws: Workspace) => {
+    e.stopPropagation();
+    setEditingWorkspace({ id: ws.id, name: ws.name, description: ws.description || '' });
+    setEditName(ws.name);
+    setEditDesc(ws.description || '');
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdate = () => {
+    if (editingWorkspace && editName.trim()) {
+      onUpdateWorkspace(editingWorkspace.id, {
+        name: editName,
+        description: editDesc
+      });
+      setIsEditModalOpen(false);
+      setEditingWorkspace(null);
+    }
   };
 
   const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>, id: string) => {
@@ -277,7 +302,14 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                           {isOwner ? (
                               <>
                                   <button 
-                                      onClick={(e) => handleShare(e, ws.id)}
+                                      onClick={(e) => handleEdit(e, ws)}
+                                      className="text-gray-400 hover:text-indigo-600 transition-colors"
+                                      title={t.editWorkspace}
+                                  >
+                                      <i className="fas fa-edit text-xs"></i>
+                                  </button>
+                                  <button 
+                                      onClick={(e) => handleShare(e, ws.id, ws.name)}
                                       className="text-gray-400 hover:text-blue-600 transition-colors"
                                       title={t.share}
                                   >
@@ -299,9 +331,13 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                                   </button>
                               </>
                           ) : (
-                               <div className="text-gray-300" title="Read Only">
-                                  <i className="fas fa-eye"></i>
-                               </div>
+                               <button 
+                                  onClick={(e) => handleDelete(e, ws.id)}
+                                  className="text-gray-400 hover:text-red-600 transition-colors"
+                                  title={t.leaveWorkspace}
+                               >
+                                  <i className="fas fa-sign-out-alt text-xs"></i>
+                               </button>
                           )}
                       </div>
                   </div>
@@ -638,9 +674,13 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
               className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center"
             >
               <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
-                <i className="fas fa-trash-alt"></i>
+                <i className={`fas ${workspaces.find(w => w.id === confirmDeleteId)?.owner === CURRENT_USER ? 'fa-trash-alt' : 'fa-sign-out-alt'}`}></i>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">{t.deleteWorkspaceConfirm}</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                {workspaces.find(w => w.id === confirmDeleteId)?.owner === CURRENT_USER 
+                  ? t.deleteWorkspaceConfirm 
+                  : t.leaveWorkspaceConfirm}
+              </h3>
               <div className="flex gap-3 mt-6">
                 <button 
                   onClick={() => setConfirmDeleteId(null)}
@@ -711,6 +751,85 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
           }}
         />
       )}
+
+      {sharingWorkspace && (
+        <ShareWorkspaceModal
+          isOpen={isShareModalOpen}
+          onClose={() => {
+            setIsShareModalOpen(false);
+            setSharingWorkspace(null);
+          }}
+          workspaceName={sharingWorkspace.name}
+          lang={lang}
+        />
+      )}
+
+      {/* Edit Modal */}
+      <AnimatePresence>
+        {isEditModalOpen && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsEditModalOpen(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-8"
+            >
+              <h3 className="text-xl font-bold text-gray-900 mb-6">{t.editWorkspace}</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                    {t.workspaceName}
+                  </label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all outline-none"
+                    placeholder={t.placeholderTitle}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                    {t.workspaceDesc}
+                  </label>
+                  <textarea
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all outline-none resize-none"
+                    rows={4}
+                    placeholder={t.placeholderDesc}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-8">
+                <button 
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="flex-1 py-3 px-4 border border-gray-100 text-gray-500 rounded-xl text-sm font-bold hover:bg-gray-50 transition-colors"
+                >
+                  {t.cancel}
+                </button>
+                <button 
+                  onClick={handleUpdate}
+                  disabled={!editName.trim()}
+                  className="flex-1 py-3 px-4 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 shadow-lg shadow-indigo-100 transition-all"
+                >
+                  {t.update}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -32,6 +32,8 @@ import { translations } from './i18n';
 
 type MainTab = 'dashboard' | 'workspaces' | 'admin' | 'intelligence' | 'knowledge' | 'integration' | 'templates' | 'construction' | 'construction-completion';
 
+const CURRENT_USER = '李明';
+
 const App: React.FC = () => {
   // Navigation State
   const [currentTab, setCurrentTab] = useState<MainTab>('dashboard');
@@ -58,6 +60,11 @@ const App: React.FC = () => {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [isStrategyConfirmationOpen, setIsStrategyConfirmationOpen] = useState(false);
   const [configAgentId, setConfigAgentId] = useState<string | null>(null);
+
+  // Edit Workspace State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDesc, setEditDesc] = useState('');
 
   // MBU Explorer State (for construction completion)
   const [constructionTreeNode, setConstructionTreeNode] = useState<ResourceNode | null>(null);
@@ -235,6 +242,24 @@ const App: React.FC = () => {
     setActiveWorkspaceId(null);
     setIsAddResourcePageOpen(false);
     setEditingDoc(null);
+  };
+
+  const handleEditCurrentWorkspace = () => {
+    if (activeWorkspaceData) {
+      setEditName(activeWorkspaceData.name);
+      setEditDesc(activeWorkspaceData.description || '');
+      setIsEditModalOpen(true);
+    }
+  };
+
+  const handleUpdateCurrentWorkspace = () => {
+    if (activeWorkspaceId && editName.trim()) {
+      handleUpdateWorkspace(activeWorkspaceId, {
+        name: editName,
+        description: editDesc
+      });
+      setIsEditModalOpen(false);
+    }
   };
 
   useEffect(() => {
@@ -894,8 +919,17 @@ const App: React.FC = () => {
                                 </button>
                                 <div className="h-6 w-px bg-slate-200"></div>
                                 <div className="flex flex-col">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 group">
                                         <span className="font-bold text-slate-900 tracking-tight">{activeWorkspaceData?.name}</span>
+                                        {activeWorkspaceData?.owner === CURRENT_USER && (
+                                            <button 
+                                                onClick={handleEditCurrentWorkspace}
+                                                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-indigo-600 transition-all"
+                                                title={t.editWorkspace}
+                                            >
+                                                <i className="fas fa-edit text-xs"></i>
+                                            </button>
+                                        )}
                                         <span className="px-1.5 py-0.5 rounded bg-blue-50 text-[10px] font-bold text-blue-600 uppercase tracking-wider border border-blue-100">
                                             {activeWorkspaceData?.status || 'DRAFT'}
                                         </span>
@@ -1360,6 +1394,72 @@ const App: React.FC = () => {
           </div>
         )}
       </div>
+      {/* Edit Workspace Modal */}
+      <AnimatePresence>
+        {isEditModalOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsEditModalOpen(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-8"
+            >
+              <h3 className="text-xl font-bold text-gray-900 mb-6">{t.editWorkspace}</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                    {t.workspaceName}
+                  </label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all outline-none"
+                    placeholder={t.placeholderTitle}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                    {t.workspaceDesc}
+                  </label>
+                  <textarea
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all outline-none resize-none"
+                    rows={4}
+                    placeholder={t.placeholderDesc}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-8">
+                <button 
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="flex-1 py-3 px-4 border border-gray-100 text-gray-500 rounded-xl text-sm font-bold hover:bg-gray-50 transition-colors"
+                >
+                  {t.cancel}
+                </button>
+                <button 
+                  onClick={handleUpdateCurrentWorkspace}
+                  disabled={!editName.trim()}
+                  className="flex-1 py-3 px-4 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 shadow-lg shadow-indigo-100 transition-all"
+                >
+                  {t.update}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
