@@ -554,6 +554,84 @@ const App: React.FC = () => {
       }
   };
 
+  const handleHistoryClick = (item: any) => {
+    const timestamp = Date.now();
+    
+    // 1. User Query
+    const userMsg: Message = {
+      id: `msg-h-u-${timestamp}`,
+      role: 'user',
+      content: lang === 'zh' ? '作为生产管理专家，请复盘本月全区稳产情况' : 'As a production management expert, please review the stable production situation of the entire area this month.',
+      timestamp: timestamp
+    };
+
+    // 2. Expert Thought
+    const thoughtMsg: Message = {
+      id: `msg-h-t-${timestamp + 100}`,
+      role: 'model',
+      agentId: 'leader-agent',
+      content: lang === 'zh' 
+        ? `**问题理解**：针对全区本月稳产情况进行深度复盘。涉及产量达成率、异常损耗分析、重点措施井贡献及下月稳产风险预警。\n\n**意图识别**：\n- 岗位职责：全区生产分析与辅助协调。\n- 业务闭环：从“现状分析”到“归因诊断”再到“措施指导”。`
+        : `**Understanding**: Deep review of the area's stable production this month...`,
+      timestamp: timestamp + 200,
+      status: 'completed'
+    };
+
+    // 3. Position Decomposition
+    const decompMsg: Message = {
+      id: `msg-h-d-${timestamp + 300}`,
+      role: 'model',
+      agentId: 'agent-ent-1',
+      content: lang === 'zh' ? '已启动岗位协同复盘流程。正在整合多场景智能体分析结果...' : 'Initiating position collaborative review...',
+      timestamp: timestamp + 400,
+      status: 'completed',
+      payload: {
+        scenes: [
+          { 
+            name: '场景1: 全区产量达成分析', 
+            task: '计算计划完成率', 
+            status: 'completed',
+            workflow: {
+              currentStep: 1,
+              steps: [{ name: '指标获取', details: { observation: '本月累计产油 42.5 万吨，进度达成率 98.2%。' } }]
+            }
+          },
+          { name: '场景2: 关停井归因统计', task: '量化停产损失', status: 'completed' },
+          { name: '场景3: 重点稳产措施评估', task: '评价增产有效性', status: 'completed' },
+          { name: '场景4: 跨岗位协同预警', task: '识别供应链/设备风险', status: 'completed' }
+        ],
+        interimAnswer: lang === 'zh' ? '全区本月生产整体稳定，但 B 区块由于管网维护导致 3.5% 的产量缺口。' : 'Overall stable, but Block B has 3.5% gap due to maintenance.'
+      }
+    };
+
+    // 4. Final Conclusion
+    const finalMsg: Message = {
+      id: `msg-h-f-${timestamp + 500}`,
+      role: 'model',
+      agentId: 'leader-agent',
+      content: lang === 'zh' ? '复盘完成' : 'Review completed',
+      timestamp: timestamp + 600,
+      status: 'completed',
+      payload: {
+        conclusion: lang === 'zh' 
+          ? '本月全区稳产态势良好，累计产量达成率 98.2%。主要影响因素为 B 区中旬的管网例行停产维护。东部新区新井投产贡献超预期，抵消了由于 X 区块老井自然递减带来的压力。'
+          : 'Stable production at 98.2% achievement...',
+        recommendations: [
+          '① 【调控】下月建议加大东部新区排采强度，冲刺 105% 目标',
+          '② 【维护】B 区管网已恢复，建议下周补齐缺失产量',
+          '③ 【预警】关注 C 区高含水井组，预防突发性淹没风险'
+        ],
+        outputs: ['月度生产复盘周报.pdf', '全区产量贡献矩阵图', '下月潜力井排名清单']
+      }
+    };
+
+    if (workspaceVersion === 'enterprise') {
+      setMultiAgentMessages([userMsg, thoughtMsg, decompMsg, finalMsg]);
+    } else {
+      setMessages([userMsg, finalMsg]);
+    }
+  };
+
   const currentWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
   // Fallback for new-demo workspace if not found in mock list
   const activeWorkspaceData = currentWorkspace || (activeWorkspaceId === 'new-demo' ? {
@@ -895,6 +973,9 @@ const App: React.FC = () => {
                                 resourceTree={resourceTree} 
                                 lang={lang} 
                                 onCreateReport={() => setIsReportModalOpen(true)}
+                                onUpdateAgentStatus={(id, status) => setAgents(prev => prev.map(a => a.id === id ? { ...a, status } : a))}
+                                onHistoryClick={handleHistoryClick}
+                                agents={displayAgents}
                             />
                         </div>
                     </div>
@@ -1146,6 +1227,8 @@ const App: React.FC = () => {
                                             onCreateReport={() => setIsReportModalOpen(true)}
                                             onSelectAgent={(id) => setConfigAgentId(id)}
                                             onViewAllHistory={() => setIsExecutionHistoryPageOpen(true)}
+                                            onUpdateAgentStatus={(id, status) => setAgents(prev => prev.map(a => a.id === id ? { ...a, status } : a))}
+                                            onHistoryClick={handleHistoryClick}
                                             agents={displayAgents}
                                         />
                                     </div>

@@ -7,6 +7,8 @@ interface AgentRunManagerProps {
   agent: Agent;
   onBack: () => void;
   onEditConfig: () => void;
+  onStatusChange?: (id: string, status: Agent['status']) => void;
+  onHistoryClick?: (item: AgentRunHistory) => void;
   onViewAllHistory?: () => void;
   lang: Language;
 }
@@ -15,12 +17,13 @@ export const AgentRunManager: React.FC<AgentRunManagerProps> = ({
   agent,
   onBack,
   onEditConfig,
+  onStatusChange,
+  onHistoryClick,
   onViewAllHistory,
   lang
 }) => {
   const [activeTab, setActiveTab] = useState<'history' | 'config'>('history');
-  const [selectedRun, setSelectedRun] = useState<AgentRunHistory | null>(null);
-  const [isStopping, setIsStopping] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const t = {
     zh: {
@@ -167,14 +170,19 @@ export const AgentRunManager: React.FC<AgentRunManagerProps> = ({
           <div className="flex items-center gap-2">
             {agent.status === 'Running' ? (
               <button 
-                onClick={() => setIsStopping(true)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-lg text-xs font-bold transition-all shadow-sm"
+                onClick={() => onStatusChange?.(agent.id, 'Stopped')}
+                disabled={loading}
+                className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-lg text-xs font-bold transition-all shadow-sm disabled:opacity-50"
               >
                 <Square className="w-3.5 h-3.5 fill-current" />
                 {t.stop}
               </button>
             ) : (
-              <button className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white hover:bg-purple-700 rounded-lg text-xs font-bold transition-all shadow-sm shadow-purple-200">
+              <button 
+                onClick={() => onStatusChange?.(agent.id, 'Running')}
+                disabled={loading}
+                className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white hover:bg-purple-700 rounded-lg text-xs font-bold transition-all shadow-sm shadow-purple-200 disabled:opacity-50"
+              >
                 <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
                 {t.start}
               </button>
@@ -215,7 +223,9 @@ export const AgentRunManager: React.FC<AgentRunManagerProps> = ({
               {history.map(run => (
                 <div 
                   key={run.id}
-                  onClick={() => setSelectedRun(run)}
+                  onClick={() => {
+                    if (onHistoryClick) onHistoryClick(run);
+                  }}
                   className="group p-3 rounded-xl border border-gray-100 bg-white hover:border-purple-200 hover:shadow-sm transition-all cursor-pointer"
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -284,121 +294,6 @@ export const AgentRunManager: React.FC<AgentRunManagerProps> = ({
           )}
         </AnimatePresence>
       </div>
-
-      {/* Selected Run Details Drawer/Modal */}
-      <AnimatePresence>
-        {selectedRun && (
-          <motion.div 
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="absolute inset-0 z-50 bg-white flex flex-col shadow-2xl"
-          >
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
-              <button onClick={() => setSelectedRun(null)} className="p-1.5 hover:bg-gray-50 rounded-lg text-gray-400 transition-colors">
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <h3 className="text-sm font-bold text-gray-800 flex-1 truncate">{selectedRun.scenarioName}</h3>
-              <div className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${runStatusColors[selectedRun.status]}`}>
-                {selectedRun.status}
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
-              {/* Metadata Cards */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-center gap-3">
-                   <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm text-gray-400">
-                     <Clock className="w-4 h-4" />
-                   </div>
-                   <div className="flex flex-col">
-                     <span className="text-[9px] text-gray-400 uppercase font-bold">{t.duration}</span>
-                     <span className="text-xs font-bold text-gray-700">{selectedRun.metadata?.duration || '30s'}</span>
-                   </div>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-center gap-3">
-                   <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm text-gray-400">
-                     <Database className="w-4 h-4" />
-                   </div>
-                   <div className="flex flex-col">
-                     <span className="text-[9px] text-gray-400 uppercase font-bold">{lang === 'zh' ? '数据源' : 'Sources'}</span>
-                     <span className="text-xs font-bold text-gray-700">{(selectedRun.metadata?.dataSources?.length || 2)} {lang === 'zh' ? '个' : ''}</span>
-                   </div>
-                </div>
-              </div>
-
-              {/* Main Content */}
-              <div>
-                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                  <FileText className="w-3 h-3" />
-                  {t.content}
-                </h4>
-                <div className="prose prose-sm max-w-none text-xs text-gray-600 leading-relaxed p-4 bg-gray-50/50 rounded-xl border border-gray-100 whitespace-pre-wrap">
-                  {selectedRun.fullContent || selectedRun.summary}
-                </div>
-              </div>
-
-              {/* Metadata Detail */}
-              <div>
-                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                   <Database className="w-3 h-3" />
-                   {t.metadata}
-                </h4>
-                <div className="space-y-2">
-                   {selectedRun.metadata?.dataSources?.map((ds, idx) => (
-                     <div key={idx} className="flex items-center gap-2 text-[10px] text-gray-500 bg-white p-2 rounded-lg border border-gray-100">
-                        <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                        {ds}
-                     </div>
-                   ))}
-                </div>
-              </div>
-
-              {/* Feedback if exists */}
-              {selectedRun.feedback && (
-                <div className="p-4 bg-yellow-50/50 border border-yellow-100 rounded-xl">
-                  <h4 className="text-[10px] font-bold text-yellow-600 uppercase mb-2">{t.feedback}</h4>
-                  <div className="flex items-center gap-1 mb-2">
-                    {[1, 2, 3, 4, 5].map(s => (
-                      <Star key={s} className={`w-3.5 h-3.5 ${s <= (selectedRun.feedback?.rating || 0) ? 'text-yellow-500 fill-current' : 'text-gray-200'}`} />
-                    ))}
-                  </div>
-                  {selectedRun.feedback.comment && <p className="text-xs text-gray-600">{selectedRun.feedback.comment}</p>}
-                </div>
-              )}
-            </div>
-
-            {/* Approval Footer */}
-            {selectedRun.status === 'PendingApproval' && (
-              <div className="p-4 border-t border-gray-100 bg-white grid grid-cols-2 gap-3">
-                <button className="py-2.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold transition-all flex items-center justify-center gap-2">
-                  <XCircle className="w-4 h-4" />
-                  {t.reject}
-                </button>
-                <button className="py-2.5 rounded-xl bg-green-600 text-white hover:bg-green-700 text-xs font-bold transition-all shadow-lg shadow-green-100 flex items-center justify-center gap-2">
-                  <CheckCircle className="w-4 h-4" />
-                  {t.confirm}
-                </button>
-              </div>
-            )}
-
-            {/* Action Footer */}
-            {(selectedRun.status === 'Success' || selectedRun.status === 'Failed') && (
-              <div className="p-4 border-t border-gray-100 bg-white flex items-center gap-3">
-                  <button className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs font-bold transition-all flex items-center justify-center gap-2">
-                    <ExternalLink className="w-4 h-4" />
-                    {t.export}
-                  </button>
-                  <button className="flex-1 py-2.5 rounded-xl bg-purple-600 text-white hover:bg-purple-700 text-xs font-bold transition-all shadow-lg shadow-purple-100 flex items-center justify-center gap-2">
-                    <RefreshCw className="w-4 h-4" />
-                    {t.reExecute}
-                  </button>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

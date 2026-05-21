@@ -13,6 +13,8 @@ interface TracePanelProps {
   onCreateReport?: () => void;
   onSelectAgent?: (agentId: string) => void;
   onViewAllHistory?: () => void;
+  onUpdateAgentStatus?: (id: string, status: Agent['status']) => void;
+  onHistoryClick?: (item: any) => void;
   agents?: Agent[];
 }
 
@@ -25,6 +27,8 @@ export const TracePanel: React.FC<TracePanelProps> = ({
   onCreateReport,
   onSelectAgent,
   onViewAllHistory,
+  onUpdateAgentStatus,
+  onHistoryClick,
   agents = []
 }) => {
   const t = translations[lang];
@@ -100,6 +104,8 @@ export const TracePanel: React.FC<TracePanelProps> = ({
           onBack={() => setManagedAgentId(null)}
           onEditConfig={() => onSelectAgent?.(managedAgentId!)}
           onViewAllHistory={onViewAllHistory}
+          onStatusChange={onUpdateAgentStatus}
+          onHistoryClick={onHistoryClick}
         />
       </div>
     );

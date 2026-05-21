@@ -30,9 +30,12 @@ interface AgentConfigWizardProps {
 
 export const AgentConfigWizard: React.FC<AgentConfigWizardProps> = ({ agent, onSave, onCancel, lang = 'zh' }) => {
   const [formData, setFormData] = useState<Agent>({ ...agent });
+  const [configMode, setConfigMode] = useState<'simple' | 'cron'>('simple');
+  const [selectedFreq, setSelectedFreq] = useState('Daily');
+  const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [cronValue, setCronValue] = useState('0 8 * * 1-5');
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({
     identity: true,
-    tasks: true,
     execution: true,
     schedule: true,
     control: true
@@ -61,11 +64,11 @@ export const AgentConfigWizard: React.FC<AgentConfigWizardProps> = ({ agent, onS
       identity: '员工身份',
       identityDesc: '定义这个数字员工是谁',
       tasks: '触发与任务',
-      tasksDesc: '定义员工在什么情况下开始工作，以及要做什么',
+      tasksDesc: '预计执行的任务列表',
       execution: '执行方式',
       executionDesc: '定义员工的工作方式',
-      schedule: '调度机制',
-      scheduleDesc: '定义执行时间策略',
+      schedule: '触发机制 (定时任务)',
+      scheduleDesc: '定义精确的任务执行周期与有效时间',
       control: '结果与管控',
       controlDesc: '定义输出、通知与审核机制',
       saveDraft: '保存为草稿',
@@ -81,7 +84,14 @@ export const AgentConfigWizard: React.FC<AgentConfigWizardProps> = ({ agent, onS
       add: '添加',
       name: '员工名称',
       role: '角色职责',
-      tags: '能力标签'
+      tags: '能力标签',
+      freq: '执行频率',
+      startTime: '开始时间',
+      cronExpr: 'Cron 表达式',
+      simpleMode: '快捷设置',
+      advancedMode: '高级 (Cron)',
+      effectivePeriod: '生效时段',
+      timezone: '时区设置'
     },
     en: {
       title: 'Configure Agent',
@@ -97,11 +107,11 @@ export const AgentConfigWizard: React.FC<AgentConfigWizardProps> = ({ agent, onS
       identity: 'Identity',
       identityDesc: 'Define who this agent is',
       tasks: 'Triggers & Tasks',
-      tasksDesc: 'Define when the agent starts and what tasks to perform',
+      tasksDesc: 'List of tasks to perform',
       execution: 'Execution',
       executionDesc: 'Define how the agent works',
-      schedule: 'Scheduling',
-      scheduleDesc: 'Define execution time strategies',
+      schedule: 'Trigger Mechanism (Scheduled)',
+      scheduleDesc: 'Define precise execution cycles and effective periods',
       control: 'Results & Control',
       controlDesc: 'Define output, notifications, and audit mechanisms',
       saveDraft: 'Save Draft',
@@ -117,48 +127,18 @@ export const AgentConfigWizard: React.FC<AgentConfigWizardProps> = ({ agent, onS
       add: 'Add',
       name: 'Agent Name',
       role: 'Role & Responsibility',
-      tags: 'Capabilities'
+      tags: 'Capabilities',
+      freq: 'Frequency',
+      startTime: 'Start Time',
+      cronExpr: 'Cron Expression',
+      simpleMode: 'Simple Set',
+      advancedMode: 'Advanced (Cron)',
+      effectivePeriod: 'Effective Period',
+      timezone: 'Timezone'
     }
   }[lang];
 
-  // Real-time summary logic
-  const behaviorSummary = useMemo(() => {
-    const triggers = formData.scenarios?.flatMap(s => s.triggers).filter((v, i, a) => a.indexOf(v) === i) || [];
-    const triggerText = triggers.length > 0 
-      ? triggers.map(t => t === 'Data' ? (lang === 'zh' ? '数据更新' : 'Data Update') : 
-                        t === 'Threshold' ? (lang === 'zh' ? '指标异常' : 'Threshold Alert') : 
-                        t === 'Schedule' ? (lang === 'zh' ? '定时触发' : 'Scheduled') : 
-                        (lang === 'zh' ? '手动' : 'Manual')).join(' / ')
-      : '...';
-    
-    const taskText = formData.scenarios?.map(s => s.name).join('、') || '...';
-    const outputType = formData.instructions?.outputFormat || (lang === 'zh' ? '分析报告' : 'Report');
-    const notifyText = formData.resultHandling?.notifications?.join('、') || (lang === 'zh' ? '站内通知' : 'Site Notification');
-
-    return (
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-8 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-500"></div>
-        <p className="text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-[0.2em]">{t.summaryTitle}</p>
-        <p className="text-xs font-bold text-slate-500 mb-2">{t.summaryPrefix}</p>
-        <div className="text-slate-800 font-bold leading-relaxed text-sm">
-          {lang === 'zh' ? (
-            <>
-              在【<span className="text-indigo-600 bg-indigo-50 px-1 rounded">{triggerText}</span>】时，
-              自动执行【<span className="text-indigo-600 bg-indigo-50 px-1 rounded">{taskText}</span>】，
-              并生成【<span className="text-indigo-600 bg-indigo-50 px-1 rounded">{outputType}</span>】，发送【<span className="text-indigo-600 bg-indigo-50 px-1 rounded">{notifyText}</span>】{t.needManual}
-            </>
-          ) : (
-            <>
-              At 【<span className="text-indigo-600 bg-indigo-50 px-1 rounded">{triggerText}</span>】,
-              it will {t.autoExec} 【<span className="text-indigo-600 bg-indigo-50 px-1 rounded">{taskText}</span>】,
-              generate 【<span className="text-indigo-600 bg-indigo-50 px-1 rounded">{outputType}</span>】, send 【<span className="text-indigo-600 bg-indigo-50 px-1 rounded">{notifyText}</span>】 {t.needManual}
-            </>
-          )}
-        </div>
-      </div>
-    );
-  }, [formData, lang, t]);
-
+  // Content
   const ModuleWrapper = ({ id, icon, title, description, children }: { id: string, icon: React.ReactNode, title: string, description: string, children: React.ReactNode }) => (
     <div className="border border-slate-200 rounded-2xl bg-white overflow-hidden mb-6">
       <button 
@@ -211,9 +191,6 @@ export const AgentConfigWizard: React.FC<AgentConfigWizardProps> = ({ agent, onS
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-8 py-10 custom-scrollbar">
         <div className="max-w-4xl mx-auto">
-          {/* Summary Section */}
-          {behaviorSummary}
-
           {/* Module 1: Identity */}
           <ModuleWrapper 
             id="identity" 
@@ -259,84 +236,6 @@ export const AgentConfigWizard: React.FC<AgentConfigWizardProps> = ({ agent, onS
                     >
                       {tag}
                     </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </ModuleWrapper>
-
-          {/* Module 2: Triggers & Tasks */}
-          <ModuleWrapper 
-            id="tasks" 
-            icon={<Zap className="w-5 h-5" />} 
-            title={t.tasks} 
-            description={t.tasksDesc}
-          >
-            <div className="space-y-8">
-              {/* Triggers */}
-              <div>
-                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">{t.whenTrigger}</h4>
-                <div className="flex gap-4">
-                  {[
-                    { id: 'Data', name: '数据更新', icon: <Layout className="w-4 h-4" /> },
-                    { id: 'Threshold', name: '指标异常', icon: <AlertCircle className="w-4 h-4" /> },
-                    { id: 'Schedule', name: '定时触发', icon: <Clock className="w-4 h-4" /> }
-                  ].map(trigger => {
-                    const active = formData.scenarios?.[0]?.triggers.includes(trigger.id as any);
-                    return (
-                      <button 
-                        key={trigger.id}
-                        onClick={() => {
-                          const scenarios = [...(formData.scenarios || [])];
-                          if (scenarios.length === 0) {
-                            scenarios.push({ id: '1', name: '产量波动归因分析', triggers: [trigger.id as any], isEnabled: true, priority: 10, description: '' });
-                          } else {
-                            const current = scenarios[0].triggers;
-                            const next = current.includes(trigger.id as any) ? current.filter(t => t !== trigger.id) : [...current, trigger.id as any];
-                            scenarios[0].triggers = next;
-                          }
-                          updateFormData({ scenarios });
-                        }}
-                        className={`flex-1 p-5 rounded-2xl border transition-all flex flex-col items-center gap-3 ${
-                          active ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-slate-50 border-slate-50 text-slate-400 hover:bg-slate-100/50 hover:border-slate-200'
-                        }`}
-                      >
-                        {trigger.icon}
-                        <span className="text-xs font-bold">{trigger.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Tasks List */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{t.whatTasks}</h4>
-                  <button className="text-[11px] font-bold text-indigo-600 flex items-center gap-1 hover:underline">
-                    <Plus className="w-3.5 h-3.5" />
-                    {t.add}
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {(formData.scenarios && formData.scenarios.length > 0 ? formData.scenarios : [
-                    { id: '1', name: '产量波动归因分析', priority: 10 },
-                    { id: '2', name: '区块状态评估', priority: 5 }
-                  ]).map((s, idx) => (
-                    <div key={s.id} className="flex items-center justify-between bg-slate-50/50 p-4 rounded-2xl border border-slate-100 group">
-                      <div className="flex items-center gap-3">
-                        <span className="w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-400 flex items-center justify-center text-[10px] font-bold">{idx + 1}</span>
-                        <span className="text-xs font-bold text-slate-700">{s.name}</span>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${s.priority && s.priority > 7 ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-400'}`}>
-                          优先级：{s.priority && s.priority > 7 ? '高' : '中'}
-                        </span>
-                        <button className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-500 transition-all">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
                   ))}
                 </div>
               </div>
@@ -416,54 +315,138 @@ export const AgentConfigWizard: React.FC<AgentConfigWizardProps> = ({ agent, onS
             </div>
           </ModuleWrapper>
 
-          {/* Module 4: Schedule */}
+          {/* Module 4: Trigger Mechanism (Scheduled Task) */}
           <ModuleWrapper 
             id="schedule" 
             icon={<Calendar className="w-5 h-5" />} 
             title={t.schedule} 
             description={t.scheduleDesc}
           >
-            <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  {[
-                    { id: 'Daily', name: '固定时间', desc: '每天 08:00', icon: <Clock className="w-4 h-4" /> },
-                    { id: 'Weekly', name: '周期执行', desc: '每周 一/三/五', icon: <Calendar className="w-4 h-4" /> },
-                    { id: 'Data', name: '数据触发', desc: '数据更新后执行', icon: <Layout className="w-4 h-4" /> },
-                    { id: 'Threshold', name: '指标触发', desc: '当指标超过阈值时', icon: <AlertCircle className="w-4 h-4" /> }
-                  ].map(mode => {
-                    const active = formData.schedules?.some(s => s.mode === mode.id || (mode.id === 'Daily' && s.mode === 'Schedule'));
-                    return (
-                      <button 
-                       key={mode.id}
-                       onClick={() => {
-                         const nextMode = mode.id === 'Daily' ? 'Schedule' : mode.id;
-                         updateFormData({ schedules: [{ mode: nextMode as any, frequency: 'Daily', time: '08:00' }] });
-                       }}
-                       className={`p-5 bg-white border rounded-2xl hover:shadow-sm transition-all text-left flex items-start justify-between group ${
-                         active ? 'border-indigo-500 bg-indigo-50/10' : 'border-slate-200 hover:border-indigo-300'
-                       }`}
+            <div className="space-y-8">
+              {/* Mode Toggle */}
+              <div className="flex p-1 bg-slate-100 rounded-xl w-fit">
+                {[
+                  { id: 'simple', name: t.simpleMode },
+                  { id: 'cron', name: t.advancedMode }
+                ].map(mode => (
+                  <button
+                    key={mode.id}
+                    onClick={() => setConfigMode(mode.id as any)}
+                    className={`px-6 py-2 rounded-lg text-xs font-bold transition-all ${
+                      configMode === mode.id ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    {mode.name}
+                  </button>
+                ))}
+              </div>
+
+              {configMode === 'simple' ? (
+                <div className="space-y-8">
+                  {/* Frequency & Time */}
+                  <div className="grid grid-cols-2 gap-8">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">{t.freq}</label>
+                      <select 
+                        value={selectedFreq}
+                        onChange={(e) => setSelectedFreq(e.target.value)}
+                        className="w-full h-11 px-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                       >
-                        <div>
-                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-all ${
-                             active ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-50 text-slate-400 group-hover:text-indigo-600 group-hover:bg-indigo-50'
-                           }`}>
-                             {mode.icon}
-                           </div>
-                           <p className={`text-xs font-bold ${active ? 'text-indigo-700' : 'text-slate-800'}`}>{mode.name}</p>
-                           <p className="text-[10px] text-slate-400 font-bold">{mode.desc}</p>
-                        </div>
-                        <div className={`w-4 h-4 rounded-full border-2 mt-1 flex items-center justify-center transition-all ${
-                          active ? 'border-indigo-500 bg-indigo-500' : 'border-slate-200'
-                        }`}>
-                          {active && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                        </div>
-                      </button>
-                    );
-                  })}
+                        <option value="Hourly">{lang === 'zh' ? '每小时' : 'Hourly'}</option>
+                        <option value="Daily">{lang === 'zh' ? '每天' : 'Daily'}</option>
+                        <option value="Weekly">{lang === 'zh' ? '每周' : 'Weekly'}</option>
+                        <option value="Monthly">{lang === 'zh' ? '每月' : 'Monthly'}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">{t.startTime}</label>
+                      <div className="relative">
+                        <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                        <input 
+                          type="time" 
+                          defaultValue="08:00"
+                          className="w-full h-11 pl-11 pr-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Day Selection (Weekly) */}
+                  {selectedFreq === 'Weekly' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-3"
+                    >
+                      <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '具体时间' : 'Specific Days'}</label>
+                      <div className="flex gap-2">
+                        {['一', '二', '三', '四', '五', '六', '日'].map((day, idx) => {
+                          const val = idx + 1;
+                          const active = selectedDays.includes(val);
+                          return (
+                            <button
+                              key={val}
+                              onClick={() => {
+                                setSelectedDays(active ? selectedDays.filter(d => d !== val) : [...selectedDays, val]);
+                              }}
+                              className={`flex-1 h-10 rounded-xl text-xs font-bold border transition-all ${
+                                active ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'
+                              }`}
+                            >
+                              {day}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
                 </div>
-               <button className="w-full py-4 border border-dashed border-slate-200 rounded-2xl text-[11px] font-bold text-slate-400 hover:bg-white hover:border-indigo-200 hover:text-indigo-600 transition-all">
-                 + {lang === 'zh' ? '添加调度规则' : 'Add Scheduling Rule'}
-               </button>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">{t.cronExpr}</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={cronValue}
+                        onChange={(e) => setCronValue(e.target.value)}
+                        placeholder="* * * * *"
+                        className="flex-1 h-11 px-4 bg-slate-900 border border-slate-800 text-indigo-400 font-mono text-sm rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                      <button className="px-4 bg-slate-100 rounded-xl text-[10px] font-bold text-slate-500 hover:bg-slate-200 transition-all">语法说明</button>
+                    </div>
+                    <p className="mt-3 text-[10px] text-indigo-500 font-bold bg-indigo-50/50 px-3 py-2 rounded-lg border border-indigo-50/50">
+                      解析结果：预计在每周一至周五的 08:00 执行
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Advanced Enterprise Controls */}
+              <div className="pt-6 border-t border-slate-50 space-y-8">
+                <div className="grid grid-cols-2 gap-8">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">{t.timezone}</label>
+                    <select className="w-full h-11 px-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none focus:bg-white">
+                      <option>(UTC+08:00) Beijing, Shanghai</option>
+                      <option>(UTC+09:00) Tokyo</option>
+                      <option>(UTC+00:00) London</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">{t.effectivePeriod}</label>
+                    <div className="flex items-center gap-2">
+                      <input type="date" defaultValue="2024-05-21" className="flex-1 h-11 px-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none" />
+                      <span className="text-slate-300">至</span>
+                      <input type="date" placeholder="永不过期" className="flex-1 h-11 px-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none text-slate-400" />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </ModuleWrapper>
 
