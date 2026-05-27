@@ -18,6 +18,7 @@ import { WorkspaceTemplates } from './components/WorkspaceTemplates';
 import { MultiAgentChatPanel } from './components/MultiAgentChatPanel';
 import { AgentsPanel } from './components/AgentsPanel';
 import { IntelligentConstruction } from './components/IntelligentConstruction';
+import { IntelligentConstructionV2 } from './components/IntelligentConstructionV2';
 import WorkspaceStrategyConfig from './components/WorkspaceStrategyConfig';
 import { MbuExplorer } from './components/MbuExplorer';
 import { VersionComparisonModal } from './components/VersionComparisonModal';
@@ -30,7 +31,7 @@ import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESO
 import { Message, ResourceNode, Language, Workspace, KnowledgeItem, WorkspaceStatus, WorkspaceTemplate, Agent } from './types';
 import { translations } from './i18n';
 
-type MainTab = 'dashboard' | 'workspaces' | 'admin' | 'intelligence' | 'knowledge' | 'integration' | 'templates' | 'construction' | 'construction-completion';
+type MainTab = 'dashboard' | 'workspaces' | 'admin' | 'intelligence' | 'knowledge' | 'integration' | 'templates' | 'construction' | 'construction-v2' | 'construction-completion';
 
 const CURRENT_USER = '李明';
 
@@ -734,6 +735,14 @@ const App: React.FC = () => {
                   <i className="fas fa-magic text-lg min-w-[1.25rem] text-center"></i>
                   {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.intelligentConstruction}</span>}
               </button>
+              <button 
+                onClick={() => handleTabChange('construction-v2')}
+                className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'construction-v2' ? 'bg-indigo-50 text-indigo-600 shadow-sm ring-1 ring-indigo-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
+                title={isSidebarExpanded ? '' : t.intelligentConstructionV2}
+              >
+                  <i className="fas fa-microchip text-lg min-w-[1.25rem] text-center"></i>
+                  {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.intelligentConstructionV2}</span>}
+              </button>
           </div>
 
           {/* Bottom Actions */}
@@ -819,6 +828,15 @@ const App: React.FC = () => {
         {/* Scenario 7: Intelligent Construction View */}
         {currentTab === 'construction' && (
             <IntelligentConstruction 
+                lang={lang}
+                workspaceName={constructionWorkspaceName}
+                onComplete={() => handleTabChange('construction-completion')}
+            />
+        )}
+
+        {/* Scenario 7.1: Intelligent Construction V2 View */}
+        {currentTab === 'construction-v2' && (
+            <IntelligentConstructionV2 
                 lang={lang}
                 workspaceName={constructionWorkspaceName}
                 onComplete={() => handleTabChange('construction-completion')}
