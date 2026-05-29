@@ -19,6 +19,7 @@ import { MultiAgentChatPanel } from './components/MultiAgentChatPanel';
 import { AgentsPanel } from './components/AgentsPanel';
 import { IntelligentConstruction } from './components/IntelligentConstruction';
 import { IntelligentConstructionV2 } from './components/IntelligentConstructionV2';
+import { IntelligentObjectDiscovery } from './components/IntelligentObjectDiscovery';
 import WorkspaceStrategyConfig from './components/WorkspaceStrategyConfig';
 import { MbuExplorer } from './components/MbuExplorer';
 import { VersionComparisonModal } from './components/VersionComparisonModal';
@@ -31,7 +32,7 @@ import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESO
 import { Message, ResourceNode, Language, Workspace, KnowledgeItem, WorkspaceStatus, WorkspaceTemplate, Agent } from './types';
 import { translations } from './i18n';
 
-type MainTab = 'dashboard' | 'workspaces' | 'admin' | 'intelligence' | 'knowledge' | 'integration' | 'templates' | 'construction' | 'construction-v2' | 'construction-completion';
+type MainTab = 'dashboard' | 'workspaces' | 'admin' | 'intelligence' | 'knowledge' | 'integration' | 'templates' | 'construction' | 'construction-v2' | 'construction-completion' | 'object-discovery';
 
 const CURRENT_USER = '李明';
 
@@ -41,6 +42,7 @@ const App: React.FC = () => {
   
   // Workspace Detail State (if ID exists, we are in detail view)
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+  const [expandedObjectCategories, setExpandedObjectCategories] = useState<Set<string>>(new Set());
   
   const [lang, setLang] = useState<Language>('zh');
   
@@ -222,6 +224,18 @@ const App: React.FC = () => {
     setActiveWorkspaceId(finalId);
     setCurrentTab('workspaces'); 
     setWorkspaceVersion('foundation'); // Default to Basic Edition
+    
+    // Auto-expand categories if objects exist
+    if (objects && objects.length > 0) {
+        const categories = Array.from(new Set(objects.map(obj => obj.category || (lang === 'zh' ? '其它' : 'Others')))) as string[];
+        setExpandedObjectCategories(new Set(categories));
+    } else {
+        const ws = workspaces.find(w => w.id === id);
+        if (ws?.objects) {
+            const categories = Array.from(new Set(ws.objects.map((obj: any) => obj.category || (lang === 'zh' ? '其它' : 'Others')))) as string[];
+            setExpandedObjectCategories(new Set(categories));
+        }
+    }
     
     // Reset state for new workspace
     if (id === 'new-demo') {
@@ -645,6 +659,25 @@ const App: React.FC = () => {
       description: ''
   } as Workspace : undefined);
 
+  const groupedObjects = useMemo(() => {
+    if (!activeWorkspaceData?.objects) return {};
+    return activeWorkspaceData.objects.reduce((acc: Record<string, any[]>, obj: any) => {
+      const cat = obj.category || (lang === 'zh' ? '其它' : 'Others');
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(obj);
+      return acc;
+    }, {});
+  }, [activeWorkspaceData?.objects, lang]);
+
+  const toggleObjectCategory = (category: string) => {
+    setExpandedObjectCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  };
+
   return (
     <div className="h-screen w-screen bg-slate-50 flex overflow-hidden text-slate-900 font-sans">
       
@@ -742,6 +775,14 @@ const App: React.FC = () => {
               >
                   <i className="fas fa-microchip text-lg min-w-[1.25rem] text-center"></i>
                   {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.intelligentConstructionV2}</span>}
+              </button>
+              <button 
+                onClick={() => handleTabChange('object-discovery')}
+                className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'object-discovery' ? 'bg-indigo-50 text-indigo-600 shadow-sm ring-1 ring-indigo-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
+                title={isSidebarExpanded ? '' : t.objectDiscovery}
+              >
+                  <i className="fas fa-search-plus text-lg min-w-[1.25rem] text-center"></i>
+                  {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.objectDiscovery}</span>}
               </button>
           </div>
 
@@ -841,6 +882,11 @@ const App: React.FC = () => {
                 workspaceName={constructionWorkspaceName}
                 onComplete={() => handleTabChange('construction-completion')}
             />
+        )}
+
+        {/* Scenario 9: Intelligent Object Discovery View */}
+        {currentTab === 'object-discovery' && (
+            <IntelligentObjectDiscovery lang={lang} />
         )}
 
         {/* Scenario 8: Construction Completion / Confirmation View */}
@@ -1163,24 +1209,39 @@ const App: React.FC = () => {
                                         {isObjectScopeExpanded && (
                                             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-white animate-in fade-in slide-in-from-bottom-2 duration-300">
                                                 {activeWorkspaceData?.objects && activeWorkspaceData.objects.length > 0 ? (
-                                                    <div className="grid grid-cols-1 gap-2">
-                                                        {activeWorkspaceData.objects.map((obj: any) => (
-                                                            <div 
-                                                                key={obj.id}
-                                                                className="group flex items-center justify-between p-2 rounded border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-blue-200 hover:shadow-sm transition-all duration-200"
-                                                            >
-                                                                <div className="flex items-center gap-3 min-w-0">
-                                                                    <div className="w-8 h-8 rounded bg-white border border-slate-100 flex items-center justify-center text-blue-500 group-hover:text-blue-600 transition-colors">
-                                                                        <i className="fas fa-cube text-xs"></i>
+                                                    <div className="flex flex-col gap-1">
+                                                        {Object.entries(groupedObjects).map(([category, items]: [string, any]) => (
+                                                            <div key={category} className="mb-1">
+                                                                <div 
+                                                                    onClick={() => toggleObjectCategory(category)}
+                                                                    className="flex items-center gap-2 py-1.5 px-2 hover:bg-slate-50 rounded-lg cursor-pointer group transition-all"
+                                                                >
+                                                                    <i className={`fas fa-chevron-right text-[8px] text-slate-400 transition-transform ${expandedObjectCategories.has(category) ? 'rotate-90' : ''}`}></i>
+                                                                    <div className={`p-1.5 rounded-md ${expandedObjectCategories.has(category) ? 'bg-indigo-50 text-indigo-500' : 'bg-slate-50 text-slate-400'}`}>
+                                                                        <i className="fas fa-layer-group text-[10px]"></i>
                                                                     </div>
-                                                                    <div className="flex flex-col min-w-0">
-                                                                        <span className="text-xs font-medium text-slate-700 truncate">{obj.label}</span>
-                                                                        <span className="text-[9px] font-mono text-slate-400 uppercase tracking-tight">ID: {obj.id.split('-').pop()}</span>
-                                                                    </div>
+                                                                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">{category}</span>
+                                                                    <span className="text-[9px] font-bold text-slate-400 ml-auto bg-slate-100 px-1.5 py-0.5 rounded-full">{items.length}</span>
                                                                 </div>
-                                                                <button className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-500 transition-all">
-                                                                    <i className="fas fa-times text-[10px]"></i>
-                                                                </button>
+                                                                
+                                                                {expandedObjectCategories.has(category) && (
+                                                                    <div className="ml-5 mt-1 border-l border-slate-100 pl-3 flex flex-col gap-1 animate-in fade-in slide-in-from-left-1 duration-200">
+                                                                        {items.map((obj: any) => (
+                                                                            <div 
+                                                                                key={obj.id}
+                                                                                className="group flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100"
+                                                                            >
+                                                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400 opacity-60 group-hover:opacity-100 transition-opacity"></div>
+                                                                                    <span className="text-[11px] font-medium text-slate-700 truncate">{obj.label}</span>
+                                                                                </div>
+                                                                                <button className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-500 transition-all">
+                                                                                    <i className="fas fa-times text-[8px]"></i>
+                                                                                </button>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         ))}
                                                     </div>
