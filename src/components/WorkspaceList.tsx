@@ -391,9 +391,27 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                     <Select
                       isMulti
                       options={[
-                        { label: lang === 'zh' ? '油气田' : 'Oil & Gas Field', options: [{ value: 'field1', label: 'Field 1' }, { value: 'field2', label: 'Field 2' }] },
-                        { label: lang === 'zh' ? '区块' : 'Block', options: [{ value: 'block1', label: 'Block 1' }, { value: 'block2', label: 'Block 2' }] },
-                        { label: lang === 'zh' ? '井' : 'Well', options: [{ value: 'well1', label: 'Well 1' }, { value: 'well2', label: 'Well 2' }] },
+                        { 
+                          label: lang === 'zh' ? '油气田' : 'Oil & Gas Field', 
+                          options: [
+                            { value: 'field1', label: lang === 'zh' ? '大庆油气田' : 'Daqing Oilfield', category: lang === 'zh' ? '油气田' : 'Oil Field' }, 
+                            { value: 'field2', label: lang === 'zh' ? '塔里木油气田' : 'Tarim Oilfield', category: lang === 'zh' ? '油气田' : 'Oil Field' }
+                          ] 
+                        },
+                        { 
+                          label: lang === 'zh' ? '区块' : 'Block', 
+                          options: [
+                            { value: 'block1', label: lang === 'zh' ? '苏里格区块' : 'Sulige Block', category: lang === 'zh' ? '区块' : 'Block' }, 
+                            { value: 'block2', label: lang === 'zh' ? '塔中区块' : 'Tazhong Block', category: lang === 'zh' ? '区块' : 'Block' }
+                          ] 
+                        },
+                        { 
+                          label: lang === 'zh' ? '井' : 'Well', 
+                          options: [
+                            { value: 'well1', label: lang === 'zh' ? 'X-1 井' : 'X-1 Well', category: lang === 'zh' ? '井' : 'Well' }, 
+                            { value: 'well2', label: lang === 'zh' ? 'X-2 井' : 'X-2 Well', category: lang === 'zh' ? '井' : 'Well' }
+                          ] 
+                        },
                       ]}
                       value={object}
                       onChange={setObject}

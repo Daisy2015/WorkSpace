@@ -1,219 +1,261 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Language } from '../types';
-import { translations } from '../i18n';
 
 interface ObjectScopeSelectorProps {
   selectedObjects: string[];
   onChange: (objects: string[]) => void;
+  onNavigateToStrategy?: () => void;
   lang: Language;
 }
 
-type ObjectType = 'oilfield' | 'block' | 'well' | '';
-
-interface SelectionRow {
+interface RecommendedObject {
   id: string;
-  type: ObjectType;
-  instances: string[];
+  name: string;
+  type: string;
+  reason?: string;
 }
 
-const OBJECT_TYPES = [
-  { id: 'oilfield', label: '油气田', icon: 'fa-layer-group' },
-  { id: 'block', label: '区块', icon: 'fa-vector-square' },
-  { id: 'well', label: '井', icon: 'fa-bore-hole' },
-];
+interface SelectedObject {
+  id: string;
+  name: string;
+  type: string;
+}
 
-const INSTANCE_DATA: Record<string, string[]> = {
-  oilfield: ['大庆油气田', '塔里木油气田', '胜利油气田', '长庆油气田', '西南气田'],
-  block: ['苏里格区块', '塔中区块', '哈拉哈塘区块', '玛湖区块'],
-  well: ['X-1 井', 'X-2 井', 'X-3 井', 'Y-1 井', 'Y-2 井', 'Z-101 井'],
+const OBJECT_TYPES: Record<string, { label: string; icon: string }> = {
+  oilfield: { label: '油气田', icon: 'fa-layer-group' },
+  block: { label: '区块', icon: 'fa-vector-square' },
+  well: { label: '井', icon: 'fa-bore-hole' },
 };
 
-export const ObjectScopeSelector: React.FC<ObjectScopeSelectorProps> = ({ selectedObjects, onChange, lang }) => {
-  const [rows, setRows] = useState<SelectionRow[]>([]);
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+const INSTANCE_DATA: Record<string, { id: string; label: string }[]> = {
+  oilfield: [
+    { id: 'f-01', label: '大庆油气田' },
+    { id: 'f-02', label: '塔里木油气田' },
+    { id: 'f-03', label: '胜利油气田' },
+  ],
+  block: [
+    { id: 'b-01', label: '苏里格区块' },
+    { id: 'b-02', label: '塔中区块' },
+    { id: 'b-03', label: '玛湖区块' },
+  ],
+  well: [
+    { id: 'w-01', label: '井-01' },
+    { id: 'w-02', label: '井-02' },
+    { id: 'w-03', label: '井-03' },
+    { id: 'w-04', label: '井-04' },
+    { id: 'w-05', label: '井-05' },
+  ],
+};
 
-  // Initialize from props if empty
-  useEffect(() => {
-    if (rows.length === 0 && selectedObjects.length > 0) {
-      // Map existing strings to rows by proximity
-      const typeGroups: Record<ObjectType, string[]> = { oilfield: [], block: [], well: [], '': [] };
-      selectedObjects.forEach(obj => {
-        if (obj.includes('油气田')) typeGroups.oilfield.push(obj);
-        else if (obj.includes('区块')) typeGroups.block.push(obj);
-        else if (obj.includes('井')) typeGroups.well.push(obj);
-      });
+const RECOMMENDATION_STRATEGIES = [
+  { label: '邻井', color: 'bg-blue-50 text-blue-500 border-blue-100' },
+  { label: '同区块', color: 'bg-emerald-50 text-emerald-500 border-emerald-100' },
+  { label: '同地质', color: 'bg-amber-50 text-amber-500 border-amber-100' },
+];
 
-      const initialRows: SelectionRow[] = Object.entries(typeGroups)
-        .filter(([type, items]) => items.length > 0)
-        .map(([type, items], idx) => ({
-          id: `row-${idx}`,
-          type: type as ObjectType,
-          instances: items
-        }));
-      
-      setRows(initialRows.length > 0 ? initialRows : [{ id: 'row-0', type: '', instances: [] }]);
-    } else if (rows.length === 0) {
-      setRows([{ id: 'row-0', type: '', instances: [] }]);
-    }
-  }, []);
+export const ObjectScopeSelector: React.FC<ObjectScopeSelectorProps> = ({ selectedObjects, onChange, onNavigateToStrategy, lang }) => {
+  const [selectedType, setSelectedType] = useState<string>('');
+  const [selectedInstance, setSelectedInstance] = useState<string>('');
+  
+  // Selected (manual) items
+  const [selectedItems, setSelectedItems] = useState<SelectedObject[]>([]);
+  
+  // Suggested items from recommendations
+  const [recommendations, setRecommendations] = useState<RecommendedObject[]>([]);
+  const [isRecsExpanded, setIsRecsExpanded] = useState(true);
 
-  const handleAddRow = () => {
-    const usedTypes = rows.map(r => r.type);
-    const available = OBJECT_TYPES.find(t => !usedTypes.includes(t.id as any));
-    if (!available) return;
+  const handleAddObject = () => {
+    if (!selectedInstance) return;
+    const instanceObj = INSTANCE_DATA[selectedType]?.find(i => i.id === selectedInstance);
+    if (!instanceObj) return;
+
+    if (selectedItems.find(o => o.id === instanceObj.id)) return;
+
+    const newList = [...selectedItems, { 
+      id: instanceObj.id, 
+      name: instanceObj.label, 
+      type: selectedType 
+    }];
+    setSelectedItems(newList);
+    syncToParent(newList, recommendations);
+    setSelectedInstance('');
+  };
+
+  const handleRecommendForObject = (obj: SelectedObject) => {
+    // Mock recommendations based on the specific object
+    const newRecs: RecommendedObject[] = [
+      { id: `rec-${obj.id}-1`, name: `${obj.name}-RC1`, type: 'well', reason: '邻井' },
+      { id: `rec-${obj.id}-2`, name: `${obj.name}-RC2`, type: 'well', reason: '同区块' },
+    ];
+
+    const currentIds = new Set(recommendations.map(r => r.id));
+    const filtered = newRecs.filter(r => !currentIds.has(r.id));
     
-    setRows([...rows, { id: `row-${Date.now()}`, type: '', instances: [] }]);
+    const nextRecs = [...recommendations, ...filtered];
+    setRecommendations(nextRecs);
+    syncToParent(selectedItems, nextRecs);
+    setIsRecsExpanded(true);
   };
 
-  const handleRemoveRow = (id: string) => {
-    const newRows = rows.filter(r => r.id !== id);
-    setRows(newRows.length > 0 ? newRows : [{ id: `row-${Date.now()}`, type: '', instances: [] }]);
-    updateParent(newRows);
+  const handleRemoveItem = (id: string) => {
+    const newList = selectedItems.filter(o => o.id !== id);
+    setSelectedItems(newList);
+    syncToParent(newList, recommendations);
   };
 
-  const handleTypeChange = (id: string, type: ObjectType) => {
-    const newRows = rows.map(r => r.id === id ? { ...r, type, instances: [] } : r);
-    setRows(newRows);
-    updateParent(newRows);
+  const handleRemoveRec = (id: string) => {
+    const nextRecs = recommendations.filter(r => r.id !== id);
+    setRecommendations(nextRecs);
+    syncToParent(selectedItems, nextRecs);
   };
 
-  const toggleInstance = (rowId: string, instance: string) => {
-    const newRows = rows.map(r => {
-      if (r.id === rowId) {
-        const next = r.instances.includes(instance) 
-          ? r.instances.filter(i => i !== instance)
-          : [...r.instances, instance];
-        return { ...r, instances: next };
-      }
-      return r;
-    });
-    setRows(newRows);
-    updateParent(newRows);
-  };
-
-  const updateParent = (currentRows: SelectionRow[]) => {
-    const allSelected = currentRows.flatMap(r => r.instances);
-    onChange(allSelected);
+  const syncToParent = (items: SelectedObject[], recs: RecommendedObject[]) => {
+    const allNames = [
+      ...items.map(i => i.name),
+      ...recs.map(r => r.name)
+    ];
+    onChange(allNames);
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between mb-2">
-        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">对象范围配置</label>
-        <button 
-          onClick={handleAddRow}
-          disabled={rows.length >= OBJECT_TYPES.length}
-          className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 disabled:opacity-30 flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-indigo-50 transition-all"
-        >
-          <i className="fas fa-plus-circle"></i>
-          添加对象选择
-        </button>
-      </div>
+    <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-1 duration-200">
+      {/* Search & Add Section */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="relative group">
+          <select
+            value={selectedType}
+            onChange={(e) => {
+              setSelectedType(e.target.value);
+              setSelectedInstance('');
+            }}
+            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-medium text-slate-600 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer"
+          >
+            <option value="">{lang === 'zh' ? '对象类型' : 'Object Type'}</option>
+            {Object.entries(OBJECT_TYPES).map(([id, info]) => (
+              <option key={id} value={id}>{info.label}</option>
+            ))}
+          </select>
+          <i className="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none transition-colors group-hover:text-slate-600"></i>
+        </div>
 
-      <div className="space-y-4">
-        {rows.map((row) => {
-          const usedTypes = rows.filter(r => r.id !== row.id).map(r => r.type);
-          const availableOptions = OBJECT_TYPES.filter(t => !usedTypes.includes(t.id as any));
-          const instancesList = row.type ? INSTANCE_DATA[row.type] : [];
-
-          return (
-            <div key={row.id} className="bg-slate-50/50 border border-slate-200 rounded-2xl p-3 space-y-3 animate-in fade-in slide-in-from-left-2 duration-300">
-              <div className="flex items-center gap-3">
-                {/* Type Select */}
-                <div className="w-[100px] relative group shrink-0">
-                  <select
-                    value={row.type}
-                    onChange={(e) => handleTypeChange(row.id, e.target.value as ObjectType)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none cursor-pointer"
-                  >
-                    <option value="">选择类型</option>
-                    {availableOptions.map(t => (
-                      <option key={t.id} value={t.id}>{t.label}</option>
-                    ))}
-                    {row.type && !availableOptions.find(o => o.id === row.type) && (
-                      <option value={row.type}>{OBJECT_TYPES.find(ot => ot.id === row.type)?.label}</option>
-                    )}
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-indigo-500 transition-colors">
-                    <i className="fas fa-chevron-down text-[10px]"></i>
-                  </div>
-                </div>
-
-                {/* Multi-Instance Selection Visual */}
-                <div className="flex-1 min-w-0">
-                  <div 
-                    onClick={() => row.type && setActiveDropdown(activeDropdown === row.id ? null : row.id)}
-                    className={`min-h-[36px] bg-white border border-slate-200 rounded-xl px-3 py-1.5 flex flex-wrap gap-1.5 cursor-pointer hover:border-slate-300 transition-all ${!row.type ? 'opacity-50 cursor-not-allowed' : ''} ${activeDropdown === row.id ? 'ring-2 ring-indigo-500 border-indigo-500' : ''}`}
-                  >
-                    {row.instances.length > 0 ? (
-                      row.instances.map(inst => (
-                        <span key={inst} className="bg-indigo-50 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1.5 whitespace-nowrap">
-                          {inst}
-                          <i 
-                            className="fas fa-times hover:text-indigo-800" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleInstance(row.id, inst);
-                            }}
-                          ></i>
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-slate-400 py-1">{row.type ? '选择对象实例...' : '请先选择类型'}</span>
-                    )}
-                  </div>
-
-                  {/* Dropdown for Instances */}
-                  {activeDropdown === row.id && row.type && (
-                    <div className="absolute z-20 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-2 min-w-[200px] animate-in fade-in zoom-in-95 duration-200">
-                      <div className="max-h-48 overflow-y-auto custom-scrollbar">
-                        {instancesList.map(inst => (
-                          <div 
-                            key={inst}
-                            onClick={() => toggleInstance(row.id, inst)}
-                            className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${row.instances.includes(inst) ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-slate-50 text-slate-600'}`}
-                          >
-                            <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${row.instances.includes(inst) ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 bg-white'}`}>
-                              {row.instances.includes(inst) && <i className="fas fa-check text-[8px]"></i>}
-                            </div>
-                            <span className="text-xs font-medium">{inst}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Delete Button */}
-                <button 
-                  onClick={() => handleRemoveRow(row.id)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all shrink-0"
-                >
-                  <i className="fas fa-trash-alt text-xs"></i>
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {rows.length === 0 && (
-        <div className="p-8 border-2 border-dashed border-slate-100 rounded-2xl flex flex-col items-center justify-center gap-3">
-          <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center text-slate-200">
-            <i className="fas fa-object-group text-2xl"></i>
+        <div className="relative group flex gap-2">
+          <div className="flex-1 relative">
+            <select
+              value={selectedInstance}
+              onChange={(e) => setSelectedInstance(e.target.value)}
+              disabled={!selectedType}
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-medium text-slate-600 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer disabled:bg-slate-50 disabled:text-slate-300 disabled:cursor-not-allowed"
+            >
+              <option value="">{lang === 'zh' ? '对象名称' : 'Object Name'}</option>
+              {selectedType && INSTANCE_DATA[selectedType]?.map(i => (
+                <option key={i.id} value={i.id}>{i.label}</option>
+              ))}
+            </select>
+            <i className="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none transition-colors group-hover:text-slate-600"></i>
           </div>
-          <p className="text-[11px] text-slate-400 font-medium">尚未配置对象范围，点击上方“添加”开始配置</p>
+          <button 
+            onClick={handleAddObject}
+            disabled={!selectedInstance}
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-sm hover:bg-blue-600 disabled:bg-slate-200 disabled:shadow-none transition-all"
+          >
+            {lang === 'zh' ? '添加' : 'Add'}
+          </button>
+        </div>
+      </div>
+
+      {/* Selected Items (Manual List) */}
+      {selectedItems.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '已添加对象' : 'Added Objects'}</span>
+          <div className="flex flex-col gap-1.5">
+            {selectedItems.map((item) => (
+              <div 
+                key={item.id} 
+                className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-100 hover:border-blue-200 transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="px-2 py-0.5 bg-slate-100 rounded text-[9px] font-black text-slate-500 uppercase tracking-tighter">{OBJECT_TYPES[item.type]?.label}</span>
+                  <span className="text-xs font-bold text-slate-700">{item.name}</span>
+                </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={() => onNavigateToStrategy?.()}
+                    className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                    title={lang === 'zh' ? '推设置推荐策略' : 'Strategy Settings'}
+                  >
+                    <i className="fas fa-cog text-[10px]"></i>
+                  </button>
+                  <button 
+                    onClick={() => handleRecommendForObject(item)}
+                    className="h-7 px-2 text-blue-600 bg-blue-50/50 hover:bg-blue-600 hover:text-white rounded-lg transition-all flex items-center gap-1.5"
+                    title={lang === 'zh' ? '基于此对象推荐' : 'Recommend based on this'}
+                  >
+                    <i className="fas fa-magic text-[9px]"></i>
+                    <span className="text-[9px] font-black uppercase">{lang === 'zh' ? '推荐' : 'REC'}</span>
+                  </button>
+                  <button 
+                    onClick={() => handleRemoveItem(item.id)}
+                    className="w-7 h-7 flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                  >
+                    <i className="fas fa-times text-[10px]"></i>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Global Click Handler to close dropdown */}
-      {activeDropdown && (
+      {/* Recommended Section (Collapsible) */}
+      <div className="flex flex-col gap-3 mt-2">
         <div 
-          className="fixed inset-0 z-10" 
-          onClick={() => setActiveDropdown(null)}
-        />
-      )}
+          onClick={() => setIsRecsExpanded(!isRecsExpanded)}
+          className="flex items-center justify-between cursor-pointer group px-1"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{lang === 'zh' ? '推荐关联对象' : 'Associated Recs'}</span>
+            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+          </div>
+          <i className={`fas fa-chevron-down text-[10px] text-slate-300 transition-transform duration-300 ${isRecsExpanded ? '' : '-rotate-90'}`}></i>
+        </div>
+
+        {isRecsExpanded && (
+          <div className="flex flex-col gap-1.5 max-h-[300px] overflow-y-auto custom-scrollbar pr-1 animate-in fade-in slide-in-from-top-1 duration-300">
+            {recommendations.length > 0 ? (
+              recommendations.map((obj) => (
+                <div 
+                  key={obj.id} 
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100 hover:border-blue-100 hover:bg-white transition-all group"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <span className="px-2 py-0.5 bg-blue-50 rounded text-[9px] font-bold text-blue-500 uppercase tracking-tighter">{OBJECT_TYPES[obj.type]?.label}</span>
+                    <span className="text-xs font-bold text-slate-700 truncate">{obj.name}</span>
+                    {obj.reason && (
+                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-md border whitespace-nowrap ml-auto shrink-0 ${
+                        RECOMMENDATION_STRATEGIES.find(s => s.label === obj.reason)?.color || 'bg-slate-100 text-slate-500 border-slate-200'
+                      }`}>
+                        {obj.reason}
+                      </span>
+                    )}
+                  </div>
+                  <button 
+                    onClick={() => handleRemoveRec(obj.id)}
+                    className="w-7 h-7 flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors ml-1"
+                  >
+                    <i className="fas fa-times text-[10px]"></i>
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="py-8 border border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-300 gap-2">
+                <i className="fas fa-wand-magic-sparkles text-xl opacity-20"></i>
+                <p className="text-[10px] font-medium uppercase tracking-widest">{lang === 'zh' ? '点击对象的“推荐”按钮生成列表' : 'Click "Rec" on objects to generate list'}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

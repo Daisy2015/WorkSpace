@@ -32,7 +32,7 @@ import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESO
 import { Message, ResourceNode, Language, Workspace, KnowledgeItem, WorkspaceStatus, WorkspaceTemplate, Agent } from './types';
 import { translations } from './i18n';
 
-type MainTab = 'dashboard' | 'workspaces' | 'admin' | 'intelligence' | 'knowledge' | 'integration' | 'templates' | 'construction' | 'construction-v2' | 'construction-completion' | 'object-discovery';
+type MainTab = 'dashboard' | 'workspaces' | 'admin' | 'intelligence' | 'knowledge' | 'integration' | 'templates' | 'construction' | 'construction-v2' | 'construction-completion';
 
 const CURRENT_USER = '李明';
 
@@ -227,12 +227,26 @@ const App: React.FC = () => {
     
     // Auto-expand categories if objects exist
     if (objects && objects.length > 0) {
-        const categories = Array.from(new Set(objects.map(obj => obj.category || (lang === 'zh' ? '其它' : 'Others')))) as string[];
+        const categories = Array.from(new Set(objects.map(obj => {
+            if (obj.category) return obj.category;
+            const label = obj.label || (typeof obj === 'string' ? obj : '');
+            if (label.includes('油气田') || label.includes('Oilfield')) return lang === 'zh' ? '油气田' : 'Oil Field';
+            if (label.includes('区块') || label.includes('Block')) return lang === 'zh' ? '区块' : 'Block';
+            if (label.includes('井') || label.includes('Well')) return lang === 'zh' ? '井' : 'Well';
+            return lang === 'zh' ? '其它' : 'Others';
+        }))) as string[];
         setExpandedObjectCategories(new Set(categories));
     } else {
         const ws = workspaces.find(w => w.id === id);
         if (ws?.objects) {
-            const categories = Array.from(new Set(ws.objects.map((obj: any) => obj.category || (lang === 'zh' ? '其它' : 'Others')))) as string[];
+            const categories = Array.from(new Set(ws.objects.map((obj: any) => {
+                if (obj.category) return obj.category;
+                const label = obj.label || (typeof obj === 'string' ? obj : '');
+                if (label.includes('油气田') || label.includes('Oilfield')) return lang === 'zh' ? '油气田' : 'Oil Field';
+                if (label.includes('区块') || label.includes('Block')) return lang === 'zh' ? '区块' : 'Block';
+                if (label.includes('井') || label.includes('Well')) return lang === 'zh' ? '井' : 'Well';
+                return lang === 'zh' ? '其它' : 'Others';
+            }))) as string[];
             setExpandedObjectCategories(new Set(categories));
         }
     }
@@ -661,8 +675,22 @@ const App: React.FC = () => {
 
   const groupedObjects = useMemo(() => {
     if (!activeWorkspaceData?.objects) return {};
-    return activeWorkspaceData.objects.reduce((acc: Record<string, any[]>, obj: any) => {
-      const cat = obj.category || (lang === 'zh' ? '其它' : 'Others');
+    return activeWorkspaceData.objects.reduce((acc: Record<string, any[]>, rawObj: any) => {
+      // Standardize object structure
+      const obj = typeof rawObj === 'string' 
+        ? { id: rawObj, label: rawObj } 
+        : { ...rawObj, label: rawObj.label || rawObj.id };
+        
+      // Infer category
+      let cat = obj.category;
+      if (!cat) {
+        const label = obj.label || '';
+        if (label.includes('油气田') || label.includes('Oilfield')) cat = lang === 'zh' ? '油气田' : 'Oil Field';
+        else if (label.includes('区块') || label.includes('Block')) cat = lang === 'zh' ? '区块' : 'Block';
+        else if (label.includes('井') || label.includes('Well')) cat = lang === 'zh' ? '井' : 'Well';
+        else cat = lang === 'zh' ? '其它' : 'Others';
+      }
+      
       if (!acc[cat]) acc[cat] = [];
       acc[cat].push(obj);
       return acc;
@@ -776,14 +804,6 @@ const App: React.FC = () => {
                   <i className="fas fa-microchip text-lg min-w-[1.25rem] text-center"></i>
                   {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.intelligentConstructionV2}</span>}
               </button>
-              <button 
-                onClick={() => handleTabChange('object-discovery')}
-                className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'object-discovery' ? 'bg-indigo-50 text-indigo-600 shadow-sm ring-1 ring-indigo-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
-                title={isSidebarExpanded ? '' : t.objectDiscovery}
-              >
-                  <i className="fas fa-search-plus text-lg min-w-[1.25rem] text-center"></i>
-                  {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.objectDiscovery}</span>}
-              </button>
           </div>
 
           {/* Bottom Actions */}
@@ -882,11 +902,6 @@ const App: React.FC = () => {
                 workspaceName={constructionWorkspaceName}
                 onComplete={() => handleTabChange('construction-completion')}
             />
-        )}
-
-        {/* Scenario 9: Intelligent Object Discovery View */}
-        {currentTab === 'object-discovery' && (
-            <IntelligentObjectDiscovery lang={lang} />
         )}
 
         {/* Scenario 8: Construction Completion / Confirmation View */}
@@ -1189,68 +1204,86 @@ const App: React.FC = () => {
                                     </div>
                                     
                                     {/* Selected Object Scope Section */}
-                                    <div className={`border-t border-slate-200 flex flex-col bg-white overflow-hidden transition-all duration-300 ${isObjectScopeExpanded ? 'h-1/3' : 'h-10'}`}>
+                                    <div className={`border-t border-slate-200 flex flex-col bg-white overflow-hidden transition-all duration-300 ${isObjectScopeExpanded ? 'flex-1' : 'h-11'}`}>
                                         <div 
-                                            className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors"
+                                            className="px-4 py-2.5 bg-white flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
                                             onClick={() => setIsObjectScopeExpanded(!isObjectScopeExpanded)}
                                         >
                                             <div className="flex items-center gap-2">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
-                                                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.1em] font-mono">
+                                                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shadow-[0_2px_4px_rgba(59,130,246,0.3)]">
+                                                    <i className="fas fa-check text-[10px] text-white"></i>
+                                                </div>
+                                                <h3 className="text-sm font-bold text-slate-700 tracking-tight">
                                                     {lang === 'zh' ? '已选对象范围' : 'Selected Objects'}
                                                 </h3>
-                                                <span className="ml-1 text-[10px] font-mono text-slate-400">
-                                                    [{activeWorkspaceData?.objects?.length || 0}]
+                                                <span className="ml-1 text-sm font-medium text-slate-500">
+                                                    ({activeWorkspaceData?.objects?.length || 0})
                                                 </span>
                                             </div>
-                                            <i className={`fas fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300 ${isObjectScopeExpanded ? 'rotate-180' : ''}`}></i>
+                                            <div className="flex items-center gap-4">
+                                                {isObjectScopeExpanded && activeWorkspaceData?.objects && activeWorkspaceData.objects.length > 0 && (
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            // Logic to clear all objects would go here
+                                                            // For now, we'll keep it as a UI action that could be wired up
+                                                        }}
+                                                        className="flex items-center gap-1.5 text-slate-400 hover:text-red-500 transition-colors group"
+                                                    >
+                                                        <i className="fas fa-trash-alt text-xs"></i>
+                                                        <span className="text-xs font-medium">{lang === 'zh' ? '清空全部' : 'Clear All'}</span>
+                                                    </button>
+                                                )}
+                                                <i className={`fas fa-chevron-down text-xs text-slate-400 transition-transform duration-300 ${isObjectScopeExpanded ? 'rotate-180' : ''}`}></i>
+                                            </div>
                                         </div>
                                         
                                         {isObjectScopeExpanded && (
                                             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-white animate-in fade-in slide-in-from-bottom-2 duration-300">
                                                 {activeWorkspaceData?.objects && activeWorkspaceData.objects.length > 0 ? (
-                                                    <div className="flex flex-col gap-1">
-                                                        {Object.entries(groupedObjects).map(([category, items]: [string, any]) => (
-                                                            <div key={category} className="mb-1">
+                                                    <div className="flex flex-col">
+                                                        {Object.entries(groupedObjects).map(([category, items]: [string, any], idx, arr) => (
+                                                            <div key={category} className={`${idx !== arr.length - 1 ? 'border-b border-slate-100 mb-4 pb-4' : ''}`}>
                                                                 <div 
-                                                                    onClick={() => toggleObjectCategory(category)}
-                                                                    className="flex items-center gap-2 py-1.5 px-2 hover:bg-slate-50 rounded-lg cursor-pointer group transition-all"
+                                                                    className="flex items-center gap-3 mb-3"
                                                                 >
-                                                                    <i className={`fas fa-chevron-right text-[8px] text-slate-400 transition-transform ${expandedObjectCategories.has(category) ? 'rotate-90' : ''}`}></i>
-                                                                    <div className={`p-1.5 rounded-md ${expandedObjectCategories.has(category) ? 'bg-indigo-50 text-indigo-500' : 'bg-slate-50 text-slate-400'}`}>
-                                                                        <i className="fas fa-layer-group text-[10px]"></i>
+                                                                    <div className="w-6 h-6 rounded bg-white flex items-center justify-center text-blue-500 text-sm border border-blue-50">
+                                                                        <i className="fas fa-cubes"></i>
                                                                     </div>
-                                                                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">{category}</span>
-                                                                    <span className="text-[9px] font-bold text-slate-400 ml-auto bg-slate-100 px-1.5 py-0.5 rounded-full">{items.length}</span>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="text-sm font-bold text-slate-700">{category}</span>
+                                                                        <span className="text-sm font-medium text-slate-400">({items.length})</span>
+                                                                    </div>
                                                                 </div>
                                                                 
-                                                                {expandedObjectCategories.has(category) && (
-                                                                    <div className="ml-5 mt-1 border-l border-slate-100 pl-3 flex flex-col gap-1 animate-in fade-in slide-in-from-left-1 duration-200">
-                                                                        {items.map((obj: any) => (
-                                                                            <div 
-                                                                                key={obj.id}
-                                                                                className="group flex items-center justify-between p-1.5 rounded-lg hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100"
+                                                                <div className="flex flex-wrap gap-2 pl-9">
+                                                                    {items.map((obj: any) => (
+                                                                        <div 
+                                                                            key={obj.id}
+                                                                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-100 group transition-all hover:bg-blue-100/50"
+                                                                        >
+                                                                            <span className="text-xs font-medium text-blue-600 truncate max-w-[120px]">{obj.label}</span>
+                                                                            <button 
+                                                                                className="text-blue-400 hover:text-blue-600 transition-colors"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    // Link individual remove logic here
+                                                                                }}
                                                                             >
-                                                                                <div className="flex items-center gap-2.5 min-w-0">
-                                                                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400 opacity-60 group-hover:opacity-100 transition-opacity"></div>
-                                                                                    <span className="text-[11px] font-medium text-slate-700 truncate">{obj.label}</span>
-                                                                                </div>
-                                                                                <button className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-500 transition-all">
-                                                                                    <i className="fas fa-times text-[8px]"></i>
-                                                                                </button>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
+                                                                                <i className="fas fa-times text-[10px]"></i>
+                                                                            </button>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 ) : (
-                                                    <div className="h-full flex flex-col items-center justify-center text-slate-300 py-8">
-                                                        <div className="w-12 h-12 rounded-full border border-dashed border-slate-200 flex items-center justify-center mb-2">
-                                                            <i className="fas fa-layer-group text-lg opacity-40"></i>
+                                                    <div className="h-full flex flex-col items-center justify-center text-slate-300 py-12">
+                                                        <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-4 text-slate-200">
+                                                            <i className="fas fa-layer-group text-2xl"></i>
                                                         </div>
-                                                        <p className="text-[10px] font-medium uppercase tracking-wider">{lang === 'zh' ? '暂未选择对象' : 'No objects selected'}</p>
+                                                        <p className="text-sm font-medium text-slate-400">{lang === 'zh' ? '暂未选择对象' : 'No objects selected'}</p>
                                                     </div>
                                                 )}
                                             </div>

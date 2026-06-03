@@ -5,6 +5,7 @@ import { Language, ResourceNode } from '../types';
 import { DirectoryTree } from './DirectoryTree';
 import { DRILLING_RESOURCE_TREE } from '../constants';
 import { ObjectScopeSelector } from './ObjectScopeSelector';
+import { IntelligentObjectDiscovery } from './IntelligentObjectDiscovery';
 
 // --- MOCK DATA ---
 const DOMAINS = {
@@ -212,12 +213,13 @@ const MultiSelectDropdown: React.FC<{
 interface AddResourcePageProps {
   onClose: () => void;
   onConfirm: (data: any) => void;
+  onNavigateToStrategy?: () => void;
   lang: Language;
   initialTree?: ResourceNode[];
   workspaceId?: string | null;
 }
 
-export const AddResourcePage: React.FC<AddResourcePageProps> = ({ onClose, onConfirm, lang, initialTree, workspaceId }) => {
+export const AddResourcePage: React.FC<AddResourcePageProps> = ({ onClose, onConfirm, onNavigateToStrategy, lang, initialTree, workspaceId }) => {
   const t = translations[lang];
   
   // Scoping Filters
@@ -260,6 +262,10 @@ export const AddResourcePage: React.FC<AddResourcePageProps> = ({ onClose, onCon
   const fileInputRef = useRef<HTMLInputElement>(null);
   const missingFileInputRef = useRef<HTMLInputElement>(null);
   const [pendingUploadKey, setPendingUploadKey] = useState<string | null>(null);
+
+  // Strategy Modal State
+  const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
+  const [strategyObjectType, setStrategyObjectType] = useState('well');
 
   // HYDRATION LOGIC: Populate state from existing tree
   useEffect(() => {
@@ -646,20 +652,20 @@ export const AddResourcePage: React.FC<AddResourcePageProps> = ({ onClose, onCon
                 <div className="flex-1 flex flex-col overflow-hidden">
                     
                     {/* MBU Scope Accordion */}
-                    <div className={`flex flex-col transition-all duration-300 ease-in-out overflow-hidden ${expandedSection === 'mbu' ? 'flex-1' : 'h-14'}`}>
+                    <div className={`flex flex-col transition-all duration-300 ease-in-out overflow-hidden border-b border-gray-100 ${expandedSection === 'mbu' ? 'flex-1' : 'h-14'}`}>
                         <div 
                             onClick={() => setExpandedSection('mbu')}
-                            className={`p-4 border-b border-gray-200 cursor-pointer flex items-center justify-between transition-colors ${expandedSection === 'mbu' ? 'bg-white' : 'bg-slate-50 hover:bg-slate-100'}`}
+                            className={`p-4 cursor-pointer flex items-center justify-between transition-colors ${expandedSection === 'mbu' ? 'bg-white' : 'bg-slate-50 hover:bg-slate-100'}`}
                         >
-                            <div className="flex items-center">
-                                <div className={`w-1 h-4 mr-2 rounded ${expandedSection === 'mbu' ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
-                                <h3 className={`text-sm font-bold ${expandedSection === 'mbu' ? 'text-gray-800' : 'text-gray-500'}`}>{t.mbuScope}</h3>
+                            <div className="flex items-center gap-2">
+                                <div className={`w-1 h-4 rounded-full transition-colors ${expandedSection === 'mbu' ? 'bg-blue-500' : 'bg-slate-300'}`}></div>
+                                <h3 className={`text-sm font-bold ${expandedSection === 'mbu' ? 'text-slate-800' : 'text-slate-500'}`}>{t.mbuScope}</h3>
                             </div>
-                            <i className={`fas fa-chevron-down text-xs transition-transform duration-300 ${expandedSection === 'mbu' ? 'rotate-180 text-blue-600' : 'text-gray-400'}`}></i>
+                            <i className={`fas fa-chevron-down text-xs transition-transform duration-300 ${expandedSection === 'mbu' ? 'rotate-180 text-blue-500' : 'text-slate-300'}`}></i>
                         </div>
                         
                         {expandedSection === 'mbu' && (
-                            <div className="flex-1 flex flex-col overflow-hidden animate-in fade-in duration-500">
+                            <div className="flex-1 flex flex-col overflow-hidden bg-white animate-in fade-in slide-in-from-top-1 duration-300">
                                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                                     <DirectoryTree 
                                         treeData={DRILLING_RESOURCE_TREE}
@@ -681,24 +687,28 @@ export const AddResourcePage: React.FC<AddResourcePageProps> = ({ onClose, onCon
                         )}
                     </div>
 
-                    {/* Object Scope Accordion */}
-                    <div className={`flex flex-col transition-all duration-300 ease-in-out overflow-hidden border-t border-gray-200 ${expandedSection === 'object' ? 'flex-1' : 'h-14'}`}>
+                    {/* Object Scope Section */}
+                    <div className={`flex flex-col transition-all duration-300 ease-in-out overflow-hidden border-t border-gray-100 ${expandedSection === 'object' ? 'flex-1' : 'h-14'}`}>
                         <div 
                             onClick={() => setExpandedSection('object')}
-                            className={`p-4 border-b border-gray-200 cursor-pointer flex items-center justify-between transition-colors ${expandedSection === 'object' ? 'bg-white' : 'bg-slate-50 hover:bg-slate-100'}`}
+                            className={`p-4 cursor-pointer flex items-center justify-between transition-colors ${expandedSection === 'object' ? 'bg-white' : 'bg-slate-50 hover:bg-slate-100'}`}
                         >
-                            <div className="flex items-center">
-                                <div className={`w-1 h-4 mr-2 rounded ${expandedSection === 'object' ? 'bg-indigo-600' : 'bg-gray-300'}`}></div>
-                                <h3 className={`text-sm font-bold ${expandedSection === 'object' ? 'text-gray-800' : 'text-gray-500'}`}>对象范围</h3>
+                            <div className="flex items-center gap-2">
+                                <div className={`w-1 h-4 rounded-full transition-colors ${expandedSection === 'object' ? 'bg-blue-500' : 'bg-slate-300'}`}></div>
+                                <h3 className={`text-sm font-bold ${expandedSection === 'object' ? 'text-slate-800' : 'text-slate-500'}`}>{lang === 'zh' ? '对象范围' : 'Object Scope'}</h3>
                             </div>
-                            <i className={`fas fa-chevron-down text-xs transition-transform duration-300 ${expandedSection === 'object' ? 'rotate-180 text-indigo-600' : 'text-gray-400'}`}></i>
+                            <i className={`fas fa-chevron-down text-xs transition-transform duration-300 ${expandedSection === 'object' ? 'rotate-180 text-blue-500' : 'text-slate-300'}`}></i>
                         </div>
 
                         {expandedSection === 'object' && (
-                            <div className="flex-1 overflow-y-auto custom-scrollbar p-5 bg-white animate-in fade-in duration-500">
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-5 bg-white animate-in fade-in slide-in-from-top-1 duration-300">
                                 <ObjectScopeSelector 
                                     selectedObjects={filters.object}
                                     onChange={(s) => setFilters(p => ({...p, object: s}))}
+                                    onNavigateToStrategy={() => {
+                                        setStrategyObjectType('well'); // Default to well for now
+                                        setIsStrategyModalOpen(true);
+                                    }}
                                     lang={lang}
                                 />
                             </div>
@@ -1072,6 +1082,15 @@ export const AddResourcePage: React.FC<AddResourcePageProps> = ({ onClose, onCon
             </div>
         )}
       </div>
+
+      {/* Strategy Configuration Modal */}
+      {isStrategyModalOpen && (
+        <IntelligentObjectDiscovery 
+          lang={lang}
+          objectType={strategyObjectType}
+          onClose={() => setIsStrategyModalOpen(false)}
+        />
+      )}
     </div>
   );
 };
