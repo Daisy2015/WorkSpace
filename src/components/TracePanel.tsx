@@ -4,6 +4,17 @@ import { translations } from '../i18n';
 import { ReportTemplateModal } from './ReportTemplateModal';
 import { AgentRunManager } from './enterprise/AgentRunManager';
 
+import { SmartReportCreateModal } from './SmartReportCreateModal';
+import { SmartProReportCreateModal } from './SmartProReportCreateModal';
+import { SmartPPTCreateModal } from './SmartPPTCreateModal';
+import { SmartChartCreateModal } from './SmartChartCreateModal';
+import { SmartProChartCreateModal } from './SmartProChartCreateModal';
+import { ReportPreview } from './ReportPreview';
+import { PPTPreview } from './PPTPreview';
+import { SummaryPreview } from './SummaryPreview';
+import { EChartsPreview } from './EChartsPreview';
+import { AnimatePresence } from 'motion/react';
+
 interface TracePanelProps {
   selectedMessage: Message | null;
   resourceTree: ResourceNode[];
@@ -37,6 +48,17 @@ export const TracePanel: React.FC<TracePanelProps> = ({
   const isEnterprise = workspaceVersion === 'enterprise';
 
   const [managedAgentId, setManagedAgentId] = useState<string | null>(null);
+  const [isSmartReportModalOpen, setIsSmartReportModalOpen] = useState(false);
+  const [isSmartProReportModalOpen, setIsSmartProReportModalOpen] = useState(false);
+  const [isSmartPPTModalOpen, setIsSmartPPTModalOpen] = useState(false);
+  const [isSmartChartModalOpen, setIsSmartChartModalOpen] = useState(false);
+  const [isSmartProChartModalOpen, setIsSmartProChartModalOpen] = useState(false);
+  const [previewSessionId, setPreviewSessionId] = useState<string | null>(null);
+  const [previewPPTSessionId, setPreviewPPTSessionId] = useState<string | null>(null);
+  const [previewSummarySessionId, setPreviewSummarySessionId] = useState<string | null>(null);
+  const [previewChartSessionId, setPreviewChartSessionId] = useState<string | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
 
   const managedAgent = agents.find(a => a.id === managedAgentId);
 
@@ -55,12 +77,13 @@ export const TracePanel: React.FC<TracePanelProps> = ({
     { id: 'trap', name: lang === 'zh' ? '圈闭评价' : 'Trap Eval', icon: 'fa-bullseye', color: 'bg-purple-50 text-purple-600' },
     { id: 'well', name: lang === 'zh' ? '井位优选' : 'Well Selection', icon: 'fa-map-marker-alt', color: 'bg-teal-50 text-teal-600' },
     { id: 'offset_well', name: lang === 'zh' ? '邻井优选' : 'Offset Well', icon: 'fa-oil-well', color: 'bg-amber-50 text-amber-600' },
-    { id: 'geomapx', name: 'GeoMapX', icon: 'fa-map', color: 'bg-purple-50 text-purple-600' },
   ] : [
+    { id: 'data_qa', name: lang === 'zh' ? '智能问数' : 'Smart Q&A', icon: 'fa-database', color: 'bg-cyan-50 text-cyan-600' },
     { id: 'report', name: lang === 'zh' ? '智能报告' : 'Smart Report', icon: 'fa-file-alt', color: 'bg-blue-50 text-blue-600' },
     { id: 'ppt', name: lang === 'zh' ? '智能PPT' : 'Smart PPT', icon: 'fa-file-powerpoint', color: 'bg-orange-50 text-orange-600' },
     { id: 'summary', name: lang === 'zh' ? '智能摘要' : 'Smart Summary', icon: 'fa-align-left', color: 'bg-green-50 text-green-600' },
     { id: 'chart', name: lang === 'zh' ? '数据成图' : 'Data Plot', icon: 'fa-chart-pie', color: 'bg-pink-50 text-pink-600' },
+    { id: 'pro_chart', name: lang === 'zh' ? '智能图件' : 'Pro Charts', icon: 'fa-globe', color: 'bg-indigo-50 text-indigo-600' },
   ];
 
   const initialSessions = isEnterprise ? [
@@ -76,28 +99,167 @@ export const TracePanel: React.FC<TracePanelProps> = ({
     { id: '1', title: lang === 'zh' ? '第一季度钻井总结报告' : 'Q1 Summary Report', expertId: 'report', time: '4h ago' },
     { id: '2', title: lang === 'zh' ? '项目汇报演示文稿' : 'Project Presentation', expertId: 'ppt', time: '21h ago' },
     { id: '3', title: lang === 'zh' ? '地质构造分析摘要' : 'Geological Summary', expertId: 'summary', time: '4d ago' },
+    { id: '4', title: lang === 'zh' ? '生产趋势数据分析图' : 'Production Trend Chart', expertId: 'chart', time: '5d ago' },
+    { id: '5', title: lang === 'zh' ? 'X-1井层序地层综合柱状图' : 'X-1 Sequence Stratigraphy Chart', expertId: 'pro_chart', time: 'Just now' },
   ];
 
-  const [recentSessions, setRecentSessions] = useState(initialSessions);
+  const [recentSessions, setRecentSessions] = useState<any[]>(initialSessions);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   useEffect(() => {
     setRecentSessions(initialSessions);
   }, [workspaceVersion, lang]);
 
+  const handleGenerateReport = (data: { topic: string; outline: boolean; language: string }) => {
+    const newSession = {
+      id: Date.now().toString(),
+      title: data.topic,
+      expertId: 'report',
+      time: lang === 'zh' ? '刚刚' : 'Just now',
+      status: 'processing'
+    };
+    
+    setRecentSessions(prev => [newSession, ...prev]);
+
+    // Simulate completion after 5 seconds
+    setTimeout(() => {
+      setRecentSessions(prev => 
+        prev.map(s => s.id === newSession.id ? { ...s, status: 'completed' } : s)
+      );
+    }, 5000);
+  };
+
+  const handleGenerateProReport = (data: { topic: string; template: string; language: string }) => {
+    const newSession = {
+      id: Date.now().toString(),
+      title: `${data.topic} (${data.template})`,
+      expertId: 'pro_report',
+      time: lang === 'zh' ? '刚刚' : 'Just now',
+      status: 'processing'
+    };
+    
+    setRecentSessions(prev => [newSession, ...prev]);
+
+    // Simulate completion after 5 seconds
+    setTimeout(() => {
+      setRecentSessions(prev => 
+        prev.map(s => s.id === newSession.id ? { ...s, status: 'completed' } : s)
+      );
+    }, 5000);
+  };
+
+  const handleGeneratePPT = (data: { topic: string; outline: boolean; language: string }) => {
+    const newSession = {
+      id: Date.now().toString(),
+      title: data.topic,
+      expertId: 'ppt',
+      time: lang === 'zh' ? '刚刚' : 'Just now',
+      status: 'processing'
+    };
+    
+    setRecentSessions(prev => [newSession, ...prev]);
+
+    // Simulate completion after 5 seconds
+    setTimeout(() => {
+      setRecentSessions(prev => 
+        prev.map(s => s.id === newSession.id ? { ...s, status: 'completed' } : s)
+      );
+    }, 5000);
+  };
+
+  const handleGenerateChart = (data: { topic: string; chartType: string; resources: string[] }) => {
+    const newSession = {
+      id: Date.now().toString(),
+      title: data.topic,
+      expertId: 'chart',
+      time: lang === 'zh' ? '刚刚' : 'Just now',
+      status: 'processing'
+    };
+    
+    setRecentSessions(prev => [newSession, ...prev]);
+
+    // Simulate completion after 5 seconds
+    setTimeout(() => {
+      setRecentSessions(prev => 
+        prev.map(s => s.id === newSession.id ? { ...s, status: 'completed' } : s)
+      );
+    }, 5000);
+  };
+
+  const handleGenerateProChart = (data: { object: string; chartType: string; template: string }) => {
+    const newSession = {
+      id: Date.now().toString(),
+      title: `${data.object} - ${data.template}`,
+      expertId: 'pro_chart',
+      time: lang === 'zh' ? '刚刚' : 'Just now',
+      status: 'processing'
+    };
+    
+    setRecentSessions(prev => [newSession, ...prev]);
+
+    // Simulate completion after 5 seconds
+    setTimeout(() => {
+      setRecentSessions(prev => 
+        prev.map(s => s.id === newSession.id ? { ...s, status: 'completed' } : s)
+      );
+    }, 5000);
+  };
+
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setRecentSessions(prev => prev.filter(s => s.id !== id));
   };
 
-  const handleEdit = (e: React.MouseEvent) => {
+  const handleRename = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    alert(lang === 'zh' ? '编辑中...' : 'Editing...');
+    const session = recentSessions.find(s => s.id === id);
+    if (session) {
+      setEditingSessionId(id);
+      setEditTitle(session.title);
+    }
+    setOpenDropdownId(null);
   };
+
+  const saveRename = (id: string) => {
+    setRecentSessions(prev => prev.map(s => s.id === id ? { ...s, title: editTitle } : s));
+    setEditingSessionId(null);
+  };
+
+  const handleDownload = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    alert(lang === 'zh' ? '正在下载文件...' : 'Downloading file...');
+    setOpenDropdownId(null);
+  };
+
+  const handleSaveToAchievement = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    alert(lang === 'zh' ? '已成功保存到个人成果' : 'Successfully saved to personal achievements');
+    setOpenDropdownId(null);
+  };
+
+  const getFlattenedResources = (nodes: ResourceNode[]): string[] => {
+    let results: string[] = [];
+    nodes.forEach(node => {
+      if (!node.children || node.children.length === 0) {
+        results.push(node.name);
+      } else {
+        results = [...results, ...getFlattenedResources(node.children)];
+      }
+    });
+    return results;
+  };
+
+  const allResourceNames = getFlattenedResources(resourceTree);
+  const reportResources = allResourceNames.length > 0 ? allResourceNames.slice(0, 5) : (lang === 'zh' ? ['地质测井数据.csv', '井眼轨道设计.pdf', '区块历史产量记录.xlsx'] : ['Logging_Data.csv', 'Wellbore_Path_Design.pdf', 'Block_History_Production.xlsx']);
+
+  const previewSession = recentSessions.find(s => s.id === previewSessionId);
+  const previewPPTSession = recentSessions.find(s => s.id === previewPPTSessionId);
+  const previewSummarySession = recentSessions.find(s => s.id === previewSummarySessionId);
+  const previewChartSession = recentSessions.find(s => s.id === previewChartSessionId);
 
   if (isEnterprise && managedAgent) {
     return (
-      <div className="h-full border-l border-gray-200 w-96 overflow-hidden">
+      <div className="h-full border-l border-gray-200 w-96 overflow-hidden relative">
         <AgentRunManager 
           agent={managedAgent} 
           lang={lang} 
@@ -112,7 +274,7 @@ export const TracePanel: React.FC<TracePanelProps> = ({
   }
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 border-l border-gray-200 w-96 overflow-y-auto custom-scrollbar">
+    <div className="h-full flex flex-col bg-gray-50 border-l border-gray-200 w-96 overflow-y-auto relative custom-scrollbar">
       {/* Header */}
       <div className="p-4 bg-white border-b border-gray-200 flex justify-between items-center sticky top-0 z-10">
         <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
@@ -174,8 +336,26 @@ export const TracePanel: React.FC<TracePanelProps> = ({
                   </button>
                 </div>
               ) : (
-                <button className="absolute top-1 right-1 text-gray-300 hover:text-purple-600 p-1 rounded-full hover:bg-gray-50 transition-colors opacity-0 group-hover:opacity-100">
-                  <i className="fas fa-pencil-alt text-[10px]"></i>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (tool.id === 'report') {
+                      setIsSmartReportModalOpen(true);
+                    } else if (tool.id === 'pro_report') {
+                      setIsSmartProReportModalOpen(true);
+                    } else if (tool.id === 'ppt') {
+                      setIsSmartPPTModalOpen(true);
+                    } else if (tool.id === 'chart') {
+                      setIsSmartChartModalOpen(true);
+                    } else if (tool.id === 'pro_chart') {
+                      setIsSmartProChartModalOpen(true);
+                    } else {
+                      alert(lang === 'zh' ? '该功能正在开发中...' : 'Features coming soon...');
+                    }
+                  }}
+                  className="absolute top-1 right-1 text-gray-300 hover:text-purple-600 p-1 rounded-full hover:bg-gray-50 transition-colors opacity-0 group-hover:opacity-100"
+                >
+                   <i className="fas fa-pencil-alt text-[10px]"></i>
                 </button>
               )}
             </div>
@@ -188,16 +368,114 @@ export const TracePanel: React.FC<TracePanelProps> = ({
           <div className="space-y-2">
             {recentSessions.map(session => {
               const expert = tools.find(t => t.id === session.expertId) || tools[0];
+              const isEditing = editingSessionId === session.id;
+              
               return (
-                <div key={session.id} className="relative flex items-start gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:shadow-sm hover:border-purple-200 transition-all group cursor-pointer">
+                <div 
+                  key={session.id} 
+                  className="relative flex items-start gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:shadow-sm hover:border-purple-200 transition-all group cursor-pointer"
+                >
                   <div className={`mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${expert.color}`}>
                     <i className={`fas ${expert.icon} text-sm`}></i>
                   </div>
                   <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                       {isEditing ? (
+                        <div className="flex-1 flex items-center gap-2">
+                          <input 
+                            autoFocus
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            onBlur={() => saveRename(session.id)}
+                            onKeyDown={(e) => e.key === 'Enter' && saveRename(session.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[11px] font-bold text-gray-700 w-full outline-none border-b border-blue-500 bg-blue-50/30 px-1 py-0.5 rounded"
+                          />
+                        </div>
+                      ) : (
+                        <h4 
+                          onClick={(e) => {
+                            if ((expert.id === 'report' || expert.id === 'pro_report') && session.status !== 'processing') {
+                              e.stopPropagation();
+                              setPreviewSessionId(session.id);
+                            } else if ((expert.id === 'ppt' || expert.id === 'pro_ppt') && session.status !== 'processing') {
+                              e.stopPropagation();
+                              setPreviewPPTSessionId(session.id);
+                            } else if (expert.id === 'summary' && session.status !== 'processing') {
+                              e.stopPropagation();
+                              setPreviewSummarySessionId(session.id);
+                            } else if (expert.id === 'chart' && session.status !== 'processing') {
+                              e.stopPropagation();
+                              setPreviewChartSessionId(session.id);
+                            } else if (expert.id === 'pro_chart' && session.status !== 'processing') {
+                              e.stopPropagation();
+                              setPreviewChartSessionId(session.id);
+                            }
+                          }}
+                          className={`text-[11px] font-bold text-gray-700 truncate flex-1 hover:text-blue-600 transition-colors ${(expert.id === 'report' || expert.id === 'pro_report' || expert.id === 'ppt' || expert.id === 'pro_ppt' || expert.id === 'summary' || expert.id === 'chart' || expert.id === 'pro_chart') && session.status !== 'processing' ? 'cursor-pointer hover:underline' : ''}`}
+                        >
+                          {session.title}
+                        </h4>
+                      )}
+                      
+                      <div className="relative flex-shrink-0">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenDropdownId(openDropdownId === session.id ? null : session.id);
+                          }}
+                          className={`w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-all ${openDropdownId === session.id ? 'bg-gray-100 text-gray-600 opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                        >
+                          <i className="fas fa-ellipsis-v text-[10px]"></i>
+                        </button>
+
+                        {openDropdownId === session.id && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setOpenDropdownId(null); }}></div>
+                            <div className="absolute right-0 top-6 min-w-[120px] bg-white rounded-lg shadow-xl border border-gray-100 py-1 z-50 animate-in fade-in zoom-in-95 duration-200">
+                              <button 
+                                onClick={(e) => handleRename(session.id, e)}
+                                className="w-full px-3 py-1.5 text-left text-[10px] font-bold text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+                              >
+                                <i className="fas fa-edit w-3 text-blue-500"></i>
+                                {lang === 'zh' ? '重命名' : 'Rename'}
+                              </button>
+                              <button 
+                                onClick={(e) => handleDownload(session.id, e)}
+                                className="w-full px-3 py-1.5 text-left text-[10px] font-bold text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+                              >
+                                <i className="fas fa-download w-3 text-emerald-500"></i>
+                                {lang === 'zh' ? '下载文件' : 'Download'}
+                              </button>
+                              <button 
+                                onClick={(e) => handleSaveToAchievement(session.id, e)}
+                                className="w-full px-3 py-1.5 text-left text-[10px] font-bold text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+                              >
+                                <i className="fas fa-bookmark w-3 text-amber-500"></i>
+                                {lang === 'zh' ? '保存为成果' : 'Save as Item'}
+                              </button>
+                              <div className="my-1 border-t border-gray-50"></div>
+                              <button 
+                                onClick={(e) => handleDelete(session.id, e)}
+                                className="w-full px-3 py-1.5 text-left text-[10px] font-bold text-red-500 hover:bg-red-50 flex items-center gap-2"
+                              >
+                                <i className="fas fa-trash-alt w-3"></i>
+                                {lang === 'zh' ? '删除' : 'Delete'}
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
                     <div className="flex items-center gap-2">
-                      <h4 className="text-[11px] font-bold text-gray-700 group-hover:text-purple-600 truncate">{session.title}</h4>
-                      {session.pendingConfirm && (
+                       {session.pendingConfirm && (
                         <span className="flex-shrink-0 bg-amber-50 text-amber-700 text-[8px] px-1.5 py-0.5 rounded font-bold">{lang === 'zh' ? '待确认' : 'Pending'}</span>
+                      )}
+                      {session.status === 'processing' && (
+                        <span className="flex-shrink-0 flex items-center gap-1 text-indigo-600 text-[8px] px-1.5 py-0.5 rounded font-bold bg-indigo-50">
+                           <i className="fas fa-spinner fa-spin"></i>
+                          {lang === 'zh' ? '正在生成' : 'Generating'}
+                        </span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-1 text-[9px] text-gray-400 font-medium">
@@ -242,6 +520,76 @@ export const TracePanel: React.FC<TracePanelProps> = ({
           </div>
         )}
       </div>
+      <SmartReportCreateModal 
+        isOpen={isSmartReportModalOpen} 
+        onClose={() => setIsSmartReportModalOpen(false)}
+        onGenerate={handleGenerateReport}
+        lang={lang}
+      />
+      <SmartProReportCreateModal 
+        isOpen={isSmartProReportModalOpen} 
+        onClose={() => setIsSmartProReportModalOpen(false)}
+        onGenerate={handleGenerateProReport}
+        lang={lang}
+      />
+      <SmartPPTCreateModal 
+        isOpen={isSmartPPTModalOpen} 
+        onClose={() => setIsSmartPPTModalOpen(false)}
+        onGenerate={handleGeneratePPT}
+        lang={lang}
+      />
+      <SmartChartCreateModal 
+        isOpen={isSmartChartModalOpen} 
+        onClose={() => setIsSmartChartModalOpen(false)}
+        onGenerate={handleGenerateChart}
+        lang={lang}
+        availableResources={reportResources}
+      />
+      <SmartProChartCreateModal 
+        isOpen={isSmartProChartModalOpen} 
+        onClose={() => setIsSmartProChartModalOpen(false)}
+        onGenerate={handleGenerateProChart}
+        lang={lang}
+      />
+
+      <AnimatePresence>
+        {previewSessionId && previewSession && (
+          <ReportPreview 
+            title={previewSession.title}
+            lang={lang}
+            onClose={() => setPreviewSessionId(null)}
+            onDownload={() => alert(lang === 'zh' ? '准备下载报告文档...' : 'Preparing report download...')}
+            references={reportResources}
+          />
+        )}
+        {previewPPTSessionId && previewPPTSession && (
+          <PPTPreview 
+            title={previewPPTSession.title}
+            lang={lang}
+            onClose={() => setPreviewPPTSessionId(null)}
+            onDownload={() => alert(lang === 'zh' ? '准备下载PPT文件...' : 'Preparing PPT download...')}
+            references={reportResources}
+          />
+        )}
+        {previewSummarySessionId && previewSummarySession && (
+          <SummaryPreview 
+            title={previewSummarySession.title}
+            lang={lang}
+            onClose={() => setPreviewSummarySessionId(null)}
+            onDownload={() => alert(lang === 'zh' ? '准备下载摘要文件...' : 'Preparing summary download...')}
+            references={reportResources}
+          />
+        )}
+        {previewChartSessionId && previewChartSession && (
+          <EChartsPreview 
+            title={previewChartSession.title}
+            lang={lang}
+            onClose={() => setPreviewChartSessionId(null)}
+            onDownload={() => alert(lang === 'zh' ? '准备下载图表图片...' : 'Preparing chart download...')}
+            references={reportResources}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
