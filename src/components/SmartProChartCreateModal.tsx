@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
+import layerTemplate1 from '../lib/img/EB-1层序地层与沉积微相综合柱状图.png';
+import layerTemplate2 from '../lib/img/EB-1层序旋回划分柱状图.png';
+import layerTemplate3 from '../lib/img/EB-1碳酸盐岩屑录井图.png';
+import layerTemplate4 from '../lib/img/EB-1连续流量测井图.png';
+import layerTemplate5 from '../lib/img/East Baghdad South油气田不同原油密度产油分析对比图 (1).png';
+import layerTemplate6 from '../lib/img/PTM3-A Oilfield油田储层综合评价图.png';
+
 interface Template {
   id: string;
   name: string;
@@ -15,13 +22,13 @@ interface SmartProChartCreateModalProps {
   lang: 'zh' | 'en';
 }
 
-export const SmartProChartCreateModal: React.FC<SmartProChartCreateModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  onGenerate, 
-  lang 
+export const SmartProChartCreateModal: React.FC<SmartProChartCreateModalProps> = ({
+  isOpen,
+  onClose,
+  onGenerate,
+  lang
 }) => {
-  const [object, setObject] = useState('');
+  const [object, setObject] = useState(lang === 'zh' ? '层序地层与沉积微相综合柱状图' : 'Sequence Stratigraphy Column');
   const [chartType, setChartType] = useState(lang === 'zh' ? '单井柱状图' : 'Well Log');
   const [selectedTemplate, setSelectedTemplate] = useState('1');
   const [activeCategory, setActiveCategory] = useState(lang === 'zh' ? '单井柱状图' : 'Well Log');
@@ -31,15 +38,21 @@ export const SmartProChartCreateModal: React.FC<SmartProChartCreateModalProps> =
     : ['Well Log', 'Map', 'Stats', 'Engineering', '3D'];
 
   const templates: Template[] = [
-    { id: '1', name: lang === 'zh' ? '层序地层与沉积微相综合柱状图' : 'Sequence Stratigraphy Column', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: 'https://images.unsplash.com/photo-1590212151175-e58edd96185b?w=400&auto=format&fit=crop&q=80' },
-    { id: '2', name: lang === 'zh' ? '碳酸盐岩屑录井图' : 'Carbonate Cutting Log', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=400&auto=format&fit=crop&q=80' },
-    { id: '3', name: lang === 'zh' ? '层序旋回划分柱状图' : 'Sequence Cycle Column', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=400&auto=format&fit=crop&q=80' },
-    { id: '4', name: lang === 'zh' ? '碎屑岩岩心综合图' : 'Clastic Rock Core Chart', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: 'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=400&auto=format&fit=crop&q=80' },
-    { id: '5', name: lang === 'zh' ? '测井解释和测试成果综合图' : 'Logging & Testing Result Chart', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&auto=format&fit=crop&q=80' },
-    { id: '6', name: lang === 'zh' ? '综合录井图' : 'Comprehensive Well Log', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: 'https://images.unsplash.com/photo-1551288049-bbbda5366391?w=400&auto=format&fit=crop&q=80' },
+    { id: '1', name: lang === 'zh' ? '层序地层与沉积微相综合柱状图' : 'Sequence Stratigraphy Column', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: layerTemplate1 },
+    { id: '2', name: lang === 'zh' ? '碳酸盐岩屑录井图' : 'Carbonate Cutting Log', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: layerTemplate3 },
+    { id: '3', name: lang === 'zh' ? '层序旋回划分柱状图' : 'Sequence Cycle Column', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: layerTemplate2 },
+    { id: '4', name: lang === 'zh' ? '碎屑岩岩心综合图' : 'Clastic Rock Core Chart', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: layerTemplate4 },
+    { id: '5', name: lang === 'zh' ? '测井解释和测试成果综合图' : 'Logging & Testing Result Chart', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: layerTemplate5 },
+    { id: '6', name: lang === 'zh' ? '综合录井图' : 'Comprehensive Well Log', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: layerTemplate6 },
   ];
 
   const filteredTemplates = templates.filter(t => t.category === activeCategory);
+
+  // 处理选中模板事件，将模板名称填入到智能成图描述输入框
+  const handleSelectTemplate = (template: Template) => {
+    setSelectedTemplate(template.id);
+    setObject(template.name);
+  };
 
   const handleGenerate = () => {
     if (!object.trim()) return;
@@ -118,9 +131,9 @@ export const SmartProChartCreateModal: React.FC<SmartProChartCreateModalProps> =
                 {/* Template Grid */}
                 <div className="grid grid-cols-3 gap-4">
                   {filteredTemplates.length > 0 ? filteredTemplates.map(t => (
-                    <div 
+                    <div
                       key={t.id}
-                      onClick={() => setSelectedTemplate(t.id)}
+                      onClick={() => handleSelectTemplate(t)}
                       className={`group relative flex flex-col rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
                         selectedTemplate === t.id ? 'border-indigo-500 ring-4 ring-indigo-500/10' : 'border-slate-100 hover:border-slate-200'
                       }`}
@@ -128,7 +141,7 @@ export const SmartProChartCreateModal: React.FC<SmartProChartCreateModalProps> =
                       <div className="aspect-[4/3] bg-slate-50 relative overflow-hidden">
                         <img 
                           referrerPolicy="no-referrer"
-                          src={`https://images.unsplash.com/photo-${t.id === '1' ? '1581091226825-a6a2a5aee158' : t.id === '2' ? '1504917595217-101a396dae70' : t.id === '3' ? '1513828581220-382a2d9c490a' : t.id === '4' ? '1581092160205-567b5871f36e' : t.id === '5' ? '1518709268808-63955fdb50c5' : '1551288049-bbbda5366391'}?w=400&auto=format&fit=crop&q=80`} 
+                          src={t.image} 
                           alt={t.name}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90 group-hover:opacity-100"
                         />
