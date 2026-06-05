@@ -31,7 +31,7 @@ export const SmartProChartCreateModal: React.FC<SmartProChartCreateModalProps> =
     : ['Well Log', 'Map', 'Stats', 'Engineering', '3D'];
 
   const templates: Template[] = [
-    { id: '1', name: lang === 'zh' ? '层序地层与沉积微相综合柱状图' : 'Sequence Stratigraphy Column', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: '/src/assets/images/regenerated_image_1780629662154.png' },
+    { id: '1', name: lang === 'zh' ? '层序地层与沉积微相综合柱状图' : 'Sequence Stratigraphy Column', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: '/src/assets/images/regenerated_image_1780629841532.png' },
     { id: '2', name: lang === 'zh' ? '碳酸盐岩屑录井图' : 'Carbonate Cutting Log', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: '/src/assets/images/regenerated_image_1780629664519.png' },
     { id: '3', name: lang === 'zh' ? '层序旋回划分柱状图' : 'Sequence Cycle Column', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: '/src/assets/images/regenerated_image_1780629650260.png' },
     { id: '4', name: lang === 'zh' ? '碎屑岩岩心综合图' : 'Clastic Rock Core Chart', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: '/src/assets/images/regenerated_image_1780629652826.png' },
