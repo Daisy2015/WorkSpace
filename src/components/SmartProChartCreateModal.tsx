@@ -31,12 +31,12 @@ export const SmartProChartCreateModal: React.FC<SmartProChartCreateModalProps> =
     : ['Well Log', 'Map', 'Stats', 'Engineering', '3D'];
 
   const templates: Template[] = [
-    { id: '1', name: lang === 'zh' ? '层序地层与沉积微相综合柱状图' : 'Sequence Stratigraphy Column', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: 'https://images.unsplash.com/photo-1590212151175-e58edd96185b?w=400&auto=format&fit=crop&q=80' },
-    { id: '2', name: lang === 'zh' ? '碳酸盐岩屑录井图' : 'Carbonate Cutting Log', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=400&auto=format&fit=crop&q=80' },
-    { id: '3', name: lang === 'zh' ? '层序旋回划分柱状图' : 'Sequence Cycle Column', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=400&auto=format&fit=crop&q=80' },
-    { id: '4', name: lang === 'zh' ? '碎屑岩岩心综合图' : 'Clastic Rock Core Chart', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: 'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=400&auto=format&fit=crop&q=80' },
-    { id: '5', name: lang === 'zh' ? '测井解释和测试成果综合图' : 'Logging & Testing Result Chart', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&auto=format&fit=crop&q=80' },
-    { id: '6', name: lang === 'zh' ? '综合录井图' : 'Comprehensive Well Log', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: 'https://images.unsplash.com/photo-1551288049-bbbda5366391?w=400&auto=format&fit=crop&q=80' },
+    { id: '1', name: lang === 'zh' ? '层序地层与沉积微相综合柱状图' : 'Sequence Stratigraphy Column', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: '/src/assets/images/regenerated_image_1780629662154.png' },
+    { id: '2', name: lang === 'zh' ? '碳酸盐岩屑录井图' : 'Carbonate Cutting Log', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: '/src/assets/images/regenerated_image_1780629664519.png' },
+    { id: '3', name: lang === 'zh' ? '层序旋回划分柱状图' : 'Sequence Cycle Column', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: '/src/assets/images/regenerated_image_1780629650260.png' },
+    { id: '4', name: lang === 'zh' ? '碎屑岩岩心综合图' : 'Clastic Rock Core Chart', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: '/src/assets/images/regenerated_image_1780629652826.png' },
+    { id: '5', name: lang === 'zh' ? '测井解释和测试成果综合图' : 'Logging & Testing Result Chart', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: '/src/assets/images/regenerated_image_1780629656116.png' },
+    { id: '6', name: lang === 'zh' ? '综合录井图' : 'Comprehensive Well Log', category: lang === 'zh' ? '单井柱状图' : 'Well Log', image: '/src/assets/images/regenerated_image_1780629659574.png' },
   ];
 
   const filteredTemplates = templates.filter(t => t.category === activeCategory);
@@ -128,7 +128,7 @@ export const SmartProChartCreateModal: React.FC<SmartProChartCreateModalProps> =
                       <div className="aspect-[4/3] bg-slate-50 relative overflow-hidden">
                         <img 
                           referrerPolicy="no-referrer"
-                          src={`https://images.unsplash.com/photo-${t.id === '1' ? '1581091226825-a6a2a5aee158' : t.id === '2' ? '1504917595217-101a396dae70' : t.id === '3' ? '1513828581220-382a2d9c490a' : t.id === '4' ? '1581092160205-567b5871f36e' : t.id === '5' ? '1518709268808-63955fdb50c5' : '1551288049-bbbda5366391'}?w=400&auto=format&fit=crop&q=80`} 
+                          src={t.image} 
                           alt={t.name}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-90 group-hover:opacity-100"
                         />
