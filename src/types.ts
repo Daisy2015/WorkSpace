@@ -28,6 +28,7 @@ export interface ResourceNode {
   id: string;
   name: string;
   type: ResourceType;
+  missing?: boolean;
   children?: ResourceNode[];
   meta?: {
     sourceType?: 'system' | 'local' | 'web';

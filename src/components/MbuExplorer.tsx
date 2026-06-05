@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language, ResourceNode } from '../types';
 import { translations } from '../i18n';
+import { ResourceDetailModal } from './ResourceDetailModal';
 
 interface MbuExplorerProps {
   lang: Language;
@@ -35,6 +36,8 @@ export const MbuExplorer: React.FC<MbuExplorerProps> = ({
 
   // Mock data for MBUs based on the selected node
   const [localMbuData, setLocalMbuData] = useState<MbuItem[]>([]);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedOutcomeName, setSelectedOutcomeName] = useState('');
 
   React.useEffect(() => {
     if (!selectedNode) {
@@ -239,7 +242,16 @@ export const MbuExplorer: React.FC<MbuExplorerProps> = ({
                     </div>
                   </td>
                   <td className="p-4">
-                    <span className="text-xs text-slate-600 bg-slate-100 px-2 py-1 rounded">{mbu.outcomeName}</span>
+                    <span 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedOutcomeName(mbu.outcomeName);
+                        setIsDetailModalOpen(true);
+                      }}
+                      className="text-xs text-slate-600 bg-slate-100 px-2 py-1 rounded hover:bg-indigo-100 hover:text-indigo-700 transition-colors cursor-pointer"
+                    >
+                      {mbu.outcomeName}
+                    </span>
                   </td>
                   <td className="p-4">
                     <span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${getMethodColor(mbu.method)}`}>
@@ -268,6 +280,14 @@ export const MbuExplorer: React.FC<MbuExplorerProps> = ({
           </table>
         </div>
       </div>
+      
+      {isDetailModalOpen && (
+        <ResourceDetailModal 
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+          resourceName={selectedOutcomeName}
+        />
+      )}
     </div>
   );
 };

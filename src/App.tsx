@@ -26,6 +26,7 @@ import { VersionComparisonModal } from './components/VersionComparisonModal';
 import { ReportTemplateModal } from './components/ReportTemplateModal';
 import { SaveOutcomeModal } from './components/SaveOutcomeModal';
 import { AgentConfigWizard } from './components/enterprise/AgentConfigWizard';
+import { ResourceDetailModal } from './components/ResourceDetailModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESOURCE_TREE, MOCK_TEMPLATES } from './constants';
@@ -90,6 +91,10 @@ const App: React.FC = () => {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isSaveOutcomeModalOpen, setIsSaveOutcomeModalOpen] = useState(false);
   const [outcomeToSave, setOutcomeToSave] = useState<{ name: string } | null>(null);
+
+  // Resource Detail Modal State
+  const [selectedResourceForDetail, setSelectedResourceForDetail] = useState<ResourceNode | null>(null);
+  const [isResourceDetailModalOpen, setIsResourceDetailModalOpen] = useState(false);
 
   const versions = useMemo(() => [
     { id: 'foundation', name: '基础版', enName: 'Foundation', desc: '通用智能助手', icon: 'fa-bolt', tagClass: 'bg-slate-100 text-slate-700' },
@@ -1194,7 +1199,12 @@ const App: React.FC = () => {
                                             treeData={resourceTree}
                                             selectedResources={selectedResources} 
                                             onToggleResource={handleToggleResource} 
-                                            onSelectNode={() => {}}
+                                            onSelectNode={(node) => {
+                                                if (node.type === 'artifact') {
+                                                    setSelectedResourceForDetail(node);
+                                                    setIsResourceDetailModalOpen(true);
+                                                }
+                                            }}
                                             onAddResource={handleAddResource}
                                             onDeleteResources={handleDeleteResources}
                                             onTogglePublic={handleTogglePublic}
@@ -1587,6 +1597,15 @@ const App: React.FC = () => {
                 </div>
             </motion.div>
           </div>
+        )}
+
+        {isResourceDetailModalOpen && selectedResourceForDetail && (
+          <ResourceDetailModal 
+            isOpen={isResourceDetailModalOpen}
+            onClose={() => setIsResourceDetailModalOpen(false)}
+            resourceName={selectedResourceForDetail.name}
+            hasData={!selectedResourceForDetail.missing}
+          />
         )}
       </div>
       {/* Edit Workspace Modal */}

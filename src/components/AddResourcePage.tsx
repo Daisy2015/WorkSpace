@@ -769,8 +769,9 @@ export const AddResourcePage: React.FC<AddResourcePageProps> = ({ onClose, onCon
                             {/* Table Header */}
                             <div className="flex items-center px-4 py-2 bg-gray-100 border-y border-gray-200 text-xs font-bold text-gray-500 flex-shrink-0">
                                 <div className="w-10 text-center flex-shrink-0">选择</div>
-                                <div className="w-[35%] px-3">MBU 节点名称</div>
+                                <div className="w-[25%] px-3">MBU 节点名称</div>
                                 <div className="flex-1 px-3">成果名称</div>
+                                <div className="w-[100px] text-center px-3">实例数据</div>
                                 <div className="w-[140px] text-right px-3">操作</div>
                             </div>
                             
@@ -795,7 +796,7 @@ export const AddResourcePage: React.FC<AddResourcePageProps> = ({ onClose, onCon
                                                     onClick={() => toggleSystemFile(mbu.uniqueId, idx, !!file.missing)}
                                                     className={`group flex items-center px-3 py-3 rounded-lg border transition-all ${
                                                         isMissingAndEmpty 
-                                                            ? 'bg-gray-50 border-gray-100 cursor-default' 
+                                                            ? 'bg-slate-50 border-slate-100 grayscale cursor-not-allowed opacity-70' 
                                                             : 'bg-white border-gray-200 cursor-pointer hover:border-blue-300 hover:shadow-sm'
                                                     } ${isSelected ? 'ring-1 ring-blue-500 border-blue-500 bg-blue-50/20' : ''}`}
                                                 >
@@ -804,25 +805,40 @@ export const AddResourcePage: React.FC<AddResourcePageProps> = ({ onClose, onCon
                                                         <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
                                                             isSelected 
                                                             ? 'bg-blue-600 border-blue-600 text-white' 
-                                                            : (isMissingAndEmpty ? 'bg-gray-100 border-gray-300' : 'border-gray-300 bg-white')
+                                                            : (isMissingAndEmpty ? 'bg-gray-100 border-gray-200' : 'border-gray-300 bg-white')
                                                         }`}>
                                                             {isSelected && <i className="fas fa-check text-[10px]"></i>}
                                                         </div>
                                                     </div>
 
                                                     {/* MBU Name Column */}
-                                                    <div className="w-[35%] px-3 min-w-0">
-                                                        <div className="font-bold text-gray-700 text-sm truncate" title={mbu.name}>
+                                                    <div className="w-[25%] px-3 min-w-0">
+                                                        <div className={`font-bold text-sm truncate ${isMissingAndEmpty ? 'text-gray-400' : 'text-gray-700'}`} title={mbu.name}>
                                                             {mbu.name}
                                                         </div>
                                                     </div>
 
                                                     {/* Artifact Name + Icon Column */}
                                                     <div className="flex-1 px-3 min-w-0 flex items-center">
-                                                        <i className={`fas ${file.type === 'doc' ? 'fa-file-word text-blue-500' : file.type === 'xls' ? 'fa-file-excel text-green-600' : file.type === 'img' ? 'fa-image text-purple-500' : 'fa-file text-gray-400'} text-lg mr-2 flex-shrink-0`}></i>
+                                                        <i className={`fas ${file.type === 'doc' ? 'fa-file-word text-blue-500' : file.type === 'xls' ? 'fa-file-excel text-green-600' : file.type === 'img' ? 'fa-image text-purple-500' : 'fa-file text-gray-400'} text-lg mr-2 flex-shrink-0 ${isMissingAndEmpty ? 'opacity-40' : ''}`}></i>
                                                         <span className={`text-sm truncate ${isMissingAndEmpty ? 'text-gray-400 italic' : 'text-gray-600'}`} title={file.name}>
                                                             {removeExtension(file.name)}
                                                         </span>
+                                                    </div>
+
+                                                    {/* Data Status Column */}
+                                                    <div className="w-[100px] text-center px-3">
+                                                        {isMissingAndEmpty ? (
+                                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-gray-400">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                                                                无数据
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-600">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                                                有数据
+                                                            </span>
+                                                        )}
                                                     </div>
 
                                                     {/* Actions Column */}
