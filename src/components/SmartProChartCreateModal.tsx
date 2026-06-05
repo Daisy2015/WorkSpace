@@ -70,10 +70,10 @@ export const SmartProChartCreateModal: React.FC<SmartProChartCreateModalProps> =
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                  <i className="fas fa-globe"></i>
+                  <i className="fas fa-oil-well"></i>
                 </div>
                 <h2 className="text-lg font-bold text-slate-800">
-                  {lang === 'zh' ? '智能图件生成' : 'Smart Pro Charts'}
+                  {lang === 'zh' ? '专业成图生成' : 'Professional Mapping'}
                 </h2>
               </div>
               <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
@@ -85,7 +85,7 @@ export const SmartProChartCreateModal: React.FC<SmartProChartCreateModalProps> =
             <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                  {lang === 'zh' ? '智能成图描述' : 'Smart Plot Description'}
+                  {lang === 'zh' ? '成图描述' : 'Mapping Description'}
                 </label>
                 <textarea 
                   value={object}

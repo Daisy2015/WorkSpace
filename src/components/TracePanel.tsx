@@ -107,7 +107,7 @@ export const TracePanel: React.FC<TracePanelProps> = ({
     { id: 'ppt', name: lang === 'zh' ? '智能PPT' : 'Smart PPT', icon: 'fa-file-powerpoint', color: 'bg-orange-50 text-orange-600' },
     { id: 'summary', name: lang === 'zh' ? '智能摘要' : 'Smart Summary', icon: 'fa-align-left', color: 'bg-green-50 text-green-600' },
     { id: 'chart', name: lang === 'zh' ? '数据成图' : 'Data Plot', icon: 'fa-chart-pie', color: 'bg-pink-50 text-pink-600' },
-    { id: 'pro_chart', name: lang === 'zh' ? '智能图件' : 'Pro Charts', icon: 'fa-globe', color: 'bg-indigo-50 text-indigo-600' },
+    { id: 'pro_chart', name: lang === 'zh' ? '专业成图' : 'Pro Mapping', icon: 'fa-oil-well', color: 'bg-indigo-50 text-indigo-600' },
   ];
 
   const initialSessions = isEnterprise ? [
