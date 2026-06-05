@@ -60,6 +60,30 @@ export const TracePanel: React.FC<TracePanelProps> = ({
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
 
+  // Handle preview and other global events
+  useEffect(() => {
+    const handlePreviewReport = (e: any) => {
+      const reportData = e.detail;
+      // Add to sessions if not exist
+      setRecentSessions(prev => {
+        if (!prev.some(s => s.id === reportData.id)) {
+          return [{
+            id: reportData.id,
+            title: reportData.title,
+            expertId: 'report',
+            time: '刚刚',
+            status: 'completed'
+          }, ...prev];
+        }
+        return prev;
+      });
+      setPreviewSessionId(reportData.id);
+    };
+
+    window.addEventListener('preview-report', handlePreviewReport);
+    return () => window.removeEventListener('preview-report', handlePreviewReport);
+  }, []);
+
   const managedAgent = agents.find(a => a.id === managedAgentId);
 
   const tools = isEnterprise ? [

@@ -205,7 +205,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ workspaces, onNavigateToWo
                       <Plus className="w-8 h-8" />
                     </div>
                     <div className="space-y-2">
-                       <h3 className="text-2xl font-black tracking-tight">{isZh ? '开启新项目' : 'New Project'}</h3>
+                       <h3 className="text-2xl font-black tracking-tight">{isZh ? '开启新空间' : 'New Workspace'}</h3>
                        <p className="text-xs text-indigo-200/60 font-bold uppercase tracking-widest leading-relaxed">
                          {isZh ? '智能构建属于你的协作研究空间' : 'SMARTLY BUILD YOUR WORKSPACE'}
                        </p>

@@ -847,6 +847,37 @@ export const UnifiedResponseCard = ({ messages, agents, version, onSaveOutcome }
                     </div>
                   )}
 
+                  {/* Word Report Card Placeholder */}
+                  {msg.payload?.wordReport && (
+                    <div className="mb-6">
+                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">生成成果报告</div>
+                      <div 
+                        className="p-4 bg-white border-2 border-dashed border-indigo-100 rounded-2xl flex items-center gap-4 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all cursor-pointer group shadow-sm"
+                        onClick={() => {
+                          const event = new CustomEvent('preview-report', { detail: msg.payload.wordReport });
+                          window.dispatchEvent(event);
+                        }}
+                      >
+                        <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                          <i className="fas fa-file-word text-2xl"></i>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-bold text-gray-800">{msg.payload.wordReport.title}</div>
+                          <div className="text-[10px] text-gray-500 mt-1 flex items-center gap-3">
+                            <span>{msg.payload.wordReport.size || '1.2 MB'}</span>
+                            <span>{msg.payload.wordReport.time || '刚刚生成'}</span>
+                            <span className="text-indigo-600 font-bold flex items-center gap-1">
+                              <i className="fas fa-eye text-[8px]"></i> 点击预览
+                            </span>
+                          </div>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                          <i className="fas fa-arrow-right text-xs"></i>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between pt-4 border-t border-gray-50">
                     <button 
                       onClick={() => {

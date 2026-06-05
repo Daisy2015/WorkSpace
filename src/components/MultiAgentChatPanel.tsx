@@ -365,6 +365,154 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
     }
 
     if (workspaceVersion === 'foundation') {
+      if (input.includes('生成本周生产运行简报')) {
+        const dataAgent = agents.find(a => a.name === '智能问数') || agents[1];
+        const reportAgent = agents.find(a => a.name === '智能报告') || agents[3];
+
+        try {
+          // 1. Leader Breakdown
+          const leaderBreakdownId = `msg-leader-brief-${Date.now()}`;
+          setMessages(prev => [...prev, {
+            id: leaderBreakdownId,
+            role: 'model',
+            agentId: leaderAgent.id,
+            content: `**问题理解**：用户需要生成本周生产运行简报。
+  
+  **意图识别**：
+  - 数据查询：获取本周全区及重点井的产量、压力、开采效率等核心生产数据。
+  - 报告生成：对数据进行整合分析，识别本周生产亮点与异常，生成规范的 Word 运行简报。
+  
+  **调用计划**：
+  1. 调用 **智能问数**：检索本周生产运行指标及异常变动情况。
+  2. 调用 **智能报告**：基于检索到的多维数据，自动撰写并汇总生成《本周生产运行简报》。`,
+            timestamp: Date.now(),
+            status: 'processing',
+            subTasks: [
+              { id: 't1', agentId: dataAgent.id, task: `调用：${dataAgent.name}`, status: 'processing' }
+            ]
+          }]);
+          await new Promise(resolve => setTimeout(resolve, 1500));
+
+          // 2. Data Retrieval Loop (Smart Q&A)
+          const loop1Id = `msg-loop-brief-data-${Date.now()}`;
+          setMessages(prev => [...prev, {
+            id: loop1Id,
+            role: 'model',
+            agentId: dataAgent.id,
+            content: '',
+            timestamp: Date.now(),
+            status: 'processing',
+            cardType: 'loop',
+            payload: {
+              title: '第1轮｜智能问数 - 检索生产动态',
+              status: 'running',
+              thought: '正在检索全区本周平均产量、含水率、注水压力等核心指标，并对比上周波动。',
+              action: ['正在检索表：production_summary_daily', '正在分析产量波动趋势'],
+              observation: '正在读取数据流...',
+              plan: '获取核心指标后，下钻检索产量波动超过±5%的异常井。'
+            }
+          }]);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          setMessages(prev => prev.map(msg => msg.id === loop1Id ? {
+            ...msg,
+            status: 'completed',
+            payload: {
+              ...msg.payload,
+              status: 'completed',
+              thought: '数据检索已完成。本周平均日产油 1.25 万吨，进度达成率 102.5%；识别出 A1、B5 两口井由于管线维护导致短时减产。',
+              observation: '已获得完整生产报表数据及异常诊断信息。',
+              plan: '将数据结果传递给智能报告。'
+            }
+          } : msg));
+
+          // UPDATE Leader Task status
+          setMessages(prev => prev.map(msg => msg.id === leaderBreakdownId ? {
+            ...msg,
+            subTasks: [
+              { id: 't1', agentId: dataAgent.id, task: `调用：${dataAgent.name}`, status: 'completed' },
+              { id: 't2', agentId: reportAgent.id, task: `调用：${reportAgent.name}`, status: 'processing' }
+            ]
+          } : msg));
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          // 3. Report Generation Loop
+          const loop2Id = `msg-loop-brief-report-${Date.now()}`;
+          setMessages(prev => [...prev, {
+            id: loop2Id,
+            role: 'model',
+            agentId: reportAgent.id,
+            content: '',
+            timestamp: Date.now(),
+            status: 'processing',
+            cardType: 'loop',
+            payload: {
+              title: '第2轮｜智能报告 - 自动化撰写',
+              status: 'running',
+              thought: '正在根据检索到的生产数据填充《生产运行简报》模板，包括生产概况、动态分析、异常说明及对策建议。',
+              action: ['内容结构化', '自动化文案生成', '格式排版校对'],
+              observation: '正在生成章节：2.1 产量达成详情...',
+              plan: '生成 Word 文档占位符及预览摘要。'
+            }
+          }]);
+          await new Promise(resolve => setTimeout(resolve, 2500));
+          setMessages(prev => prev.map(msg => msg.id === loop2Id ? {
+            ...msg,
+            status: 'completed',
+            payload: {
+              ...msg.payload,
+              status: 'completed',
+              observation: '简报撰写已完成，已成功导出为 Word 文档。',
+              plan: '反馈最终成果给用户。'
+            }
+          } : msg));
+
+          // 4. Final Result
+          const finalId = `msg-final-brief-${Date.now()}`;
+          setMessages(prev => [...prev, {
+            id: finalId,
+            role: 'model',
+            agentId: leaderAgent.id,
+            content: '周报生成完成',
+            timestamp: Date.now(),
+            status: 'completed',
+            payload: {
+              conclusion: '本周（2024年4月10日-4月16日）生产运行简报已生成。全区整体生产稳中有升，日产达成率超计划 2.5%。A1井管线异常已在4月14日修复并恢复满产，预计下周产量将持续稳定。',
+              recommendations: [
+                '① 关注 A1 井修复后的压力波动情况',
+                '② 建议下周加大对老井递减区的稳产注水监控',
+                '③ 准备下月产量计划的提前滚动预测'
+              ],
+              wordReport: {
+                id: 'report-weekly-001',
+                title: '本周生产运行简报_20240416.docx',
+                size: '1.4 MB',
+                time: '14:25:36',
+                data: {
+                  content: '这是本周生产运行简报的详细内容...',
+                  author: '智能助手',
+                  createdAt: '2024-04-16'
+                }
+              }
+            }
+          }]);
+
+          setMessages(prev => prev.map(msg => msg.id === leaderBreakdownId ? {
+            ...msg,
+            status: 'completed',
+            subTasks: [
+              { id: 't1', agentId: dataAgent.id, task: `调用：${dataAgent.name}`, status: 'completed' },
+              { id: 't2', agentId: reportAgent.id, task: `调用：${reportAgent.name}`, status: 'completed' }
+            ]
+          } : msg));
+
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setIsGenerating(false);
+        }
+        return;
+      }
+
       const dataAgent = agents.find(a => a.name === '智能问数') || agents[1];
       const chartAgent = agents.find(a => a.name === '数据成图') || agents[2];
 
