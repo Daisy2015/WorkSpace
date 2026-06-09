@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { translations } from '../i18n';
 import { Language, CorpusTemplate, VariablePool, GeneratedSample } from '../types';
@@ -31,7 +30,49 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [isAddingTemplate, setIsAddingTemplate] = useState(false);
   const [isSelectingVersion, setIsSelectingVersion] = useState(false);
+  const [showValueConstraint, setShowValueConstraint] = useState(false);
+  const [showDatasetValueConstraint, setShowDatasetValueConstraint] = useState(false);
+  const [showDataItemValueConstraint, setShowDataItemValueConstraint] = useState(false);
+  const [isObjectDropdownOpen, setIsObjectDropdownOpen] = useState(false);
+  const [isDatasetDropdownOpen, setIsDatasetDropdownOpen] = useState(false);
+  const [isDataItemDropdownOpen, setIsDataItemDropdownOpen] = useState(false);
+  const [objectTypeSearch, setObjectTypeSearch] = useState('');
+  const [dataTypeSearch, setDataTypeSearch] = useState('');
+  const [fieldTypeSearch, setFieldTypeSearch] = useState('');
+  const [datasetSelectSearch, setDatasetSelectSearch] = useState('');
+  const [objectValueSearch, setObjectValueSearch] = useState('');
+  const [datasetValueSearch, setDatasetValueSearch] = useState('');
+  const [dataItemValueSearch, setDataItemValueSearch] = useState('');
   const [newTemplateRaw, setNewTemplateRaw] = useState('');
+
+  // Constraint and Config Modes
+  const [objectConstraints, setObjectConstraints] = useState<Record<string, {mode: 'include' | 'exclude', config: 'dropdown' | 'regex', regex: string}>>({});
+  const [datasetConstraints, setDatasetConstraints] = useState<Record<string, {mode: 'include' | 'exclude', config: 'dropdown' | 'regex', regex: string}>>({});
+  const [dataItemConstraints, setDataItemConstraints] = useState<Record<string, {mode: 'include' | 'exclude', config: 'dropdown' | 'regex', regex: string}>>({});
+  
+  const [objectConstraintMode, setObjectConstraintMode] = useState<'include' | 'exclude'>('include');
+  const [objectConfigMode, setObjectConfigMode] = useState<'dropdown' | 'regex'>('dropdown');
+  const [objectRegex, setObjectRegex] = useState('');
+  
+  const [datasetConstraintMode, setDatasetConstraintMode] = useState<'include' | 'exclude'>('include');
+  const [datasetConfigMode, setDatasetConfigMode] = useState<'dropdown' | 'regex'>('dropdown');
+  const [datasetRegex, setDatasetRegex] = useState('');
+
+  const [dataItemConstraintMode, setDataItemConstraintMode] = useState<'include' | 'exclude'>('include');
+  const [dataItemConfigMode, setDataItemConfigMode] = useState<'dropdown' | 'regex'>('regex');
+  const [dataItemRegex, setDataItemRegex] = useState('');
+
+  // New multi-select states
+  const [selectedObjectTypes, setSelectedObjectTypes] = useState<string[]>(['油气田', '井筒']);
+  const [selectedDataTypes, setSelectedDataTypes] = useState<string[]>(['结构化']);
+  const [selectedDataSets, setSelectedDataSets] = useState<string[]>(['油气田产量记录表']);
+  const [selectedFieldTypes, setSelectedFieldTypes] = useState<string[]>(['指标类']);
+
+  const [isObjectTypeDropdownOpen, setIsObjectTypeDropdownOpen] = useState(false);
+  const [isDataTypeDropdownOpen, setIsDataTypeDropdownOpen] = useState(false);
+  const [isDataSetSelectDropdownOpen, setIsDataSetSelectDropdownOpen] = useState(false);
+  const [isFieldTypeDropdownOpen, setIsFieldTypeDropdownOpen] = useState(false);
+
   const [newTemplateName, setNewTemplateName] = useState('');
   const [templateFilters, setTemplateFilters] = useState({
     '对象名称': { type: '全部', regex: '' },
@@ -39,7 +80,37 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
     '数据项': { type: '全部', regex: '' }
   });
 
-  const hasVar = (varName: string) => newTemplateRaw.includes(`{${varName}}`);
+  const hasVar = (varName: string) => new RegExp(`{${varName}([}_])`).test(newTemplateRaw);
+
+  const getVarInstances = (varName: string) => {
+    const instances = [];
+    if (new RegExp(`{${varName}}`).test(newTemplateRaw)) {
+        instances.push(varName);
+    }
+    const matches = [...newTemplateRaw.matchAll(new RegExp(`{${varName}_(\\d+)}`, 'g'))];
+    matches.sort((a, b) => parseInt(a[1]) - parseInt(b[1])).forEach(m => instances.push(`${varName}_${m[1]}`));
+    return instances;
+  };
+
+  const getVarLabel = (instanceId: string) => {
+      const parts = instanceId.split('_');
+      if (parts.length === 1) return parts[0];
+      return `${parts[0]} (序号 ${parts[1]})`;
+  };
+
+  const updateDatasetConstraint = (id: string, updates: Partial<{mode: 'include' | 'exclude', config: 'dropdown' | 'regex', regex: string}>) => {
+    setDatasetConstraints(prev => ({
+      ...prev,
+      [id]: { ...(prev[id] || {mode: 'include', config: 'dropdown', regex: ''}), ...updates }
+    }));
+  };
+
+  const updateDataItemConstraint = (id: string, updates: Partial<{mode: 'include' | 'exclude', config: 'dropdown' | 'regex', regex: string}>) => {
+    setDataItemConstraints(prev => ({
+      ...prev,
+      [id]: { ...(prev[id] || {mode: 'include', config: 'dropdown', regex: ''}), ...updates }
+    }));
+  };
 
   const selectedTemplate = useMemo(() => 
     templates.find(t => t.id === selectedTemplateId) || null
@@ -87,7 +158,18 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   const handleInsertVar = (varName: string) => {
-    setNewTemplateRaw(prev => prev + `{${varName}}`);
+    const baseExists = new RegExp(`{${varName}}`).test(newTemplateRaw);
+    if (!baseExists) {
+        setNewTemplateRaw(prev => prev + `{${varName}}`);
+    } else {
+        const matches = [...newTemplateRaw.matchAll(new RegExp(`{${varName}_(\\d+)}`, 'g'))];
+        let maxIndex = 1;
+        matches.forEach(m => {
+            const idx = parseInt(m[1], 10);
+            if (idx > maxIndex) maxIndex = idx;
+        });
+        setNewTemplateRaw(prev => prev + `{${varName}_${maxIndex + 1}}`);
+    }
   };
 
   const toggleSelectAll = () => {
@@ -110,6 +192,14 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
     setIsAddingTemplate(false);
     setNewTemplateName('');
     setNewTemplateRaw('');
+    setSelectedObjectTypes(['油气田', '井筒']);
+    setSelectedDataTypes(['结构化']);
+    setSelectedDataSets(['油气田产量记录表']);
+    setSelectedFieldTypes(['指标类']);
+    setIsObjectTypeDropdownOpen(false);
+    setIsDataTypeDropdownOpen(false);
+    setIsDataSetSelectDropdownOpen(false);
+    setIsFieldTypeDropdownOpen(false);
     setTemplateFilters({
       '对象名称': { type: '全部', regex: '' },
       '数据集名称': { type: '全部', regex: '' },
@@ -249,166 +339,1033 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden"
+              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden"
             >
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                <h2 className="text-xl font-bold text-gray-900">{t.newTemplate}</h2>
+              <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h2 className="text-lg font-bold text-gray-900">{t.newTemplate}</h2>
                 <button onClick={closeAddModal} className="text-gray-400 hover:text-gray-600 transition-colors">
-                  <i className="fas fa-times text-xl"></i>
+                  <i className="fas fa-times text-lg"></i>
                 </button>
               </div>
               
-              <div className="p-8 space-y-6 overflow-y-auto max-h-[70vh] custom-scrollbar">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-700">{t.colTemplateName}</label>
-                  <input 
-                    type="text" 
-                    value={newTemplateName}
-                    onChange={(e) => setNewTemplateName(e.target.value)}
-                    placeholder="例如：井位施工记录模板"
-                    className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50" 
-                  />
-                </div>
+              <div className="p-8 space-y-8 overflow-y-auto max-h-[80vh] custom-scrollbar bg-[#f8fafc]">
+                {/* 1. Basic Info Section */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
+                    <h3 className="text-sm font-bold text-gray-800">基础信息配置</h3>
+                  </div>
 
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <label className="text-sm font-bold text-gray-700">{t.colRawTemplate}</label>
-                    <div className="flex gap-2">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">快捷插入变量</span>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <label className="text-xs font-bold text-gray-600 w-20 shrink-0">模板名称 <span className="text-red-500">*</span></label>
+                      <input 
+                        type="text" 
+                        value={newTemplateName}
+                        onChange={(e) => setNewTemplateName(e.target.value)}
+                        placeholder="例如：井位施工记录查询模板"
+                        className="flex-1 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50/30 text-sm transition-all" 
+                      />
+                    </div>
+
+                    <div className="flex gap-4">
+                      <div className="w-20 shrink-0 py-2">
+                        <label className="text-xs font-bold text-gray-600">模板内容 <span className="text-red-500">*</span></label>
+                      </div>
+                      <div className="flex-1 space-y-4">
+                        <div className="flex flex-wrap gap-2">
+                          {['对象名称', '数据集名称', '数据项'].map(label => (
+                            <button 
+                              key={label}
+                              onClick={() => handleInsertVar(label)}
+                              className="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-[10px] font-bold hover:bg-blue-50 hover:border-blue-400 hover:text-blue-600 transition-all flex items-center gap-1.5 shadow-sm"
+                            >
+                              <i className="fas fa-plus text-[8px]"></i> {label}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="relative">
+                          <textarea 
+                            rows={1}
+                            value={newTemplateRaw}
+                            onChange={(e) => setNewTemplateRaw(e.target.value)}
+                            placeholder="请输入查询需求，点击上方变量进行插入"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white text-sm min-h-[46px] resize-none shadow-sm transition-all"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  
-                  {/* Quick Insert Area */}
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {['对象名称', '数据集名称', '数据项'].map(label => (
-                      <button 
-                        key={label}
-                        onClick={() => handleInsertVar(label)}
-                        className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold border border-blue-100 hover:bg-blue-100 transition-all"
-                      >
-                        + {label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <textarea 
-                    rows={4}
-                    value={newTemplateRaw}
-                    onChange={(e) => setNewTemplateRaw(e.target.value)}
-                    placeholder="输入自然语言，点击上方标签插入变量，例如：{对象名称}正在进行{工序}。"
-                    className="w-full p-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 font-mono text-sm"
-                  />
                 </div>
 
-                {/* Conditional Filtering Section */}
-                {(hasVar('对象名称') || hasVar('数据集名称') || hasVar('数据项')) && (
-                  <div className="space-y-3 pt-4 border-t border-gray-100">
-                    <h3 className="text-xs font-bold text-gray-500 flex items-center uppercase tracking-wider">
-                      <i className="fas fa-filter mr-2 text-blue-400"></i>
-                      变量约束配置
-                    </h3>
-                    
-                    <div className="space-y-2">
-                      {hasVar('对象名称') && (
-                        <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 flex items-center gap-4">
-                          <div className="w-20 shrink-0">
-                            <span className="text-[10px] font-bold py-1 bg-blue-50 text-blue-600 rounded-md border border-blue-100 block text-center">对象名称</span>
-                          </div>
-                          <div className="flex-1 grid grid-cols-2 gap-4">
-                            <div className="flex items-center gap-2">
-                              <label className="text-[10px] text-gray-400 font-bold shrink-0">类型</label>
-                              <select 
-                                value={templateFilters['对象名称'].type}
-                                onChange={(e) => setTemplateFilters({...templateFilters, '对象名称': {...templateFilters['对象名称'], type: e.target.value}})}
-                                className="flex-1 p-1 h-7 border border-gray-200 rounded text-[10px] bg-white focus:ring-1 focus:ring-blue-500 outline-none"
-                              >
-                                {['全部', '井', '油气田', '区块', '场站'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                              </select>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <label className="text-[10px] text-gray-400 font-bold shrink-0">正则</label>
-                              <input 
-                                type="text"
-                                value={templateFilters['对象名称'].regex}
-                                onChange={(e) => setTemplateFilters({...templateFilters, '对象名称': {...templateFilters['对象名称'], regex: e.target.value}})}
-                                placeholder="如: ^A.*"
-                                className="flex-1 px-2 h-7 border border-gray-200 rounded text-[10px] bg-white focus:ring-1 focus:ring-blue-500 outline-none"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                {/* 2. Variable Constraints Section */}
+                {(getVarInstances('对象名称').length > 0 || hasVar('数据集名称') || hasVar('数据项')) && (
+                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
+                        <h3 className="text-sm font-bold text-gray-800">变量约束配置</h3>
+                      </div>
+                      <span className="text-[10px] text-gray-400">检测到 {
+                        getVarInstances('对象名称').length + 
+                        (hasVar('数据集名称') ? 1 : 0) + 
+                        (hasVar('数据项') ? 1 : 0)
+                      } 个变量实例</span>
+                    </div>
 
-                      {hasVar('数据集名称') && (
-                        <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 flex items-center gap-4">
-                          <div className="w-20 shrink-0">
-                            <span className="text-[10px] font-bold py-1 bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100 block text-center">数据集名称</span>
-                          </div>
-                          <div className="flex-1 grid grid-cols-2 gap-4">
-                            <div className="flex items-center gap-2">
-                              <label className="text-[10px] text-gray-400 font-bold shrink-0">类型</label>
-                              <select 
-                                value={templateFilters['数据集名称'].type}
-                                onChange={(e) => setTemplateFilters({...templateFilters, '数据集名称': {...templateFilters['数据集名称'], type: e.target.value}})}
-                                className="flex-1 p-1 h-7 border border-gray-200 rounded text-[10px] bg-white focus:ring-1 focus:ring-blue-500 outline-none"
-                              >
-                                {['全部', '文档', '图片', '结构化', '地震数据'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                              </select>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <label className="text-[10px] text-gray-400 font-bold shrink-0">正则</label>
-                              <input 
-                                type="text"
-                                value={templateFilters['数据集名称'].regex}
-                                onChange={(e) => setTemplateFilters({...templateFilters, '数据集名称': {...templateFilters['数据集名称'], regex: e.target.value}})}
-                                placeholder="如: .*报告$"
-                                className="flex-1 px-2 h-7 border border-gray-200 rounded text-[10px] bg-white focus:ring-1 focus:ring-blue-500 outline-none"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                    <div className="space-y-6">
+                      {getVarInstances('对象名称').map(instanceId => {
 
-                      {hasVar('数据项') && (
-                        <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 flex items-center gap-4">
-                          <div className="w-20 shrink-0">
-                            <span className="text-[10px] font-bold py-1 bg-amber-50 text-amber-600 rounded-md border border-amber-100 block text-center">数据项</span>
-                          </div>
-                          <div className="flex-1 grid grid-cols-2 gap-4">
-                            <div className="flex items-center gap-2">
-                              <label className="text-[10px] text-gray-400 font-bold shrink-0">类型</label>
-                              <select 
-                                value={templateFilters['数据项'].type}
-                                onChange={(e) => setTemplateFilters({...templateFilters, '数据项': {...templateFilters['数据项'], type: e.target.value}})}
-                                className="flex-1 p-1 h-7 border border-gray-200 rounded text-[10px] bg-white focus:ring-1 focus:ring-blue-500 outline-none"
-                              >
-                                {['全部', '指标类', '描述类', '时间类', '坐标类'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                              </select>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <label className="text-[10px] text-gray-400 font-bold shrink-0">正则</label>
-                              <input 
-                                type="text"
-                                value={templateFilters['数据项'].regex}
-                                onChange={(e) => setTemplateFilters({...templateFilters, '数据项': {...templateFilters['数据项'], regex: e.target.value}})}
-                                placeholder="如: ^井.*"
-                                className="flex-1 px-2 h-7 border border-gray-200 rounded text-[10px] bg-white focus:ring-1 focus:ring-blue-500 outline-none"
-                              />
-                            </div>
-                          </div>
+                          const constraint = objectConstraints[instanceId] || {mode: 'include', config: 'dropdown', regex: ''};
+                          return (
+                      <div key={instanceId} className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm">
+                        <div className="px-4 py-1.5 bg-[#f8fafc] border-b border-[#e2e8f0] flex items-center gap-2 rounded-t-xl">
+                          <div className="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div>
+                          <span className="text-xs font-bold text-blue-600 uppercase">{getVarLabel(instanceId)}</span>
                         </div>
-                      )}
+                      <div className="p-4 space-y-4">
+                          <div className={`bg-gray-50/50 rounded-xl border border-gray-100 p-4 relative group ${isObjectTypeDropdownOpen ? 'z-30' : ''}`}>
+                            <div className="flex items-center justify-between gap-6">
+                              <div className="flex items-center gap-8 flex-1 text-xs">
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                  <span className="font-bold text-gray-700">范围过滤</span>
+                                </div>
+                                <div className="flex items-center gap-4 flex-1">
+                                  <label className="text-gray-400 font-medium whitespace-nowrap">对象类型：</label>
+                                  <div className="relative flex-1 max-w-[240px]">
+                                    <div 
+                                      onClick={() => setIsObjectTypeDropdownOpen(!isObjectTypeDropdownOpen)}
+                                      className="h-8 w-full px-2 border border-gray-200 rounded bg-white flex items-center gap-1.5 pr-8 cursor-pointer hover:border-blue-400 transition-colors overflow-hidden"
+                                    >
+                                      {selectedObjectTypes.length > 0 ? (
+                                        <div className="flex items-center gap-1.5 overflow-hidden">
+                                          <div className="px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded flex items-center gap-1 text-[10px] text-blue-700 whitespace-nowrap">
+                                            <span>{selectedObjectTypes[0]}</span>
+                                            <i 
+                                              className="fas fa-times text-[8px] text-blue-400 hover:text-blue-600 transition-colors"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedObjectTypes(selectedObjectTypes.filter(t => t !== selectedObjectTypes[0]));
+                                              }}
+                                            ></i>
+                                          </div>
+                                          {selectedObjectTypes.length > 1 && (
+                                            <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1 py-0.5 rounded border border-blue-100 flex-shrink-0">
+                                              +{selectedObjectTypes.length - 1}
+                                            </span>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <span className="text-[10px] text-gray-400">请选择</span>
+                                      )}
+                                    </div>
+                                    <i className="fas fa-caret-down absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+                                    
+                                    {/* Dropdown Menu */}
+                                    <AnimatePresence>
+                                      {isObjectTypeDropdownOpen && (
+                                        <motion.div 
+                                          initial={{ opacity: 0, y: 5 }}
+                                          animate={{ opacity: 1, y: 0 }}
+                                          exit={{ opacity: 0, y: 5 }}
+                                          className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-20 py-1"
+                                        >
+                                          <div className="px-2 py-1.5 border-b border-gray-100 mb-1">
+                                            <div className="relative">
+                                              <i className="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-gray-300 text-[8px]"></i>
+                                              <input 
+                                                type="text"
+                                                value={objectTypeSearch}
+                                                onChange={(e) => setObjectTypeSearch(e.target.value)}
+                                                placeholder="搜索类型..."
+                                                className="w-full pl-6 pr-2 py-1 text-[10px] border border-gray-100 rounded bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
+                                              />
+                                            </div>
+                                          </div>
+                                          {['油气田', '井筒', '站场', '管线'].filter(type => type.includes(objectTypeSearch)).map(type => (
+                                            <div 
+                                              key={type}
+                                              onClick={() => {
+                                                if (selectedObjectTypes.includes(type)) {
+                                                  setSelectedObjectTypes(selectedObjectTypes.filter(t => t !== type));
+                                                } else {
+                                                  setSelectedObjectTypes([...selectedObjectTypes, type]);
+                                                }
+                                              }}
+                                              className="px-3 py-2 hover:bg-blue-50 cursor-pointer flex items-center justify-between group"
+                                            >
+                                              <span className={`text-[10px] ${selectedObjectTypes.includes(type) ? 'text-blue-600 font-bold' : 'text-gray-600'}`}>{type}</span>
+                                              {selectedObjectTypes.includes(type) && <i className="fas fa-check text-[8px] text-blue-600"></i>}
+                                            </div>
+                                          ))}
+                                          {['油气田', '井筒', '站场', '管线'].filter(type => type.includes(objectTypeSearch)).length === 0 && (
+                                            <div className="px-3 py-4 text-center">
+                                              <span className="text-[10px] text-gray-400">无匹配结果</span>
+                                            </div>
+                                          )}
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
+                                  </div>
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => setShowValueConstraint(!showValueConstraint)}
+                                className="text-[10px] text-blue-600 font-bold hover:underline whitespace-nowrap"
+                              >
+                                {showValueConstraint ? '取消变量值约束' : '添加变量值约束'}
+                              </button>
+                            </div>
+                          </div>
+
+                          {showValueConstraint && (
+                            <div className="bg-blue-50/30 rounded-xl border border-blue-50/50 p-4 space-y-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-1.5 h-3 bg-blue-400 rounded-full"></div>
+                                  <span className="text-xs font-bold text-gray-700">变量值约束</span>
+                                </div>
+                                <div className="flex items-center gap-8">
+                                  <div className="flex items-center gap-3">
+                                    <label className="text-[10px] text-gray-400 font-medium">约束模式：</label>
+                                    <div className="flex p-0.5 bg-gray-100 rounded-md">
+                                      <button 
+                                        onClick={() => setObjectConstraintMode('include')}
+                                        className={`px-3 py-1 rounded-[4px] text-[10px] font-bold transition-all ${objectConstraintMode === 'include' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                      >
+                                        包含
+                                      </button>
+                                      <button 
+                                        onClick={() => setObjectConstraintMode('exclude')}
+                                        className={`px-3 py-1 rounded-[4px] text-[10px] font-bold transition-all ${objectConstraintMode === 'exclude' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                      >
+                                        不包含
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <label className="text-[10px] text-gray-400 font-medium">配置方式：</label>
+                                    <div className="flex p-0.5 bg-gray-100 rounded-md">
+                                      <button 
+                                        onClick={() => setObjectConfigMode('dropdown')}
+                                        className={`px-3 py-1 rounded-[4px] text-[10px] font-bold transition-all ${objectConfigMode === 'dropdown' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                      >
+                                        下拉选择
+                                      </button>
+                                      <button 
+                                        onClick={() => setObjectConfigMode('regex')}
+                                        className={`px-3 py-1 rounded-[4px] text-[10px] font-bold transition-all ${objectConfigMode === 'regex' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                      >
+                                        正则匹配
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {objectConfigMode === 'dropdown' ? (
+                                <div className="space-y-3">
+                                  <div className="relative">
+                                    <div 
+                                      onClick={() => setIsObjectDropdownOpen(!isObjectDropdownOpen)}
+                                      className="h-9 w-full px-3 border border-gray-200 rounded bg-white flex items-center gap-1.5 pr-8 cursor-pointer hover:border-blue-400 transition-colors overflow-hidden shrink-0"
+                                    >
+                                      {[ '胜利油田', '长庆油田', '西南油气田' ].length > 0 ? (
+                                        <div className="flex items-center gap-1.5 overflow-hidden">
+                                          <div className="px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded flex items-center gap-1 text-[10px] text-blue-700 whitespace-nowrap">
+                                            <span>胜利油田</span>
+                                            <i className="fas fa-times text-[8px] text-blue-400 hover:text-blue-600 transition-colors"></i>
+                                          </div>
+                                          <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1 py-0.5 rounded border border-blue-100 flex-shrink-0">
+                                            +2
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-xs text-gray-400">请选择...</span>
+                                      )}
+                                    </div>
+                                    <i className="fas fa-caret-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+                                    
+                                    <AnimatePresence>
+                                      {isObjectDropdownOpen && (
+                                        <motion.div 
+                                          initial={{ opacity: 0, y: 5 }}
+                                          animate={{ opacity: 1, y: 0 }}
+                                          exit={{ opacity: 0, y: 5 }}
+                                          className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1"
+                                        >
+                                          <div className="px-2 py-1.5 border-b border-gray-100 mb-1">
+                                            <div className="relative">
+                                              <i className="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-gray-300 text-[8px]"></i>
+                                              <input 
+                                                type="text"
+                                                value={objectValueSearch}
+                                                onChange={(e) => setObjectValueSearch(e.target.value)}
+                                                placeholder="搜索变量值..."
+                                                className="w-full pl-6 pr-2 py-1 text-[10px] border border-gray-100 rounded bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
+                                              />
+                                            </div>
+                                          </div>
+                                          {['大庆油田', '胜利油田', '长庆油田', '塔里木油田', '西南油气田'].filter(item => item.includes(objectValueSearch)).map(item => (
+                                            <div 
+                                              key={item}
+                                              className="px-3 py-2 hover:bg-blue-50 cursor-pointer flex items-center justify-between group"
+                                            >
+                                              <span className={`text-[10px] ${['胜利油田', '长庆油田', '西南油气田'].includes(item) ? 'text-blue-600 font-bold' : 'text-gray-600'}`}>{item}</span>
+                                              {['胜利油田', '长庆油田', '西南油气田'].includes(item) && <i className="fas fa-check text-[8px] text-blue-600"></i>}
+                                            </div>
+                                          ))}
+                                          {['大庆油田', '胜利油田', '长庆油田', '塔里木油田', '西南油气田'].filter(item => item.includes(objectValueSearch)).length === 0 && (
+                                            <div className="px-3 py-4 text-center">
+                                              <span className="text-[10px] text-gray-400">无匹配结果</span>
+                                            </div>
+                                          )}
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="space-y-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                      <label className="text-[10px] text-gray-400 font-medium ml-1">正则表达式 <span className="text-red-500">*</span></label>
+                                      <input 
+                                        type="text" 
+                                        value={objectRegex}
+                                        onChange={(e) => setObjectRegex(e.target.value)}
+                                        placeholder="例如：/^井[0-9]+$/"
+                                        className="w-full h-9 px-3 border border-gray-200 rounded text-xs bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none" 
+                                      />
+                                    </div>
+                                    <div className="space-y-2">
+                                      <label className="text-[10px] text-gray-400 font-medium ml-1">常用正则模版</label>
+                                      <div className="flex flex-wrap gap-2">
+                                        {[
+                                          { label: '以XX开头', value: '/^XX/' },
+                                          { label: '以XX结尾', value: '/XX$/' },
+                                          { label: '包含XX', value: '/.*XX.*/' },
+                                          { label: '纯数字', value: '/^[0-9]+$/' }
+                                        ].map((p, i) => (
+                                          <button 
+                                            key={i} 
+                                            onClick={() => setObjectRegex(p.value)}
+                                            className="px-2.5 py-1.5 bg-white border border-gray-200 rounded text-[10px] text-gray-500 hover:border-blue-400 hover:text-blue-600 transition-all shadow-sm"
+                                          >
+                                            {p.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="bg-blue-50/50 p-2.5 rounded-lg border border-blue-100/50 flex items-start gap-2">
+                                    <i className="fas fa-info-circle text-blue-400 text-xs mt-0.5"></i>
+                                    <p className="text-[10px] text-blue-600 leading-relaxed">
+                                      系统将使用该正则表达式对变量值进行校验。例如：<code className="bg-blue-100 px-1 rounded">/^[0-9]+$/</code> 表示只允许数字。
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );})}
+                    {/* Variable: 数据集名称 */}
+                    {hasVar('数据集名称') && (() => {
+                      const constraint = datasetConstraints['1'] || {mode: 'include', config: 'dropdown', regex: ''};
+                      const datasetConstraintMode = constraint.mode;
+                      const datasetConfigMode = constraint.config;
+                      const datasetRegex = constraint.regex;
+                      const setDatasetConstraintMode = (mode: 'include' | 'exclude') => updateDatasetConstraint('1', {mode});
+                      const setDatasetConfigMode = (config: 'dropdown' | 'regex') => updateDatasetConstraint('1', {config});
+                      const setDatasetRegex = (regex: string) => updateDatasetConstraint('1', {regex});
+                      return (
+                      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm">
+                        <div className="px-4 py-1.5 bg-[#f8fafc] border-b border-[#e2e8f0] flex items-center gap-2 rounded-t-xl">
+                          <div className="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div>
+                          <span className="text-xs font-bold text-blue-600 uppercase">数据集名称</span>
+                        </div>
+                      <div className="p-4 space-y-4">
+                          <div className={`bg-gray-50/50 rounded-xl border border-gray-100 p-4 relative group ${isObjectTypeDropdownOpen || isDataTypeDropdownOpen ? 'z-30' : ''}`}>
+                            <div className="flex items-center justify-between gap-6">
+                              <div className="flex items-center gap-8 flex-1 text-xs">
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                  <span className="font-bold text-gray-700">范围过滤</span>
+                                </div>
+                                <div className="flex items-center gap-4 flex-1">
+                                  {/* Data Type First */}
+                                  <div className="flex items-center gap-3 w-56">
+                                    <label className="text-gray-400 font-medium whitespace-nowrap">数据类型：</label>
+                                    <div className="relative flex-1">
+                                      <div 
+                                        onClick={() => setIsDataTypeDropdownOpen(!isDataTypeDropdownOpen)}
+                                        className="h-8 w-full px-2 border border-gray-200 rounded bg-white flex items-center gap-1.5 pr-8 cursor-pointer hover:border-blue-400 transition-colors overflow-hidden"
+                                      >
+                                        {selectedDataTypes.length > 0 ? (
+                                          <div className="flex items-center gap-1.5 overflow-hidden">
+                                            <div className="px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded flex items-center gap-1 text-[10px] text-blue-700 whitespace-nowrap">
+                                              <span>{selectedDataTypes[0]}</span>
+                                              <i 
+                                                className="fas fa-times text-[8px] text-blue-400 hover:text-blue-600 transition-colors"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setSelectedDataTypes(selectedDataTypes.filter(t => t !== selectedDataTypes[0]));
+                                                }}
+                                              ></i>
+                                            </div>
+                                            {selectedDataTypes.length > 1 && (
+                                              <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1 py-0.5 rounded border border-blue-100 flex-shrink-0">
+                                                +{selectedDataTypes.length - 1}
+                                              </span>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <span className="text-[10px] text-gray-400">请选择</span>
+                                        )}
+                                      </div>
+                                      <i className="fas fa-caret-down absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+                                      
+                                      <AnimatePresence>
+                                        {isDataTypeDropdownOpen && (
+                                          <motion.div 
+                                            initial={{ opacity: 0, y: 5 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 5 }}
+                                            className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1"
+                                          >
+                                            <div className="px-2 py-1.5 border-b border-gray-100 mb-1">
+                                              <div className="relative">
+                                                <i className="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-gray-300 text-[8px]"></i>
+                                                <input 
+                                                  type="text"
+                                                  value={dataTypeSearch}
+                                                  onChange={(e) => setDataTypeSearch(e.target.value)}
+                                                  placeholder="搜索数据类型..."
+                                                  className="w-full pl-6 pr-2 py-1 text-[10px] border border-gray-100 rounded bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
+                                                />
+                                              </div>
+                                            </div>
+                                            {['结构化', '半结构化', '非结构化'].filter(type => type.includes(dataTypeSearch)).map(type => (
+                                              <div 
+                                                key={type}
+                                                onClick={() => {
+                                                  if (selectedDataTypes.includes(type)) {
+                                                    setSelectedDataTypes(selectedDataTypes.filter(t => t !== type));
+                                                  } else {
+                                                    setSelectedDataTypes([...selectedDataTypes, type]);
+                                                  }
+                                                }}
+                                                className="px-3 py-2 hover:bg-blue-50 cursor-pointer flex items-center justify-between group"
+                                              >
+                                                <span className={`text-[10px] ${selectedDataTypes.includes(type) ? 'text-blue-600 font-bold' : 'text-gray-600'}`}>{type}</span>
+                                                {selectedDataTypes.includes(type) && <i className="fas fa-check text-[8px] text-blue-600"></i>}
+                                              </div>
+                                            ))}
+                                            {['结构化', '半结构化', '非结构化'].filter(type => type.includes(dataTypeSearch)).length === 0 && (
+                                              <div className="px-3 py-4 text-center">
+                                                <span className="text-[10px] text-gray-400">无匹配结果</span>
+                                              </div>
+                                            )}
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </div>
+                                  </div>
+
+                                  {/* Object Type Second */}
+                                  <div className="flex items-center gap-2.5 flex-1 max-w-sm">
+                                    <label className="text-[10px] text-gray-400 font-medium whitespace-nowrap">对象类型：</label>
+                                    <div className="relative flex-1">
+                                      <div 
+                                        onClick={() => setIsObjectTypeDropdownOpen(!isObjectTypeDropdownOpen)}
+                                        className="h-8 w-full px-2 border border-gray-200 rounded bg-white flex items-center gap-1.5 pr-8 cursor-pointer hover:border-blue-400 transition-colors overflow-hidden"
+                                      >
+                                        {selectedObjectTypes.length > 0 ? (
+                                          <div className="flex items-center gap-1.5 overflow-hidden">
+                                            <div className="px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded flex items-center gap-1 text-[10px] text-blue-700 whitespace-nowrap">
+                                              <span>{selectedObjectTypes[0]}</span>
+                                              <i 
+                                                className="fas fa-times text-[8px] text-blue-400 hover:text-blue-600 transition-colors"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setSelectedObjectTypes(selectedObjectTypes.filter(t => t !== selectedObjectTypes[0]));
+                                                }}
+                                              ></i>
+                                            </div>
+                                            {selectedObjectTypes.length > 1 && (
+                                              <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1 py-0.5 rounded border border-blue-100 flex-shrink-0">
+                                                +{selectedObjectTypes.length - 1}
+                                              </span>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <span className="text-[10px] text-gray-400">请选择</span>
+                                        )}
+                                      </div>
+                                      <i className="fas fa-caret-down absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+                                      
+                                      <AnimatePresence>
+                                        {isObjectTypeDropdownOpen && (
+                                          <motion.div 
+                                            initial={{ opacity: 0, y: 5 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 5 }}
+                                            className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1"
+                                          >
+                                            <div className="px-2 py-1.5 border-b border-gray-100 mb-1">
+                                              <div className="relative">
+                                                <i className="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-gray-300 text-[8px]"></i>
+                                                <input 
+                                                  type="text"
+                                                  value={objectTypeSearch}
+                                                  onChange={(e) => setObjectTypeSearch(e.target.value)}
+                                                  placeholder="搜索类型..."
+                                                  className="w-full pl-6 pr-2 py-1 text-[10px] border border-gray-100 rounded bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
+                                                />
+                                              </div>
+                                            </div>
+                                            {['油气田', '井筒', '站场', '管线'].filter(type => type.includes(objectTypeSearch)).map(type => (
+                                              <div 
+                                                key={type}
+                                                onClick={() => {
+                                                  if (selectedObjectTypes.includes(type)) {
+                                                    setSelectedObjectTypes(selectedObjectTypes.filter(t => t !== type));
+                                                  } else {
+                                                    setSelectedObjectTypes([...selectedObjectTypes, type]);
+                                                  }
+                                                }}
+                                                className="px-3 py-2 hover:bg-blue-50 cursor-pointer flex items-center justify-between group"
+                                              >
+                                                <span className={`text-[10px] ${selectedObjectTypes.includes(type) ? 'text-blue-600 font-bold' : 'text-gray-600'}`}>{type}</span>
+                                                {selectedObjectTypes.includes(type) && <i className="fas fa-check text-[8px] text-blue-600"></i>}
+                                              </div>
+                                            ))}
+                                            {['油气田', '井筒', '站场', '管线'].filter(type => type.includes(objectTypeSearch)).length === 0 && (
+                                              <div className="px-3 py-4 text-center">
+                                                <span className="text-[10px] text-gray-400">无匹配结果</span>
+                                              </div>
+                                            )}
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => setShowDatasetValueConstraint(!showDatasetValueConstraint)}
+                                className="text-[10px] text-blue-600 font-bold hover:underline whitespace-nowrap"
+                              >
+                                {showDatasetValueConstraint ? '取消变量值约束' : '添加变量值约束'}
+                              </button>
+                            </div>
+                          </div>
+
+                          {showDatasetValueConstraint && (
+                            <div className="bg-blue-50/30 rounded-xl border border-blue-50/50 p-4 space-y-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-1.5 h-3 bg-blue-400 rounded-full"></div>
+                                  <span className="text-xs font-bold text-gray-700">变量值约束</span>
+                                </div>
+                                <div className="flex items-center gap-8">
+                                  <div className="flex items-center gap-3">
+                                    <label className="text-[10px] text-gray-400 font-medium">约束模式：</label>
+                                    <div className="flex p-0.5 bg-gray-100 rounded-md">
+                                      <button 
+                                        onClick={() => setDatasetConstraintMode('include')}
+                                        className={`px-3 py-1 rounded-[4px] text-[10px] font-bold transition-all ${datasetConstraintMode === 'include' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                      >
+                                        包含
+                                      </button>
+                                      <button 
+                                        onClick={() => setDatasetConstraintMode('exclude')}
+                                        className={`px-3 py-1 rounded-[4px] text-[10px] font-bold transition-all ${datasetConstraintMode === 'exclude' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                      >
+                                        不包含
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <label className="text-[10px] text-gray-400 font-medium">配置方式：</label>
+                                    <div className="flex p-0.5 bg-gray-100 rounded-md">
+                                      <button 
+                                        onClick={() => setDatasetConfigMode('dropdown')}
+                                        className={`px-3 py-1 rounded-[4px] text-[10px] font-bold transition-all ${datasetConfigMode === 'dropdown' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                      >
+                                        下拉选择
+                                      </button>
+                                      <button 
+                                        onClick={() => setDatasetConfigMode('regex')}
+                                        className={`px-3 py-1 rounded-[4px] text-[10px] font-bold transition-all ${datasetConfigMode === 'regex' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                      >
+                                        正则匹配
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                            {datasetConfigMode === 'dropdown' ? (
+                              <div className="space-y-3">
+                                <div className="relative">
+                                  <div 
+                                    onClick={() => setIsDatasetDropdownOpen(!isDatasetDropdownOpen)}
+                                    className="h-9 w-full px-3 border border-gray-200 rounded bg-white flex items-center gap-1.5 pr-8 cursor-pointer hover:border-blue-400 transition-colors overflow-hidden shrink-0"
+                                  >
+                                    {[ '施工记录表', '项目进度表' ].length > 0 ? (
+                                      <div className="flex items-center gap-1.5 overflow-hidden">
+                                        <div className="px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded flex items-center gap-1 text-[10px] text-blue-700 whitespace-nowrap">
+                                          <span>施工记录表</span>
+                                          <i className="fas fa-times text-[8px] text-blue-400 hover:text-blue-600 transition-colors"></i>
+                                        </div>
+                                        <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1 py-0.5 rounded border border-blue-100 flex-shrink-0">
+                                          +1
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <span className="text-xs text-gray-400">请选择...</span>
+                                    )}
+                                  </div>
+                                  <i className="fas fa-caret-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+                                  
+                                  <AnimatePresence>
+                                    {isDatasetDropdownOpen && (
+                                      <motion.div 
+                                        initial={{ opacity: 0, y: 5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 5 }}
+                                        className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1"
+                                      >
+                                        <div className="px-2 py-1.5 border-b border-gray-100 mb-1">
+                                          <div className="relative">
+                                            <i className="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-gray-300 text-[8px]"></i>
+                                            <input 
+                                              type="text"
+                                              value={datasetValueSearch}
+                                              onChange={(e) => setDatasetValueSearch(e.target.value)}
+                                              placeholder="搜索变量值..."
+                                              className="w-full pl-6 pr-2 py-1 text-[10px] border border-gray-100 rounded bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
+                                            />
+                                          </div>
+                                        </div>
+                                        {[
+                                          '油气田基本信息表', '油气田产量记录表', '施工记录表', '项目进度表', '质量检测报告'
+                                        ].filter(item => item.includes(datasetValueSearch)).map(item => (
+                                          <div 
+                                            key={item}
+                                            className="px-3 py-2 hover:bg-blue-50 cursor-pointer flex items-center justify-between group"
+                                          >
+                                            <span className={`text-[10px] ${['施工记录表', '项目进度表'].includes(item) ? 'text-blue-600 font-bold' : 'text-gray-600'}`}>{item}</span>
+                                            {['施工记录表', '项目进度表'].includes(item) && <i className="fas fa-check text-[8px] text-blue-600"></i>}
+                                          </div>
+                                        ))}
+                                        {[
+                                          '油气田基本信息表', '油气田产量记录表', '施工记录表', '项目进度表', '质量检测报告'
+                                        ].filter(item => item.includes(datasetValueSearch)).length === 0 && (
+                                          <div className="px-3 py-4 text-center">
+                                            <span className="text-[10px] text-gray-400">无匹配结果</span>
+                                          </div>
+                                        )}
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <label className="text-[10px] text-gray-400 font-medium ml-1">正则表达式 <span className="text-red-500">*</span></label>
+                                    <input 
+                                      type="text" 
+                                      value={datasetRegex}
+                                      onChange={(e) => setDatasetRegex(e.target.value)}
+                                      placeholder="例如：/.*记录.*/"
+                                      className="w-full h-9 px-3 border border-gray-200 rounded text-xs bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none" 
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <label className="text-[10px] text-gray-400 font-medium ml-1">常用正则模版</label>
+                                    <div className="flex flex-wrap gap-2">
+                                      {[
+                                        { label: '以XX开头', value: '/^XX/' },
+                                        { label: '以XX结尾', value: '/XX$/' },
+                                        { label: '包含XX', value: '/.*XX.*/' },
+                                        { label: '纯数字', value: '/^[0-9]+$/' }
+                                      ].map((p, i) => (
+                                        <button 
+                                          key={i} 
+                                          onClick={() => setDatasetRegex(p.value)}
+                                          className="px-2.5 py-1.5 bg-white border border-gray-200 rounded text-[10px] text-gray-500 hover:border-blue-400 hover:text-blue-600 transition-all shadow-sm"
+                                        >
+                                          {p.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );})()}
+
+                    {hasVar('数据项') && (() => {
+                      const constraint = dataItemConstraints['1'] || {mode: 'include', config: 'dropdown', regex: ''};
+                      const dataItemConstraintMode = constraint.mode;
+                      const dataItemConfigMode = constraint.config;
+                      const dataItemRegex = constraint.regex;
+                      const setDataItemConstraintMode = (mode: 'include' | 'exclude') => updateDataItemConstraint('1', {mode});
+                      const setDataItemConfigMode = (config: 'dropdown' | 'regex') => updateDataItemConstraint('1', {config});
+                      const setDataItemRegex = (regex: string) => updateDataItemConstraint('1', {regex});
+                      return (
+                      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm">
+                        <div className="px-4 py-1.5 bg-[#f8fafc] border-b border-[#e2e8f0] flex items-center gap-2 rounded-t-xl">
+                          <div className="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div>
+                          <span className="text-xs font-bold text-blue-600 uppercase">数据项</span>
+                        </div>
+                        <div className="p-4 space-y-4">
+                          <div className={`bg-gray-50/50 rounded-xl border border-gray-100 p-4 relative group ${isFieldTypeDropdownOpen || isDataSetSelectDropdownOpen ? 'z-30' : ''}`}>
+                            <div className="flex items-center justify-between gap-6">
+                              <div className="flex items-center gap-8 flex-1 text-xs">
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                  <span className="font-bold text-gray-700">范围过滤</span>
+                                </div>
+                                <div className="flex items-center gap-4 flex-1">
+                                  {/* Field Type First */}
+                                  <div className="flex items-center gap-3 w-56">
+                                    <label className="text-gray-400 font-medium whitespace-nowrap">字段类型：</label>
+                                    <div className="relative flex-1">
+                                      <div 
+                                        onClick={() => setIsFieldTypeDropdownOpen(!isFieldTypeDropdownOpen)}
+                                        className="h-8 w-full px-2 border border-gray-200 rounded bg-white flex items-center gap-1.5 pr-8 cursor-pointer hover:border-blue-400 transition-colors overflow-hidden"
+                                      >
+                                        {selectedFieldTypes.length > 0 ? (
+                                          <div className="flex items-center gap-1.5 overflow-hidden">
+                                            <div className="px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded flex items-center gap-1 text-[10px] text-blue-700 whitespace-nowrap">
+                                              <span>{selectedFieldTypes[0]}</span>
+                                              <i 
+                                                className="fas fa-times text-[8px] text-blue-400 hover:text-blue-600 transition-colors"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setSelectedFieldTypes(selectedFieldTypes.filter(t => t !== selectedFieldTypes[0]));
+                                                }}
+                                              ></i>
+                                            </div>
+                                            {selectedFieldTypes.length > 1 && (
+                                              <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1 py-0.5 rounded border border-blue-100 flex-shrink-0">
+                                                +{selectedFieldTypes.length - 1}
+                                              </span>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <span className="text-[10px] text-gray-400">请选择</span>
+                                        )}
+                                      </div>
+                                      <i className="fas fa-caret-down absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+                                      
+                                      <AnimatePresence>
+                                        {isFieldTypeDropdownOpen && (
+                                          <motion.div 
+                                            initial={{ opacity: 0, y: 5 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 5 }}
+                                            className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1"
+                                          >
+                                            <div className="px-2 py-1.5 border-b border-gray-100 mb-1">
+                                              <div className="relative">
+                                                <i className="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-gray-300 text-[8px]"></i>
+                                                <input 
+                                                  type="text"
+                                                  value={fieldTypeSearch}
+                                                  onChange={(e) => setFieldTypeSearch(e.target.value)}
+                                                  placeholder="搜索字段类型..."
+                                                  className="w-full pl-6 pr-2 py-1 text-[10px] border border-gray-100 rounded bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
+                                                />
+                                              </div>
+                                            </div>
+                                            {['指标类', '分类类', '描述类'].filter(type => type.includes(fieldTypeSearch)).map(type => (
+                                              <div 
+                                                key={type}
+                                                onClick={() => {
+                                                  if (selectedFieldTypes.includes(type)) {
+                                                    setSelectedFieldTypes(selectedFieldTypes.filter(t => t !== type));
+                                                  } else {
+                                                    setSelectedFieldTypes([...selectedFieldTypes, type]);
+                                                  }
+                                                }}
+                                                className="px-3 py-2 hover:bg-blue-50 cursor-pointer flex items-center justify-between group"
+                                              >
+                                                <span className={`text-[10px] ${selectedFieldTypes.includes(type) ? 'text-blue-600 font-bold' : 'text-gray-600'}`}>{type}</span>
+                                                {selectedFieldTypes.includes(type) && <i className="fas fa-check text-[8px] text-blue-600"></i>}
+                                              </div>
+                                            ))}
+                                            {['指标类', '分类类', '描述类'].filter(type => type.includes(fieldTypeSearch)).length === 0 && (
+                                              <div className="px-3 py-4 text-center">
+                                                <span className="text-[10px] text-gray-400">无匹配结果</span>
+                                              </div>
+                                            )}
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </div>
+                                  </div>
+
+                                  {/* Dataset Second */}
+                                  <div className="flex items-center gap-2.5 flex-1 max-sm">
+                                    <label className="text-[10px] text-gray-400 font-medium whitespace-nowrap">数据集：</label>
+                                    <div className="relative flex-1">
+                                      <div 
+                                        onClick={() => setIsDataSetSelectDropdownOpen(!isDataSetSelectDropdownOpen)}
+                                        className="h-8 w-full px-2 border border-gray-200 rounded bg-white flex items-center gap-1.5 pr-8 cursor-pointer hover:border-blue-400 transition-colors overflow-hidden"
+                                      >
+                                        {selectedDataSets.length > 0 ? (
+                                          <div className="flex items-center gap-1.5 overflow-hidden">
+                                            <div className="px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded flex items-center gap-1 text-[10px] text-blue-700 whitespace-nowrap">
+                                              <span>{selectedDataSets[0]}</span>
+                                              <i 
+                                                className="fas fa-times text-[8px] text-blue-400 hover:text-blue-600 transition-colors"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setSelectedDataSets(selectedDataSets.filter(d => d !== selectedDataSets[0]));
+                                                }}
+                                              ></i>
+                                            </div>
+                                            {selectedDataSets.length > 1 && (
+                                              <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1 py-0.5 rounded border border-blue-100 flex-shrink-0">
+                                                +{selectedDataSets.length - 1}
+                                              </span>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <span className="text-[10px] text-gray-400">请选择</span>
+                                        )}
+                                      </div>
+                                      <i className="fas fa-caret-down absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+                                      
+                                      <AnimatePresence>
+                                        {isDataSetSelectDropdownOpen && (
+                                          <motion.div 
+                                            initial={{ opacity: 0, y: 5 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 5 }}
+                                            className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1"
+                                          >
+                                            <div className="px-2 py-1.5 border-b border-gray-100 mb-1">
+                                              <div className="relative">
+                                                <i className="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-gray-300 text-[8px]"></i>
+                                                <input 
+                                                  type="text"
+                                                  value={datasetSelectSearch}
+                                                  onChange={(e) => setDatasetSelectSearch(e.target.value)}
+                                                  placeholder="搜索数据集..."
+                                                  className="w-full pl-6 pr-2 py-1 text-[10px] border border-gray-100 rounded bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
+                                                />
+                                              </div>
+                                            </div>
+                                            {['油气田产量记录表', '油气田分布表', '井筒信息表', '施工记录表'].filter(dataset => dataset.includes(datasetSelectSearch)).map(dataset => (
+                                              <div 
+                                                key={dataset}
+                                                onClick={() => {
+                                                  if (selectedDataSets.includes(dataset)) {
+                                                    setSelectedDataSets(selectedDataSets.filter(d => d !== dataset));
+                                                  } else {
+                                                    setSelectedDataSets([...selectedDataSets, dataset]);
+                                                  }
+                                                }}
+                                                className="px-3 py-2 hover:bg-blue-50 cursor-pointer flex items-center justify-between group"
+                                              >
+                                                <span className={`text-[10px] ${selectedDataSets.includes(dataset) ? 'text-blue-600 font-bold' : 'text-gray-600'}`}>{dataset}</span>
+                                                {selectedDataSets.includes(dataset) && <i className="fas fa-check text-[8px] text-blue-600"></i>}
+                                              </div>
+                                            ))}
+                                            {['油气田产量记录表', '油气田分布表', '井筒信息表', '施工记录表'].filter(dataset => dataset.includes(datasetSelectSearch)).length === 0 && (
+                                              <div className="px-3 py-4 text-center">
+                                                <span className="text-[10px] text-gray-400">无匹配结果</span>
+                                              </div>
+                                            )}
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => setShowDataItemValueConstraint(!showDataItemValueConstraint)}
+                                className="text-[10px] text-blue-600 font-bold hover:underline whitespace-nowrap"
+                              >
+                                {showDataItemValueConstraint ? '取消变量值约束' : '添加变量值约束'}
+                              </button>
+                            </div>
+                          </div>
+
+                          {showDataItemValueConstraint && (
+                            <div className="bg-blue-50/30 rounded-xl border border-blue-50/50 p-4 space-y-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-1.5 h-3 bg-blue-400 rounded-full"></div>
+                                  <span className="text-xs font-bold text-gray-700">变量值约束</span>
+                                </div>
+                                <div className="flex items-center gap-8">
+                                  <div className="flex items-center gap-3">
+                                    <label className="text-[10px] text-gray-400 font-medium">约束模式：</label>
+                                    <div className="flex p-0.5 bg-gray-100 rounded-md">
+                                      <button 
+                                        onClick={() => setDataItemConstraintMode('include')}
+                                        className={`px-3 py-1 rounded-[4px] text-[10px] font-bold transition-all ${dataItemConstraintMode === 'include' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                      >
+                                        包含
+                                      </button>
+                                      <button 
+                                        onClick={() => setDataItemConstraintMode('exclude')}
+                                        className={`px-3 py-1 rounded-[4px] text-[10px] font-bold transition-all ${dataItemConstraintMode === 'exclude' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                      >
+                                        不包含
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <label className="text-[10px] text-gray-400 font-medium">配置方式：</label>
+                                    <div className="flex p-0.5 bg-gray-100 rounded-md">
+                                      <button 
+                                        onClick={() => setDataItemConfigMode('dropdown')}
+                                        className={`px-3 py-1 rounded-[4px] text-[10px] font-bold transition-all ${dataItemConfigMode === 'dropdown' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                      >
+                                        下拉选择
+                                      </button>
+                                      <button 
+                                        onClick={() => setDataItemConfigMode('regex')}
+                                        className={`px-3 py-1 rounded-[4px] text-[10px] font-bold transition-all ${dataItemConfigMode === 'regex' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                      >
+                                        正则匹配
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                            {dataItemConfigMode === 'dropdown' ? (
+                              <div className="space-y-3">
+                                <div className="relative">
+                                  <div 
+                                    onClick={() => setIsDataItemDropdownOpen(!isDataItemDropdownOpen)}
+                                    className="h-9 w-full px-3 border border-gray-200 rounded bg-white flex items-center gap-1.5 pr-8 cursor-pointer hover:border-blue-400 transition-colors overflow-hidden shrink-0"
+                                  >
+                                    {[ '压力指标', '地层描述' ].length > 0 ? (
+                                      <div className="flex items-center gap-1.5 overflow-hidden">
+                                        <div className="px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded flex items-center gap-1 text-[10px] text-blue-700 whitespace-nowrap">
+                                          <span>压力指标</span>
+                                          <i className="fas fa-times text-[8px] text-blue-400 hover:text-blue-600 transition-colors"></i>
+                                        </div>
+                                        <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1 py-0.5 rounded border border-blue-100 flex-shrink-0">
+                                          +1
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <span className="text-xs text-gray-400">请选择...</span>
+                                    )}
+                                  </div>
+                                  <i className="fas fa-caret-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+                                  
+                                  <AnimatePresence>
+                                    {isDataItemDropdownOpen && (
+                                      <motion.div 
+                                        initial={{ opacity: 0, y: 5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 5 }}
+                                        className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1"
+                                      >
+                                        <div className="px-2 py-1.5 border-b border-gray-100 mb-1">
+                                          <div className="relative">
+                                            <i className="fas fa-search absolute left-2 top-1/2 -translate-y-1/2 text-gray-300 text-[8px]"></i>
+                                            <input 
+                                              type="text"
+                                              value={dataItemValueSearch}
+                                              onChange={(e) => setDataItemValueSearch(e.target.value)}
+                                              placeholder="搜索变量值..."
+                                              className="w-full pl-6 pr-2 py-1 text-[10px] border border-gray-100 rounded bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
+                                            />
+                                          </div>
+                                        </div>
+                                        {['压力指标', '地层描述', '开工日期', '温度指示', '深度参数'].filter(item => item.includes(dataItemValueSearch)).map(item => (
+                                          <div 
+                                            key={item}
+                                            className="px-3 py-2 hover:bg-blue-50 cursor-pointer flex items-center justify-between group"
+                                          >
+                                            <span className={`text-[10px] ${['压力指标', '地层描述'].includes(item) ? 'text-blue-600 font-bold' : 'text-gray-600'}`}>{item}</span>
+                                            {['压力指标', '地层描述'].includes(item) && <i className="fas fa-check text-[8px] text-blue-600"></i>}
+                                          </div>
+                                        ))}
+                                        {['压力指标', '地层描述', '开工日期', '温度指示', '深度参数'].filter(item => item.includes(dataItemValueSearch)).length === 0 && (
+                                          <div className="px-3 py-4 text-center">
+                                            <span className="text-[10px] text-gray-400">无匹配结果</span>
+                                          </div>
+                                        )}
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <label className="text-[10px] text-gray-400 font-medium ml-1">正则表达式 <span className="text-red-500">*</span></label>
+                                    <input 
+                                      type="text" 
+                                      value={dataItemRegex}
+                                      onChange={(e) => setDataItemRegex(e.target.value)}
+                                      placeholder="例如：/^.*(温度|压力).*$/"
+                                      className="w-full h-9 px-3 border border-gray-200 rounded text-xs bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none" 
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <label className="text-[10px] text-gray-400 font-medium ml-1">常用正则模版</label>
+                                    <div className="flex flex-wrap gap-2">
+                                      {[
+                                        { label: '以XX开头', value: '/^XX/' },
+                                        { label: '以XX结尾', value: '/XX$/' },
+                                        { label: '包含XX', value: '/.*XX.*/' },
+                                        { label: '纯数字', value: '/^[0-9]+$/' }
+                                      ].map((p, i) => (
+                                        <button 
+                                          key={i} 
+                                          onClick={() => setDataItemRegex(p.value)}
+                                          className="px-2.5 py-1.5 bg-white border border-gray-200 rounded text-[10px] text-gray-500 hover:border-blue-400 hover:text-blue-600 transition-all shadow-sm"
+                                        >
+                                          {p.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            </div>
+                          )}
+                        </div>
+                        </div>
+                      );})()}
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+              <div className="p-5 bg-white border-t border-gray-100 flex justify-end gap-3 px-8">
                 <button 
                   onClick={closeAddModal}
-                  className="px-6 py-2.5 text-gray-600 font-bold hover:bg-gray-100 rounded-xl transition-all"
+                  className="px-6 py-2 text-xs text-gray-700 font-bold border border-gray-200 hover:bg-gray-50 rounded transition-all shadow-sm"
                 >
-                  {t.cancel}
+                  取消
                 </button>
                 <button 
                     onClick={() => {
@@ -436,9 +1393,9 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
                       });
                       setAlertMessage('模板已保存');
                     }}
-                  className="px-8 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                  className="px-8 py-2 bg-[#2563eb] text-xs text-white font-bold rounded hover:bg-blue-700 transition-all shadow-md"
                 >
-                  {t.save}
+                  保存
                 </button>
               </div>
             </motion.div>
@@ -501,7 +1458,9 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
             </motion.div>
           </div>
         )}
-        {/* Custom Alert Modal */}
+      </AnimatePresence>
+
+      {/* Custom Alert Modal */}
         <AnimatePresence>
           {alertMessage && (
             <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
@@ -532,7 +1491,6 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
             </div>
           )}
         </AnimatePresence>
-      </AnimatePresence>
     </div>
   );
 };
