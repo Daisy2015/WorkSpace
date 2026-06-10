@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Workspace, WorkspaceStatus, Language, WorkspaceTemplate } from '../types';
 import { WorkspaceConstructionLoading } from './WorkspaceConstructionLoading';
 import WorkspaceStrategyConfig from './WorkspaceStrategyConfig';
+import { EvidenceChainPanel } from './EvidenceChainPanel';
 
 interface WorkspaceBuilderProps {
   workspaceName: string;
@@ -381,10 +382,15 @@ export const WorkspaceBuilder: React.FC<WorkspaceBuilderProps> = ({
 
         {/* Footer Info (Normal State Only) */}
         {state === BuilderState.NORMAL && workspaceDescription && (
-          <div className="px-6 py-3 bg-white border-t border-gray-100 flex items-center gap-3">
+          <div className="px-6 py-3 bg-white border-t border-gray-100 flex items-center gap-3 flex-shrink-0">
             <i className="fas fa-info-circle text-blue-400"></i>
             <p className="text-sm text-gray-500 truncate">{workspaceDescription}</p>
           </div>
+        )}
+
+        {/* Evidence Chain Panel */}
+        {(state === BuilderState.NORMAL || state === BuilderState.COMPLETED) && (
+          <EvidenceChainPanel lang={lang} />
         )}
       </div>
 

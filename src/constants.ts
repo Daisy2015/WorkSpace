@@ -196,7 +196,7 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
   },
   {
     id: 'tpl-16',
-    name: '生产异常诊断与预警',
+    name: '单井产量下降诊断与预警',
     description: '基于实时生产曲线，自动识别停产、含水突升等异常情况。',
     mbuCount: 4,
     usageCount: 150,

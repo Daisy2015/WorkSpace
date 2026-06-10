@@ -220,7 +220,7 @@ export const AgentConfigWizard: React.FC<AgentConfigWizardProps> = ({ agent, onS
               <div>
                 <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">{t.tags}</label>
                 <div className="flex flex-wrap gap-2">
-                  {['产量分析', '异常诊断', '报告生成', '预警推送', '数据清洗', '阈值监控'].map(tag => (
+                  {['产量分析', '单井产量下降诊断', '报告生成', '预警推送', '数据清洗', '阈值监控'].map(tag => (
                     <button 
                       key={tag}
                       onClick={() => {

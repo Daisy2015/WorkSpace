@@ -20,6 +20,7 @@ interface MultiAgentChatPanelProps {
   agents: Agent[];
   workspaceVersion?: 'foundation' | 'professional' | 'enterprise';
   onSaveOutcome?: (name: string) => void;
+  isMiniAssistant?: boolean;
 }
 
 export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
@@ -38,7 +39,8 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
   isTracePanelOpen,
   agents,
   workspaceVersion = 'foundation',
-  onSaveOutcome
+  onSaveOutcome,
+  isMiniAssistant = false
 }) => {
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -420,7 +422,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
               ...msg.payload,
               status: 'completed',
               thought: '数据检索已完成。本周平均日产油 1.25 万吨，进度达成率 102.5%；识别出 A1、B5 两口井由于管线维护导致短时减产。',
-              observation: '已获得完整生产报表数据及异常诊断信息。',
+              observation: '已获得完整生产报表数据及单井产量下降诊断信息。',
               plan: '将数据结果传递给智能报告。'
             }
           } : msg));
@@ -850,8 +852,8 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
     }
     if (workspaceVersion === 'professional') {
       return lang === 'zh'
-        ? '当前为专业版空间，已集成生产分析、勘探评价等专业场景智能体。支持复杂业务流编排与多维度联动诊断分析。'
-        : 'Current: Professional version. Integrated with production analysis and exploration agents. Supports workflow orchestration and multi-dimensional diagnosis.';
+        ? '当前为专业版空间，已集成生产分析、勘探评价等专业场景智能体。支持复杂业务流编排与多维度联动单井产量下降诊断。'
+        : 'Current: Professional version. Integrated with production analysis and exploration agents. Supports workflow orchestration and multi-dimensional production decline diagnosis.';
     }
     return lang === 'zh'
       ? '当前为企业版空间，已部署岗位数字员工。支持跨学科并行协同、岗位级业务闭环及全生命周期决策辅助。'
@@ -882,6 +884,8 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-[#f8f9fa] relative">
+      {/* Mini Assistant Header REMOVED */}
+
       {/* Top Right Session Actions */}
       <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
         <button 
@@ -1038,54 +1042,60 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
       )}
 
       {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className={`flex-1 overflow-y-auto ${isMiniAssistant ? 'p-4 space-y-4' : 'p-6 space-y-6'}`}>
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center max-w-3xl mx-auto py-12">
-            <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center mb-8 text-white shadow-xl shadow-indigo-100 animate-pulse">
-              <i className="fas fa-sparkles text-3xl"></i>
-            </div>
-            
-            <div className="text-center mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 tracking-tight">
-                {lang === 'zh' ? '欢迎使用智能协作空间' : 'Welcome to AI Workspace'}
-              </h2>
-              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm max-w-2xl mx-auto">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-1.5 h-4 bg-indigo-500 rounded-full"></div>
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{lang === 'zh' ? '空间总结' : 'Space Summary'}</span>
+          <div className={`h-full flex flex-col items-center ${isMiniAssistant ? 'w-full' : 'max-w-3xl mx-auto py-12'}`}>
+            {!isMiniAssistant && (
+              <>
+                <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center mb-8 text-white shadow-xl shadow-indigo-100 animate-pulse">
+                  <i className="fas fa-sparkles text-3xl"></i>
                 </div>
-                <p className="text-sm text-gray-600 leading-relaxed text-left">
-                  {getVersionSummary()}
-                </p>
-              </div>
-            </div>
+                
+                <div className={`text-center mb-12`}>
+                  <h2 className={`text-2xl font-bold text-gray-900 mb-4 tracking-tight`}>
+                    {lang === 'zh' ? '欢迎使用智能协作空间' : 'Welcome to AI Workspace'}
+                  </h2>
+                  <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm max-w-2xl mx-auto">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1.5 h-4 bg-indigo-500 rounded-full"></div>
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{lang === 'zh' ? '空间总结' : 'Space Summary'}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 leading-relaxed text-left">
+                      {getVersionSummary()}
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="w-full space-y-4">
-              <div className="flex items-center gap-2 px-1">
-                <div className="w-1.5 h-4 bg-emerald-500 rounded-full"></div>
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                  {lang === 'zh' ? '推荐问题示例' : 'Recommended Questions'}
-                </span>
-              </div>
+              {!isMiniAssistant && (
+                <div className={`flex items-center gap-2 px-1`}>
+                  <div className="w-1.5 h-4 bg-emerald-500 rounded-full"></div>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                    {lang === 'zh' ? '推荐问题示例' : 'Recommended Questions'}
+                  </span>
+                </div>
+              )}
               <div className="grid grid-cols-1 gap-3">
-                {getRecommendedQuestions().map((q, i) => (
+                {(isMiniAssistant ? getRecommendedQuestions() : getRecommendedQuestions()).map((q, i) => (
                   <button
                     key={i}
                     onClick={() => {
                       setInput(q.text);
                       inputRef.current?.focus();
                     }}
-                    className="flex items-center gap-4 p-5 bg-white border border-gray-100 rounded-2xl text-left hover:border-indigo-300 hover:shadow-lg transition-all group relative overflow-hidden"
+                    className={`flex items-center gap-4 ${isMiniAssistant ? 'p-3' : 'p-5'} bg-white border border-gray-100 rounded-2xl text-left hover:border-indigo-300 hover:shadow-lg transition-all group relative overflow-hidden`}
                   >
                     <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors shadow-sm">
-                      <i className={`fas ${q.icon} text-lg`}></i>
+                    <div className={`${isMiniAssistant ? 'w-10 h-10' : 'w-12 h-12'} rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors shadow-sm`}>
+                      <i className={`fas ${q.icon} ${isMiniAssistant ? 'text-base' : 'text-lg'}`}></i>
                     </div>
                     <div className="flex-1">
-                      <div className="text-sm font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">{q.text}</div>
+                      <div className={`${isMiniAssistant ? 'text-xs' : 'text-sm'} font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors`}>{q.text}</div>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-all">
-                      <i className="fas fa-arrow-right text-xs"></i>
+                    <div className={`${isMiniAssistant ? 'w-6 h-6' : 'w-8 h-8'} rounded-full bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-all`}>
+                      <i className="fas fa-arrow-right text-[10px]"></i>
                     </div>
                   </button>
                 ))}

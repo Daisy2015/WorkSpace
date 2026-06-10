@@ -350,68 +350,94 @@ export const AdminCorpusManagement: React.FC<AdminCorpusManagementProps> = ({ la
               
               <div className="p-8 space-y-8 overflow-y-auto max-h-[80vh] custom-scrollbar bg-[#f8fafc]">
                 {/* 1. Basic Info Section */}
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
-                    <h3 className="text-sm font-bold text-gray-800">基础信息配置</h3>
+                <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-8 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-600"></div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-inner">
+                      <i className="fas fa-info-circle text-lg"></i>
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-gray-800">基础信息配置</h3>
+                      <p className="text-[10px] text-gray-400 font-medium italic">Configure the name and content of your corpus template</p>
+                    </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <label className="text-xs font-bold text-gray-600 w-20 shrink-0">模板名称 <span className="text-red-500">*</span></label>
+                  <div className="grid grid-cols-1 gap-8">
+                    <div className="space-y-3">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                        模板名称 <span className="text-red-500">*</span>
+                      </label>
                       <input 
                         type="text" 
                         value={newTemplateName}
                         onChange={(e) => setNewTemplateName(e.target.value)}
                         placeholder="例如：井位施工记录查询模板"
-                        className="flex-1 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50/30 text-sm transition-all" 
+                        className="w-full p-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 bg-gray-50/50 text-sm transition-all font-medium" 
                       />
                     </div>
 
-                    <div className="flex gap-4">
-                      <div className="w-20 shrink-0 py-2">
-                        <label className="text-xs font-bold text-gray-600">模板内容 <span className="text-red-500">*</span></label>
-                      </div>
-                      <div className="flex-1 space-y-4">
-                        <div className="flex flex-wrap gap-2">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">模板内容 <span className="text-red-500">*</span></label>
+                        <div className="flex gap-2">
                           {['对象名称', '数据集名称', '数据项'].map(label => (
                             <button 
                               key={label}
                               onClick={() => handleInsertVar(label)}
-                              className="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-[10px] font-bold hover:bg-blue-50 hover:border-blue-400 hover:text-blue-600 transition-all flex items-center gap-1.5 shadow-sm"
+                              className="px-3 py-1.5 bg-blue-50 border border-blue-100 text-blue-600 rounded-xl text-[10px] font-bold hover:bg-blue-100 hover:scale-105 transition-all flex items-center gap-1.5 shadow-sm"
                             >
                               <i className="fas fa-plus text-[8px]"></i> {label}
                             </button>
                           ))}
                         </div>
-
-                        <div className="relative">
-                          <textarea 
-                            rows={1}
-                            value={newTemplateRaw}
-                            onChange={(e) => setNewTemplateRaw(e.target.value)}
-                            placeholder="请输入查询需求，点击上方变量进行插入"
-                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white text-sm min-h-[46px] resize-none shadow-sm transition-all"
-                          />
+                      </div>
+                      
+                      <div className="relative group">
+                        <textarea 
+                          rows={1}
+                          value={newTemplateRaw}
+                          onChange={(e) => setNewTemplateRaw(e.target.value)}
+                          placeholder="请输入查询需求，点击上方变量按钮进行插入"
+                          className="w-full px-5 py-3.5 border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 bg-white text-sm min-h-[52px] h-[52px] resize-none shadow-sm transition-all font-mono"
+                        />
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 pointer-events-none">
+                            <i className="fas fa-keyboard text-gray-300 group-focus-within:text-blue-400 transition-colors"></i>
                         </div>
                       </div>
+                      <p className="text-[10px] text-gray-400 italic">提示：使用 &#123;变量名&#125; 格式手动插入，或点击上方按钮插入 👆</p>
                     </div>
                   </div>
                 </div>
 
+                <div className="flex items-center justify-center py-4">
+                    <div className="h-px bg-gray-200 flex-1"></div>
+                    <div className="mx-6 p-2 rounded-full bg-gray-100/50 border border-gray-200 shadow-inner">
+                        <i className="fas fa-chevron-down text-gray-400 text-xs animate-bounce"></i>
+                    </div>
+                    <div className="h-px bg-gray-200 flex-1"></div>
+                </div>
+
                 {/* 2. Variable Constraints Section */}
                 {(getVarInstances('对象名称').length > 0 || hasVar('数据集名称') || hasVar('数据项')) && (
-                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
-                        <h3 className="text-sm font-bold text-gray-800">变量约束配置</h3>
-                      </div>
-                      <span className="text-[10px] text-gray-400">检测到 {
-                        getVarInstances('对象名称').length + 
-                        (hasVar('数据集名称') ? 1 : 0) + 
-                        (hasVar('数据项') ? 1 : 0)
-                      } 个变量实例</span>
+                  <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-8 relative overflow-hidden pb-12">
+                     <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
+                     <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-inner">
+                                <i className="fas fa-sliders-h text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-gray-800">变量约束配置</h3>
+                                <p className="text-[10px] text-gray-400 font-medium italic">Define strict rules for each variable instance</p>
+                            </div>
+                        </div>
+                        <div className="px-3 py-1 bg-gray-100 rounded-full text-[10px] font-bold text-gray-500 border border-gray-200 uppercase tracking-widest shadow-sm">
+                            Detected {
+                                getVarInstances('对象名称').length + 
+                                (hasVar('数据集名称') ? 1 : 0) + 
+                                (hasVar('数据项') ? 1 : 0)
+                            } Variable(s)
+                        </div>
                     </div>
 
                     <div className="space-y-6">

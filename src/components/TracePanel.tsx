@@ -96,7 +96,7 @@ export const TracePanel: React.FC<TracePanelProps> = ({
   ] : isPro ? [
     { id: 'pro_report', name: lang === 'zh' ? '专业报告' : 'Pro Report', icon: 'fa-file-alt', color: 'bg-blue-50 text-blue-600' },
     { id: 'pro_ppt', name: lang === 'zh' ? '专业PPT' : 'Pro PPT', icon: 'fa-file-powerpoint', color: 'bg-orange-50 text-orange-600' },
-    { id: 'anomaly', name: lang === 'zh' ? '异常诊断' : 'Anomaly Diagnosis', icon: 'fa-stethoscope', color: 'bg-red-50 text-red-600' },
+    { id: 'well_decline', name: lang === 'zh' ? '单井产量下降诊断' : 'Single Well Decline Diagnosis', icon: 'fa-stethoscope', color: 'bg-red-50 text-red-600' },
     { id: 'scheme', name: lang === 'zh' ? '方案优选' : 'Scheme Selection', icon: 'fa-check-double', color: 'bg-green-50 text-green-600' },
     { id: 'trap', name: lang === 'zh' ? '圈闭评价' : 'Trap Eval', icon: 'fa-bullseye', color: 'bg-purple-50 text-purple-600' },
     { id: 'well', name: lang === 'zh' ? '井位优选' : 'Well Selection', icon: 'fa-map-marker-alt', color: 'bg-teal-50 text-teal-600' },
@@ -117,7 +117,7 @@ export const TracePanel: React.FC<TracePanelProps> = ({
   ] : isPro ? [
     { id: 'p1', title: lang === 'zh' ? 'X-1井区圈闭有效性评价' : 'X-1 Well Trap Eval', expertId: 'trap', time: '2h ago' },
     { id: 'p2', title: lang === 'zh' ? 'A区块钻井方案优选对比' : 'Block A Scheme Selection', expertId: 'scheme', time: '5h ago' },
-    { id: 'p3', title: lang === 'zh' ? '测井曲线异常诊断分析' : 'Logging Anomaly Diagnosis', expertId: 'anomaly', time: '1d ago' },
+    { id: 'p3', title: lang === 'zh' ? 'X-102井产量下降归因诊断' : 'Well X-102 Production Decline Diagnosis', expertId: 'well_decline', time: '1d ago' },
     { id: 'p4', title: lang === 'zh' ? '年度勘探专业汇报PPT' : 'Annual Exploration PPT', expertId: 'pro_ppt', time: '2d ago' },
   ] : [
     { id: '1', title: lang === 'zh' ? '第一季度钻井总结报告' : 'Q1 Summary Report', expertId: 'report', time: '4h ago' },
@@ -344,7 +344,15 @@ export const TracePanel: React.FC<TracePanelProps> = ({
               </div>
             </div>
           )) : tools.map(tool => (
-            <div key={tool.id} onClick={() => isEnterprise && onSelectAgent?.(tool.id)} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer group relative flex flex-col items-center text-center h-full">
+            <div 
+              key={tool.id} 
+              onClick={() => {
+                if (isEnterprise || tool.id === 'well_decline') {
+                  onSelectAgent?.(tool.id);
+                }
+              }} 
+              className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer group relative flex flex-col items-center text-center h-full"
+            >
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg mb-2 ${tool.color}`}>
                 <i className={`fas ${tool.icon}`}></i>
               </div>
@@ -373,6 +381,8 @@ export const TracePanel: React.FC<TracePanelProps> = ({
                       setIsSmartChartModalOpen(true);
                     } else if (tool.id === 'pro_chart') {
                       setIsSmartProChartModalOpen(true);
+                    } else if (tool.id === 'well_decline') {
+                      onSelectAgent?.(tool.id);
                     } else {
                       alert(lang === 'zh' ? '该功能正在开发中...' : 'Features coming soon...');
                     }

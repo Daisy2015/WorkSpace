@@ -25,8 +25,10 @@ import { MbuExplorer } from './components/MbuExplorer';
 import { VersionComparisonModal } from './components/VersionComparisonModal';
 import { ReportTemplateModal } from './components/ReportTemplateModal';
 import { SaveOutcomeModal } from './components/SaveOutcomeModal';
+import { EvidenceChainPanel } from './components/EvidenceChainPanel';
 import { AgentConfigWizard } from './components/enterprise/AgentConfigWizard';
 import { ResourceDetailModal } from './components/ResourceDetailModal';
+import { WellDeclineDiagnosis } from './components/WellDeclineDiagnosis';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESOURCE_TREE, MOCK_TEMPLATES } from './constants';
@@ -91,6 +93,8 @@ const App: React.FC = () => {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isSaveOutcomeModalOpen, setIsSaveOutcomeModalOpen] = useState(false);
   const [outcomeToSave, setOutcomeToSave] = useState<{ name: string } | null>(null);
+  const [activeAgentAppId, setActiveAgentAppId] = useState<string | null>(null);
+  const [isAssistantExpanded, setIsAssistantExpanded] = useState(true);
 
   // Resource Detail Modal State
   const [selectedResourceForDetail, setSelectedResourceForDetail] = useState<ResourceNode | null>(null);
@@ -125,7 +129,7 @@ const App: React.FC = () => {
       avatar: '👨‍💼', 
       description: '全面负责生产管理业务，协同多个场景智能体完成复杂任务。', 
       status: 'Running', 
-      tags: ['产量分析', '异常诊断', '报告生成'],
+      tags: ['产量分析', '单井产量下降诊断', '报告生成'],
       scenarios: [
         { 
           id: 's1', 
@@ -1303,41 +1307,84 @@ const App: React.FC = () => {
                             </div>
 
                             {/* Center Panel: Chat or Config */}
-                            <div className="flex-1 h-full min-w-0 z-0 bg-gray-50">
-                                {workspaceVersion === 'enterprise' && configAgentId ? (
-                                    <AgentConfigWizard 
-                                        agent={displayAgents.find(a => a.id === configAgentId) || displayAgents[1]}
-                                        onSave={(updated) => {
-                                            setAgents(prev => prev.map(a => a.id === updated.id ? { ...updated, status: 'Running' } : a));
-                                            setAlertMessage(`数字员工 ${updated.name} 的运行任务已成功部署！`);
-                                            setConfigAgentId(null);
-                                        }}
-                                        onCancel={() => setConfigAgentId(null)}
-                                    />
-                                ) : (
-                                    <MultiAgentChatPanel 
-                                        messages={multiAgentMessages}
-                                        setMessages={setMultiAgentMessages}
-                                        selectedResources={selectedResources}
-                                        allResources={resourceTree}
-                                        onSelectMessage={setSelectedMessage}
-                                        onChatStart={() => setIsTracePanelOpen(true)}
-                                        onAddResource={handleAddResource}
-                                        currentWorkspace={activeWorkspaceData}
-                                        onUpdateWorkspaceName={(name) => activeWorkspaceId && handleUpdateWorkspace(activeWorkspaceId, { name })}
-                                        lang={lang}
-                                        onEditReport={handleEditReport}
-                                        onToggleTracePanel={() => setIsTracePanelOpen(!isTracePanelOpen)}
-                                        isTracePanelOpen={isTracePanelOpen}
-                                        agents={displayAgents}
-                                        workspaceVersion={workspaceVersion}
-                                        onSaveOutcome={handleOpenSaveOutcome}
-                                    />
+                            <div className="flex-1 h-full min-w-0 z-0 bg-gray-50 flex flex-row">
+                                <div className="flex-1 h-full">
+                                    {workspaceVersion === 'enterprise' && configAgentId ? (
+                                        <AgentConfigWizard 
+                                            agent={displayAgents.find(a => a.id === configAgentId) || displayAgents[1]}
+                                            onSave={(updated) => {
+                                                setAgents(prev => prev.map(a => a.id === updated.id ? { ...updated, status: 'Running' } : a));
+                                                setAlertMessage(`数字员工 ${updated.name} 的运行任务已成功部署！`);
+                                                setConfigAgentId(null);
+                                            }}
+                                            onCancel={() => setConfigAgentId(null)}
+                                        />
+                                    ) : activeAgentAppId === 'well_decline' ? (
+                                        <WellDeclineDiagnosis 
+                                            lang={lang} 
+                                            onClose={() => setActiveAgentAppId(null)} 
+                                        />
+                                    ) : (
+                                        <MultiAgentChatPanel 
+                                            messages={multiAgentMessages}
+                                            setMessages={setMultiAgentMessages}
+                                            selectedResources={selectedResources}
+                                            allResources={resourceTree}
+                                            onSelectMessage={setSelectedMessage}
+                                            onChatStart={() => setIsTracePanelOpen(true)}
+                                            onAddResource={handleAddResource}
+                                            currentWorkspace={activeWorkspaceData}
+                                            onUpdateWorkspaceName={(name) => activeWorkspaceId && handleUpdateWorkspace(activeWorkspaceId, { name })}
+                                            lang={lang}
+                                            onEditReport={handleEditReport}
+                                            onToggleTracePanel={() => setIsTracePanelOpen(!isTracePanelOpen)}
+                                            isTracePanelOpen={isTracePanelOpen}
+                                            agents={displayAgents}
+                                            workspaceVersion={workspaceVersion}
+                                            onSaveOutcome={handleOpenSaveOutcome}
+                                        />
+                                    )}
+                                </div>
+
+                                {/* Assistant moved to right in App Mode */}
+                                {activeAgentAppId && (
+                                    <div className={`${isAssistantExpanded ? 'w-[320px]' : 'w-0'} h-full border-l border-slate-200 shadow-[-4px_0_12px_rgba(0,0,0,0.03)] bg-white transition-all duration-500 ease-in-out relative flex flex-col`}>
+                                        {/* Toggle button ball on the left */}
+                                        <button 
+                                            onClick={() => setIsAssistantExpanded(!isAssistantExpanded)}
+                                            className="absolute left-[-20px] top-1/2 -translate-y-1/2 w-10 h-10 bg-white border border-slate-200 rounded-full shadow-lg flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-200 transition-all z-20 group"
+                                            title={isAssistantExpanded ? (lang === 'zh' ? '收起助手' : 'Collapse Assistant') : (lang === 'zh' ? '展开助手' : 'Expand Assistant')}
+                                        >
+                                            <i className={`fas ${isAssistantExpanded ? 'fa-chevron-right' : 'fa-message'} transition-transform duration-500 ${!isAssistantExpanded ? 'group-hover:scale-110' : ''}`}></i>
+                                        </button>
+
+                                        <div className="flex-1 overflow-hidden">
+                                            <MultiAgentChatPanel 
+                                                messages={multiAgentMessages}
+                                                setMessages={setMultiAgentMessages}
+                                                selectedResources={selectedResources}
+                                                allResources={resourceTree}
+                                                onSelectMessage={setSelectedMessage}
+                                                onChatStart={() => {}}
+                                                onAddResource={handleAddResource}
+                                                currentWorkspace={activeWorkspaceData}
+                                                onUpdateWorkspaceName={() => {}}
+                                                lang={lang}
+                                                onEditReport={handleEditReport}
+                                                onToggleTracePanel={() => {}}
+                                                isTracePanelOpen={true}
+                                                agents={displayAgents}
+                                                workspaceVersion={workspaceVersion}
+                                                onSaveOutcome={handleOpenSaveOutcome}
+                                                isMiniAssistant={true}
+                                            />
+                                        </div>
+                                    </div>
                                 )}
                             </div>
 
                             {/* Right Panel: Trace & Audit or Enterprise Agents Panel */}
-                            {workspaceVersion === 'enterprise' || workspaceVersion === 'professional' || workspaceVersion === 'foundation' ? (
+                            {(workspaceVersion === 'enterprise' || workspaceVersion === 'professional' || workspaceVersion === 'foundation') && !activeAgentAppId ? (
                                 <div className={`${isTracePanelOpen ? 'w-96 border-l' : 'w-0 border-none'} h-full flex-shrink-0 border-gray-200 z-10 bg-white transition-all duration-300 ease-in-out overflow-hidden`}>
                                     <div className="w-96 h-full">
                                         <TracePanel 
@@ -1347,7 +1394,14 @@ const App: React.FC = () => {
                                             onToggle={() => setIsTracePanelOpen(!isTracePanelOpen)}
                                             workspaceVersion={workspaceVersion}
                                             onCreateReport={() => setIsReportModalOpen(true)}
-                                            onSelectAgent={(id) => setConfigAgentId(id)}
+                                            onSelectAgent={(id) => {
+                                                if (id === 'well_decline') {
+                                                    setActiveAgentAppId('well_decline');
+                                                    setIsTracePanelOpen(false);
+                                                } else {
+                                                    setConfigAgentId(id);
+                                                }
+                                            }}
                                             onViewAllHistory={() => setIsExecutionHistoryPageOpen(true)}
                                             onUpdateAgentStatus={(id, status) => setAgents(prev => prev.map(a => a.id === id ? { ...a, status } : a))}
                                             onHistoryClick={handleHistoryClick}
@@ -1357,6 +1411,9 @@ const App: React.FC = () => {
                                 </div>
                             ) : null}
                         </div>
+
+                        {/* Evidence Chain Panel */}
+                        <EvidenceChainPanel lang={lang} />
 
                         {/* Modal Overlay for Add Resource */}
                         {isAddResourcePageOpen && (
