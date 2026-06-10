@@ -5,6 +5,7 @@ import { Language, SkillEntry } from '../types';
 
 interface AdminSkillManagementProps {
   lang: Language;
+  onCreateSceneSkill?: () => void;
 }
 
 const MOCK_SKILLS: SkillEntry[] = [
@@ -150,7 +151,7 @@ const MOCK_SKILLS: SkillEntry[] = [
   }
 ];
 
-export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang }) => {
+export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang, onCreateSceneSkill }) => {
   const [skills, setSkills] = useState<SkillEntry[]>(MOCK_SKILLS);
   const [activeCategory, setActiveCategory] = useState<'All' | 'Business' | 'General'>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -276,6 +277,13 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
               className="pl-9 pr-4 py-2 bg-slate-100 border-none rounded-xl text-xs w-64 focus:ring-2 focus:ring-indigo-500 transition-all"
             />
           </div>
+          <button 
+            onClick={() => onCreateSceneSkill?.()}
+            className="px-4 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl text-xs font-bold shadow-sm hover:bg-indigo-100 transition-all flex items-center gap-2"
+          >
+            <i className="fas fa-magic"></i>
+            {lang === 'zh' ? '创建场景技能' : 'Create Scene Skill'}
+          </button>
           <button 
             onClick={() => handleOpenModal()}
             className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2"

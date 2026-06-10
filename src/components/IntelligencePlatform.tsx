@@ -13,6 +13,7 @@ import { AdminSkillManagement } from './AdminSkillManagement';
 import { AdminToolManagement } from './AdminToolManagement';
 import { AdminWorkflowManagement } from './AdminWorkflowManagement';
 import { AdminSemanticManagement } from './AdminSemanticManagement';
+import { SceneSkillWizard } from './SceneSkillWizard';
 
 interface IntelligencePlatformProps {
   lang: Language;
@@ -69,7 +70,7 @@ const MOCK_FEEDBACK: FeedbackEntry[] = [
     { id: 'fb-4', timestamp: '2024-05-17 14:00', user: '王建国', mbu: '地震解释', notebookName: '构造解释 NB-04', type: 'Error', status: 'Resolved', content: '层位追踪出现明显偏差。', processor: '管理员', result: '已修正知识库索引' },
 ];
 
-type AdminModule = 'audit' | 'feedback' | 'agentManagement' | 'toolManagement' | 'skillManagement' | 'workflowManagement' | 'semanticManagement' | 'nerModelManagement' | 'llmManagement' | 'llmConfig' | 'corpusManagement' | 'trainingSetManagement';
+type AdminModule = 'audit' | 'feedback' | 'agentManagement' | 'toolManagement' | 'skillManagement' | 'workflowManagement' | 'semanticManagement' | 'nerModelManagement' | 'llmManagement' | 'llmConfig' | 'corpusManagement' | 'trainingSetManagement' | 'sceneSkillWizard';
 
 export const IntelligencePlatform: React.FC<IntelligencePlatformProps> = ({ lang }) => {
   const t = translations[lang];
@@ -84,6 +85,8 @@ export const IntelligencePlatform: React.FC<IntelligencePlatformProps> = ({ lang
   // Feedback States
   const [feedbackStatusTab, setFeedbackStatusTab] = useState<'Pending' | 'Resolved'>('Pending');
   const [feedbackTypeFilter, setFeedbackTypeFilter] = useState<string>('all');
+
+  // New import (I'll add it in the imports section too)
 
   // --- Render Functions ---
 
@@ -521,8 +524,19 @@ export const IntelligencePlatform: React.FC<IntelligencePlatformProps> = ({ lang
          {activeModule === 'audit' && renderAuditLogs()}
          {activeModule === 'feedback' && renderFeedback()}
          {activeModule === 'agentManagement' && <AdminAgentManagement lang={lang} />}
-         {activeModule === 'skillManagement' && <AdminSkillManagement lang={lang} />}
+         {activeModule === 'skillManagement' && (
+           <AdminSkillManagement 
+             lang={lang} 
+             onCreateSceneSkill={() => setActiveModule('sceneSkillWizard')} 
+           />
+         )}
          {activeModule === 'toolManagement' && <AdminToolManagement lang={lang} />}
+         {activeModule === 'sceneSkillWizard' && (
+           <SceneSkillWizard 
+             lang={lang} 
+             onBack={() => setActiveModule('skillManagement')} 
+           />
+         )}
          {activeModule === 'workflowManagement' && <AdminWorkflowManagement lang={lang} />}
          {activeModule === 'semanticManagement' && renderSemanticManagement()}
          {activeModule === 'nerModelManagement' && renderNERModelManagement()}
