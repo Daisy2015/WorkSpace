@@ -1406,6 +1406,7 @@ const App: React.FC = () => {
                                             onUpdateAgentStatus={(id, status) => setAgents(prev => prev.map(a => a.id === id ? { ...a, status } : a))}
                                             onHistoryClick={handleHistoryClick}
                                             agents={displayAgents}
+                                            onOpenProReport={() => setIsResourcePanelOpen(false)}
                                         />
                                     </div>
                                 </div>

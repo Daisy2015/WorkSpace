@@ -5,7 +5,7 @@ import { ReportTemplateModal } from './ReportTemplateModal';
 import { AgentRunManager } from './enterprise/AgentRunManager';
 
 import { SmartReportCreateModal } from './SmartReportCreateModal';
-import { SmartProReportCreateModal } from './SmartProReportCreateModal';
+import { ProfessionalReportWizard } from './ProfessionalReportWizard';
 import { SmartPPTCreateModal } from './SmartPPTCreateModal';
 import { SmartChartCreateModal } from './SmartChartCreateModal';
 import { SmartProChartCreateModal } from './SmartProChartCreateModal';
@@ -23,6 +23,7 @@ interface TracePanelProps {
   workspaceVersion?: string;
   onCreateReport?: () => void;
   onSelectAgent?: (agentId: string) => void;
+  onOpenProReport?: () => void;
   onViewAllHistory?: () => void;
   onUpdateAgentStatus?: (id: string, status: Agent['status']) => void;
   onHistoryClick?: (item: any) => void;
@@ -37,6 +38,7 @@ export const TracePanel: React.FC<TracePanelProps> = ({
   workspaceVersion = 'foundation',
   onCreateReport,
   onSelectAgent,
+  onOpenProReport,
   onViewAllHistory,
   onUpdateAgentStatus,
   onHistoryClick,
@@ -49,7 +51,7 @@ export const TracePanel: React.FC<TracePanelProps> = ({
 
   const [managedAgentId, setManagedAgentId] = useState<string | null>(null);
   const [isSmartReportModalOpen, setIsSmartReportModalOpen] = useState(false);
-  const [isSmartProReportModalOpen, setIsSmartProReportModalOpen] = useState(false);
+  const [isProReportWizardOpen, setIsProReportWizardOpen] = useState(false);
   const [isSmartPPTModalOpen, setIsSmartPPTModalOpen] = useState(false);
   const [isSmartChartModalOpen, setIsSmartChartModalOpen] = useState(false);
   const [isSmartProChartModalOpen, setIsSmartProChartModalOpen] = useState(false);
@@ -94,7 +96,7 @@ export const TracePanel: React.FC<TracePanelProps> = ({
     { id: 'res_eval', name: lang === 'zh' ? '储层评价岗' : '储层评价专家', icon: 'fa-layer-group', color: 'bg-emerald-50 text-emerald-600' },
     { id: 'safety_off', name: lang === 'zh' ? '安全监督岗' : '安全监督专家', icon: 'fa-shield-alt', color: 'bg-red-50 text-red-600' },
   ] : isPro ? [
-    { id: 'pro_report', name: lang === 'zh' ? '专业报告' : 'Pro Report', icon: 'fa-file-alt', color: 'bg-blue-50 text-blue-600' },
+    { id: 'pro_report', name: lang === 'zh' ? '钻井地质设计报告' : 'Drilling Geo Design Report', icon: 'fa-file-alt', color: 'bg-blue-50 text-blue-600' },
     { id: 'pro_ppt', name: lang === 'zh' ? '专业PPT' : 'Pro PPT', icon: 'fa-file-powerpoint', color: 'bg-orange-50 text-orange-600' },
     { id: 'well_decline', name: lang === 'zh' ? '单井产量下降诊断' : 'Single Well Decline Diagnosis', icon: 'fa-stethoscope', color: 'bg-red-50 text-red-600' },
     { id: 'scheme', name: lang === 'zh' ? '方案优选' : 'Scheme Selection', icon: 'fa-check-double', color: 'bg-green-50 text-green-600' },
@@ -153,10 +155,11 @@ export const TracePanel: React.FC<TracePanelProps> = ({
     }, 5000);
   };
 
-  const handleGenerateProReport = (data: { topic: string; template: string; language: string }) => {
+  const handleGenerateProReport = (data: any) => {
+    const topic = data.well?.name || (lang === 'zh' ? '钻井地质设计报告' : 'Drilling Geo Design Report');
     const newSession = {
       id: Date.now().toString(),
-      title: `${data.topic} (${data.template})`,
+      title: `${topic} (${lang === 'zh' ? '钻井地质设计' : 'Drilling Geo Design'})`,
       expertId: 'pro_report',
       time: lang === 'zh' ? '刚刚' : 'Just now',
       status: 'processing'
@@ -374,7 +377,8 @@ export const TracePanel: React.FC<TracePanelProps> = ({
                     if (tool.id === 'report') {
                       setIsSmartReportModalOpen(true);
                     } else if (tool.id === 'pro_report') {
-                      setIsSmartProReportModalOpen(true);
+                      setIsProReportWizardOpen(true);
+                      onOpenProReport?.();
                     } else if (tool.id === 'ppt') {
                       setIsSmartPPTModalOpen(true);
                     } else if (tool.id === 'chart') {
@@ -560,9 +564,9 @@ export const TracePanel: React.FC<TracePanelProps> = ({
         onGenerate={handleGenerateReport}
         lang={lang}
       />
-      <SmartProReportCreateModal 
-        isOpen={isSmartProReportModalOpen} 
-        onClose={() => setIsSmartProReportModalOpen(false)}
+      <ProfessionalReportWizard 
+        isOpen={isProReportWizardOpen} 
+        onClose={() => setIsProReportWizardOpen(false)}
         onGenerate={handleGenerateProReport}
         lang={lang}
       />
