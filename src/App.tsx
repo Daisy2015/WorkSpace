@@ -29,6 +29,7 @@ import { EvidenceChainPanel } from './components/EvidenceChainPanel';
 import { AgentConfigWizard } from './components/enterprise/AgentConfigWizard';
 import { ResourceDetailModal } from './components/ResourceDetailModal';
 import { WellDeclineDiagnosis } from './components/WellDeclineDiagnosis';
+import { ReportGenerationAgent } from './components/ReportGenerationAgent';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESOURCE_TREE, MOCK_TEMPLATES } from './constants';
@@ -95,6 +96,12 @@ const App: React.FC = () => {
   const [outcomeToSave, setOutcomeToSave] = useState<{ name: string } | null>(null);
   const [activeAgentAppId, setActiveAgentAppId] = useState<string | null>(null);
   const [isAssistantExpanded, setIsAssistantExpanded] = useState(true);
+
+  // Pro Report Generation State
+  const [isReportModeActive, setIsReportModeActive] = useState(false);
+  const [reportConfig, setReportConfig] = useState<any>(null);
+  const [originalResourceTree, setOriginalResourceTree] = useState<ResourceNode[]>([]);
+  const [originalObjectScope, setOriginalObjectScope] = useState<any[]>([]);
 
   // Resource Detail Modal State
   const [selectedResourceForDetail, setSelectedResourceForDetail] = useState<ResourceNode | null>(null);
@@ -199,6 +206,64 @@ const App: React.FC = () => {
     window.addEventListener('bulk-select', handleBulkSelect);
     return () => window.removeEventListener('bulk-select', handleBulkSelect);
   }, []);
+
+  const handleLaunchReport = (data: any) => {
+    setIsReportModeActive(true);
+    setReportConfig(data);
+    setOriginalResourceTree([...resourceTree]);
+    setOriginalObjectScope([...constructionObjectScope]);
+    
+    // Collect all objects from outline for the left sidebar
+    const allWells = new Set<string>();
+    const allBlocks = new Set<string>();
+    const allStructures = new Set<string>();
+    const allHorizons = new Set<string>();
+    const allUnits = new Set<string>();
+
+    if (data.well) allWells.add(data.well.name);
+    
+    data.outline.forEach((node: any) => {
+      node.objectScope.wells.forEach((w: string) => allWells.add(w.replace(/^井：/, '')));
+      node.objectScope.blocks.forEach((b: string) => allBlocks.add(b));
+      node.objectScope.structures.forEach((s: string) => allStructures.add(s));
+      node.objectScope.horizons.forEach((h: string) => allHorizons.add(h));
+      node.objectScope.reservoirUnits.forEach((r: string) => allUnits.add(r));
+    });
+
+    const reportObjects = [
+      { id: 'wells', label: lang === 'zh' ? '井' : 'Wells', items: Array.from(allWells), color: 'blue', deletable: false },
+      { id: 'blocks', label: lang === 'zh' ? '区块' : 'Blocks', items: Array.from(allBlocks), color: 'emerald', deletable: false },
+      { id: 'structures', label: lang === 'zh' ? '构造' : 'Structures', items: Array.from(allStructures), color: 'purple', deletable: false },
+      { id: 'horizons', label: lang === 'zh' ? '层位' : 'Horizons', items: Array.from(allHorizons), color: 'amber', deletable: false },
+      { id: 'units', label: lang === 'zh' ? '单元' : 'Units', items: Array.from(allUnits), color: 'rose', deletable: false },
+    ].filter(cat => cat.items.length > 0);
+
+    setConstructionObjectScope(reportObjects);
+
+    // Transform MBU resources for the left sidebar
+    const reportResources: ResourceNode[] = [
+      {
+        id: 'mbu-resources',
+        name: lang === 'zh' ? '确定的MBU数字化成果' : 'Determined MBU Resources',
+        type: 'mbu',
+        children: data.outline.map((node: any, idx: number) => ({
+            id: `outline-node-${idx}`,
+            name: node.title,
+            type: 'mbu',
+            children: node.selectedMBUs.map((mbu: any, midx: number) => ({
+                id: `mbu-res-${idx}-${midx}`,
+                name: mbu.name || mbu.id,
+                type: 'artifact',
+                meta: { sourceType: 'system', fileType: 'MBU' }
+            }))
+        })).filter((node: any) => node.children.length > 0)
+      }
+    ];
+
+    setResourceTree(reportResources);
+    setIsTracePanelOpen(false); 
+    setIsResourcePanelOpen(true); 
+  };
 
   // Navigation Handlers
   const handleTabChange = (tab: MainTab) => {
@@ -1309,7 +1374,17 @@ const App: React.FC = () => {
                             {/* Center Panel: Chat or Config */}
                             <div className="flex-1 h-full min-w-0 z-0 bg-gray-50 flex flex-row">
                                 <div className="flex-1 h-full">
-                                    {workspaceVersion === 'enterprise' && configAgentId ? (
+                                    {isReportModeActive ? (
+                                        <ReportGenerationAgent 
+                                            lang={lang}
+                                            config={reportConfig}
+                                            onComplete={() => {
+                                                setIsReportModeActive(false);
+                                                setResourceTree(originalResourceTree);
+                                                setConstructionObjectScope(originalObjectScope);
+                                            }}
+                                        />
+                                    ) : workspaceVersion === 'enterprise' && configAgentId ? (
                                         <AgentConfigWizard 
                                             agent={displayAgents.find(a => a.id === configAgentId) || displayAgents[1]}
                                             onSave={(updated) => {
@@ -1407,6 +1482,7 @@ const App: React.FC = () => {
                                             onHistoryClick={handleHistoryClick}
                                             agents={displayAgents}
                                             onOpenProReport={() => setIsResourcePanelOpen(false)}
+                                            onLaunchReport={handleLaunchReport}
                                         />
                                     </div>
                                 </div>

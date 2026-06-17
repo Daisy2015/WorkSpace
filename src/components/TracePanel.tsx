@@ -27,6 +27,7 @@ interface TracePanelProps {
   onViewAllHistory?: () => void;
   onUpdateAgentStatus?: (id: string, status: Agent['status']) => void;
   onHistoryClick?: (item: any) => void;
+  onLaunchReport?: (data: any) => void;
   agents?: Agent[];
 }
 
@@ -42,6 +43,7 @@ export const TracePanel: React.FC<TracePanelProps> = ({
   onViewAllHistory,
   onUpdateAgentStatus,
   onHistoryClick,
+  onLaunchReport,
   agents = []
 }) => {
   const t = translations[lang];
@@ -156,6 +158,7 @@ export const TracePanel: React.FC<TracePanelProps> = ({
   };
 
   const handleGenerateProReport = (data: any) => {
+    onLaunchReport?.(data);
     const topic = data.well?.name || (lang === 'zh' ? '钻井地质设计报告' : 'Drilling Geo Design Report');
     const newSession = {
       id: Date.now().toString(),
