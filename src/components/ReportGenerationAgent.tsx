@@ -4,507 +4,418 @@ import { motion, AnimatePresence } from 'motion/react';
 interface ReportGenerationAgentProps {
   lang: 'zh' | 'en';
   config: any;
-  onComplete: () => void;
+  onCloseAgent: () => void;
 }
 
-type ChapterStatus = 'completed' | 'running' | 'pending' | 'warning' | 'error';
+type ChapterStatus = 'completed' | 'running' | 'pending' | 'warning';
 
 interface ChapterNode {
   id: string;
   title: string;
-  level: number;
+  level: 1 | 2;
   status: ChapterStatus;
-  content?: string;
-  warning?: string;
-  resources?: string[];
-  processLogs?: string[];
+  content: string;
+  fullContentText: string;
+  warning?: {
+    reason: string;
+    suggestion: string;
+  };
 }
 
 export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({ 
   lang, 
   config,
-  onComplete 
+  onCloseAgent
 }) => {
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+  const [isFollowMode, setIsFollowMode] = useState(true);
   const [chapters, setChapters] = useState<ChapterNode[]>([]);
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [isAutoScroll, setIsAutoScroll] = useState(true);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
-  const [streamingText, setStreamingText] = useState('');
-  const [selectedStatusChapterId, setSelectedStatusChapterId] = useState<string | null>(null);
-  const [chatInput, setChatInput] = useState('');
+  const [highlightedChapterId, setHighlightedChapterId] = useState<string | null>(null);
+  const [hoveredChapterId, setHoveredChapterId] = useState<string | null>(null);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   
   const contentRef = useRef<HTMLDivElement>(null);
-  const activeChapterRef = useRef<HTMLDivElement>(null);
+  const hasStarted = useRef(false);
 
-  // Initialize chapters
+  const objectName = config.well?.name || config.projectName || (lang === 'zh' ? '未命名工区' : 'Unnamed Block');
+
+  // Initialize Chapters
   useEffect(() => {
-    if (config?.outline) {
-      const initialChapters: ChapterNode[] = config.outline.map((node: any) => ({
-        id: node.id,
-        title: node.title,
-        level: node.level,
-        status: 'pending',
-        resources: node.selectedMBUs?.map((m: any) => m.name || m.id) || [],
-        processLogs: []
-      }));
-      setChapters(initialChapters);
-    }
-  }, [config]);
+    const defaultChapters: ChapterNode[] = [
+      { 
+        id: '1', title: lang === 'zh' ? '第一章 基础信息' : 'Chapter 1: Basic Info', level: 1, content: '', status: 'pending',
+        fullContentText: lang === 'zh' 
+          ? `${objectName}位于鄂尔多斯盆地XX区块，设计井深3500m，井别为评价井。该井主要勘探目的层为长6段，旨在评价区域含油气性及储层发育状况。本井由分公司承担钻探任务，预计于2026年第三季度开钻。`
+          : `${objectName} is located in Ordos Basin, with a designed depth of 3500m. It is an appraisal well targeting the Chang 6 member.`
+      },
+      { 
+        id: '1-1', title: lang === 'zh' ? '1.1 井基本情况' : '1.1 Well Basic Specs', level: 2, content: '', status: 'pending',
+        fullContentText: lang === 'zh'
+          ? '设计井身结构采用三开程序，一开封隔表层松散地层，二开进入主要含油层段，三开完钻并进行试油评价。钻井流体设计采用水基聚合物体系，以满足井壁稳定及环境保护要求。'
+          : 'The well structure adopts a 3-stage program using water-based polymer system for drilling fluids.'
+      },
+      { 
+        id: '2', title: lang === 'zh' ? '第二章 区域地质' : 'Chapter 2: Regional Geology', level: 1, content: '', status: 'pending',
+        fullContentText: lang === 'zh'
+          ? '研究区块位于鄂尔多斯盆地伊陕斜坡中段，构造平缓。区域盖层条件优质，发育多套生油层系，具备良好的成藏背景。地层自上而下发育白垩系、侏罗系及三叠系，厚度变化规律。'
+          : 'The block is situated in the central Yishan Slope of Ordos Basin. It features gentle structures and high-quality regional seals.'
+      },
+      { 
+        id: '3', title: lang === 'zh' ? '第三章 地层预测' : 'Chapter 3: Formation Prediction', level: 1, content: '', status: 'pending',
+        fullContentText: lang === 'zh'
+          ? '根据三维地震资料解释，目标井区地层发育齐全。通过邻井对比及变速成图技术，对目的层深度进行了精细预测，误差控制在合理范围内。'
+          : 'Seismic interpretation shows a complete stratigraphic sequence. Depth prediction was refined using offset well correlation.'
+      },
+      { 
+        id: '3-1', title: lang === 'zh' ? '3.1 地层划分' : '3.1 Stratigraphy', level: 2, content: '', status: 'pending',
+        fullContentText: lang === 'zh'
+          ? '根据测井响应特征，本区块地层划分方案明确。自地壳表层向下，地层序列稳定，主要目的层长6段预计在钻遇深度3250m处呈现明显的岩性突变。'
+          : 'Based on log responses, the stratigraphic scheme is clear. The primary target Chang 6 is expected at 3250m.'
+      },
+      { 
+        id: '3-2', title: lang === 'zh' ? '3.2 地层界面预测' : '3.2 Interface Prediction', level: 2, content: '', status: 'pending',
+        fullContentText: lang === 'zh'
+          ? '预测结果显示，陆相碎屑岩盖层与储集层界面清晰。预计目标井将在3250m进入长6层，预测深度准确率超过98%。'
+          : 'Predicted entry into Chang 6 is at 3250m with high accuracy.'
+      },
+      { 
+        id: '4', title: lang === 'zh' ? '第四章 压力预测' : 'Chapter 4: Pressure Prediction', level: 1, content: '', status: 'pending',
+        fullContentText: lang === 'zh'
+          ? '根据声波时差及电阻率测井资料，结合邻井钻探压力测试，预测该井地层压力梯度为1.02-1.08 MPa/100m。破裂压力预测值约为2.15 MPa/100m，为井控安全提供重要参考。'
+          : 'Predicted formation pressure gradient is 1.02-1.08 MPa/100m.',
+        warning: {
+          reason: lang === 'zh' ? '缺少该区块实测压力资料' : 'Missing actual pressure data',
+          suggestion: lang === 'zh' ? '已采用标准模板完成基础生成，建议审阅阶段补充资料后重新生成。' : 'Basic generation completed using templates. Review recommended.'
+        }
+      },
+      { 
+        id: '5', title: lang === 'zh' ? '第五章 完井设计' : 'Chapter 5: Completion Design', level: 1, content: '', status: 'pending',
+        fullContentText: lang === 'zh'
+          ? '完井方式推荐采用套管固井射孔完井，选用P110级套管，以应对主力油层的地层强度与后期增产措施的需求。'
+          : 'P110 casing and cemented completion with perforation is recommended.'
+      }
+    ];
 
-  const suggestedQuestions = [
-    lang === 'zh' ? '当前地层预测的精度如何？' : 'What is the accuracy of the current stratigraphic prediction?',
-    lang === 'zh' ? '报告中引用的邻井资料有哪些？' : 'Which offset well data is referenced in the report?',
-    lang === 'zh' ? '针对资料不足的章节，建议如何补充？' : 'How should missing data for incomplete chapters be addressed?',
-  ];
-
-  const renderRichContent = (chapterTitle: string, index: number) => {
-    if (index === 0) {
-      return `
-        <div class="mb-6 overflow-hidden border border-slate-100 rounded-xl">
-          <table class="min-w-full divide-y divide-slate-100">
-            <thead class="bg-slate-50">
-              <tr>
-                <th class="px-4 py-2 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">${lang === 'zh' ? '参数名称' : 'Parameter'}</th>
-                <th class="px-4 py-2 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">${lang === 'zh' ? '预测值' : 'Predicted'}</th>
-                <th class="px-4 py-2 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">${lang === 'zh' ? '单位' : 'Unit'}</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-50">
-              <tr><td class="px-4 py-2 text-[11px] font-bold text-slate-600">设计井深</td><td class="px-4 py-2 text-[11px] text-slate-500">3500.00</td><td class="px-4 py-2 text-[11px] text-slate-400">m</td></tr>
-              <tr><td class="px-4 py-2 text-[11px] font-bold text-slate-600">目的层段</td><td class="px-4 py-2 text-[11px] text-slate-500">长6</td><td class="px-4 py-2 text-[11px] text-slate-400">-</td></tr>
-              <tr><td class="px-4 py-2 text-[11px] font-bold text-slate-600">预测压降</td><td class="px-4 py-2 text-[11px] text-slate-500">2.41</td><td class="px-4 py-2 text-[11px] text-slate-400">MPa</td></tr>
-            </tbody>
-          </table>
-        </div>
-      `;
-    }
-    if (index === 2) {
-        return `
-            <div class="my-8 p-6 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center">
-                <div class="w-full h-32 flex items-end gap-2 mb-4 px-10">
-                    <div class="flex-1 bg-indigo-500/10 border-t-2 border-indigo-500 h-[60%]"></div>
-                    <div class="flex-1 bg-indigo-500/20 border-t-2 border-indigo-500 h-[80%]"></div>
-                    <div class="flex-1 bg-indigo-500/10 border-t-2 border-indigo-500 h-[45%]"></div>
-                    <div class="flex-1 bg-indigo-500/30 border-t-2 border-indigo-500 h-[95%]"></div>
-                    <div class="flex-1 bg-indigo-500/10 border-t-2 border-indigo-500 h-[30%]"></div>
-                </div>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${lang === 'zh' ? '图 3.1: 地层压力梯度演化模拟图' : 'Fig 3.1: Stratigraphic Pressure Gradient Simulation'}</span>
-            </div>
-        `;
-    }
-    return '';
-  };
+    setChapters(defaultChapters);
+  }, [lang, objectName]);
 
   // Simulation Logic
   useEffect(() => {
-    if (chapters.length === 0) return;
+    if (chapters.length === 0 || hasStarted.current) return;
+    hasStarted.current = true;
 
     const runSimulation = async () => {
-      for (let i = 0; i < chapters.length; i++) {
-        const chapter = chapters[i];
+      setIsGenerating(true);
+      let chapterStates = [...chapters];
+
+      for (let i = 0; i < chapterStates.length; i++) {
+        const chapter = chapterStates[i];
         setActiveChapterId(chapter.id);
-        
-        setChapters(prev => prev.map(c => c.id === chapter.id ? { ...c, status: 'running', processLogs: [lang === 'zh' ? '正在连接资源中心...' : 'Connecting to resources...'] } : c));
-        
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setChapters(prev => prev.map(c => c.id === chapter.id ? { ...c, processLogs: [...(c.processLogs || []), lang === 'zh' ? '提取专业上下文并对齐中...' : 'Extracting and aligning context...'] } : c));
+        setChapters(prev => prev.map(c => c.id === chapter.id ? { ...c, status: 'running' } : c));
 
-        const mockTexts = [
-          lang === 'zh' ? '依据钻井基础设计要求，结合区块地质特征，本次设计重点关注地层划分的连续性与构造形态的稳定性。邻井资料分析显示，区域内长6层段发育稳定，厚度集中在20-35m之间。' : 'According to drilling design requirements and block geology, this design focuses on stratigraphic continuity. Offset well analysis shows stable development in the Chang 6 segment.',
-          lang === 'zh' ? `针对${config.well?.name || '井：长庆XX-1井'}的工程目标，通过对比XX-2、XX-3井的测井曲线，精准锁定了目的层段的顶底界面，预测误差控制在合理范围内。` : `For the engineering objectives of ${config.well?.name || 'Well: Changqing XX-1'}, precision locking of top/bottom interfaces was achieved via target offset logs.`,
-          lang === 'zh' ? '正在调用地层预测MBU进行深度拟合。当前模拟结果显示，地层界面起伏较为平缓，局部存在微幅度构造形变。建议在钻进过程中加强随钻监测。' : 'Calling stratigraphic prediction MBU for depth fitting. Current simulation shows gentle stratigraphic fluctuations with minor local structural deformation.',
-          lang === 'zh' ? '通过多源数据融合分析，明确了目标区块的储层展布规律。储层平均孔隙度预测为12.4%，属于低孔低渗储层，需匹配相应的提产增产工艺。' : 'Fusion analysis determined reservoir distribution patterns. Average porosity predicted at 12.4%, typical low porosity and permeability behavior.',
-        ];
-        
-        const baseText = mockTexts[i % mockTexts.length];
-        const richExtra = renderRichContent(chapter.title, i);
-        const fullContent = (i % 2 === 0 ? richExtra : '') + baseText + (i % 2 !== 0 ? richExtra : '');
-
-        for (let charIdx = 0; charIdx <= baseText.length; charIdx++) {
-          setStreamingText(baseText.substring(0, charIdx));
-          await new Promise(resolve => setTimeout(resolve, 15));
+        const text = chapter.fullContentText;
+        let displayed = '';
+        for (let j = 0; j < text.length; j++) {
+          displayed += text[j];
+          setChapters(prev => prev.map(c => c.id === chapter.id ? { ...c, content: displayed } : c));
           
-          if (isAutoScroll && activeChapterRef.current) {
-            activeChapterRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
-          }
+          await new Promise(r => setTimeout(r, 10 + Math.random() * 15));
         }
 
-        // Finish chapter
-        const isWarning = chapter.title.includes('储层') || i === 3;
-        setChapters(prev => prev.map(c => 
-          c.id === chapter.id 
-            ? { 
-                ...c, 
-                status: isWarning ? 'warning' : 'completed', 
-                content: fullContent,
-                warning: isWarning ? (lang === 'zh' ? '缺少 XX-3 井测井资料，已基于企业规范及邻井物性分布统计生成基础预测内容。' : 'Missing XX-3 log data, generated basic predictions based on enterprise standards and offset distributions.') : undefined,
-                processLogs: [...(c.processLogs || []), lang === 'zh' ? '章节生成校验通过。' : 'Chapter generation verified.']
-              } 
-            : c
-        ));
-        setStreamingText('');
-        setProgress(Math.floor(((i + 1) / chapters.length) * 100));
+        const isWarning = !!chapter.warning;
+        setChapters(prev => prev.map(c => c.id === chapter.id ? { ...c, status: isWarning ? 'warning' : 'completed' } : c));
         
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(r => setTimeout(r, 400));
       }
+
+      setIsCompleted(true);
       setActiveChapterId(null);
+      setIsGenerating(false);
     };
 
     runSimulation();
-  }, [chapters.length, lang]);
+  }, [chapters.length]);
+
+  useEffect(() => {
+    if (isFollowMode && isGenerating && contentRef.current) {
+        const container = contentRef.current;
+        container.scrollTo({
+            top: container.scrollHeight,
+            behavior: 'smooth'
+        });
+    }
+  }, [isGenerating, isFollowMode]);
+
+  const scrollToActiveChapter = (id: string, isSmooth = true) => {
+    const el = document.getElementById(`doc-chapter-${id}`);
+    const container = contentRef.current;
+    if (el && container) {
+        const rect = el.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        
+        // Use the relative position of the writing head in the container
+        const elementBottom = rect.bottom - containerRect.top;
+        const viewportHeight = containerRect.height;
+        
+        // Threshold: Keep the "cursor" at about 70% of the screen height
+        if (elementBottom > viewportHeight * 0.7) {
+            const scrollAmount = elementBottom - (viewportHeight * 0.7);
+            container.scrollBy({ 
+                top: scrollAmount, 
+                behavior: isSmooth ? 'smooth' : 'auto' 
+            });
+        }
+    }
+  };
+
+  const scrollToChapterTop = (id: string) => {
+    const el = document.getElementById(`doc-chapter-${id}`);
+    const container = contentRef.current;
+    if (el && container) {
+        const rect = el.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        
+        // Absolute scroll position = Current Scroll + Element Top Offset - Header Margin
+        const targetScrollTop = container.scrollTop + (rect.top - containerRect.top) - 20;
+        
+        container.scrollTo({ 
+            top: targetScrollTop, 
+            behavior: 'smooth' 
+        });
+    }
+  };
+
+  const handleDirectoryClick = (id: string) => {
+    scrollToChapterTop(id);
+    setHighlightedChapterId(id);
+    setTimeout(() => setHighlightedChapterId(null), 3000);
+  };
+
+  const getStatusIcon = (status: ChapterStatus) => {
+    switch (status) {
+      case 'completed': return <i className="fas fa-check-circle text-green-500"></i>;
+      case 'running': return <i className="fas fa-circle-notch fa-spin text-indigo-500"></i>;
+      case 'warning': return <i className="fas fa-exclamation-triangle text-amber-500"></i>;
+      default: return <i className="far fa-circle text-slate-300"></i>;
+    }
+  };
 
   return (
-    <div className="h-full flex flex-col bg-white overflow-hidden">
-      {/* 顶部标题区 */}
-      <div className="h-16 px-8 flex items-center justify-between border-b border-slate-100 z-30">
-        <div className="flex items-center gap-6">
-          <h2 className="text-sm font-black text-slate-800 tracking-wider">
-            {lang === 'zh' ? '钻井地质设计报告智能生成系统' : 'Drilling Geo Design Report Agent'}
-          </h2>
+    <div className="flex flex-col h-full bg-[#f8fafc] overflow-hidden font-sans text-slate-900" onClick={e => e.stopPropagation()}>
+      {/* Universal Document Header */}
+      <div className="w-full h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-30 shadow-sm">
           <div className="flex items-center gap-4">
-            <div className={`flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-bold ${
-              activeChapterId ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${activeChapterId ? 'bg-indigo-500 animate-pulse' : 'bg-emerald-500'}`}></span>
-              {activeChapterId ? (lang === 'zh' ? '正在编写' : 'Processing') : (lang === 'zh' ? '已完成' : 'Completed')}
-            </div>
-            {activeChapterId && (
-              <div className="flex items-center gap-2">
-                 <div className="w-32 h-1 bg-slate-100 rounded-full overflow-hidden">
-                    <motion.div animate={{ width: `${progress}%` }} className="h-full bg-indigo-500" />
-                 </div>
-                 <span className="text-[10px] font-black text-indigo-600 tabular-nums">{progress}%</span>
-              </div>
-            )}
+             <button 
+                onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${isSidebarVisible ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:bg-slate-50'}`}
+                title={lang === 'zh' ? '报告目录' : 'Directory'}
+             >
+                <i className="fas fa-bars"></i>
+             </button>
+             <div className="h-4 w-px bg-slate-200"></div>
+             <h1 className="text-xs font-black text-slate-600 tracking-tight flex items-center gap-2">
+               <i className="fas fa-file-word text-blue-600"></i>
+               {objectName}{lang === 'zh' ? ' 钻井地质设计报告' : ' Drilling Geology Design'}.docx
+             </h1>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setIsAssistantOpen(!isAssistantOpen)}
-            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${
-              isAssistantOpen ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-50'
-            }`}
-            title={lang === 'zh' ? '问答助手' : 'Chat Assistant'}
-          >
-            <i className="fas fa-robot text-lg"></i>
-          </button>
-          <div className="w-px h-6 bg-slate-100 mx-1"></div>
-          <button 
-            disabled={progress < 100}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-               progress === 100 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-slate-50 text-slate-400 border border-slate-100'
-            }`}
-          >
-            <i className="fas fa-save"></i>
-            {lang === 'zh' ? '成果保存' : 'Save'}
-          </button>
-          <button 
-            onClick={onComplete}
-            className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
-          >
-            <i className="fas fa-times text-lg"></i>
-          </button>
-        </div>
+          
+          <div className="flex items-center gap-1.5">
+            <button className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 transition-all" title={lang === 'zh' ? '下载' : 'Download'}>
+              <i className="fas fa-download"></i>
+            </button>
+            <button 
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 transition-all" 
+              title={lang === 'zh' ? '全屏' : 'Fullscreen'}
+            >
+              <i className="fas fa-expand"></i>
+            </button>
+            <button className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 transition-all font-bold" title={lang === 'zh' ? '保存' : 'Save'}>
+              <i className="fas fa-floppy-disk"></i>
+            </button>
+          </div>
       </div>
 
       <div className="flex-1 flex overflow-hidden relative">
-        {/* 左侧目录 */}
-        <motion.div 
-            initial={false}
-            animate={{ width: isSidebarOpen ? 320 : 0, opacity: isSidebarOpen ? 1 : 0 }}
-            className="bg-[#f8f9fa] border-r border-slate-200 flex flex-col overflow-hidden"
-        >
-          <div className="p-6 flex-1 flex flex-col min-w-[320px]">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">{lang === 'zh' ? '报告大纲' : 'OUTLINE'}</h3>
-            <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar pr-2">
-                {chapters.map((chapter, idx) => (
-                <div key={chapter.id} className="relative">
-                    <div 
-                    onClick={() => {
-                        document.getElementById(`doc-chapter-${chapter.id}`)?.scrollIntoView({ behavior: 'smooth' });
-                        setIsAutoScroll(false);
-                    }}
-                    style={{ paddingLeft: `${(chapter.level - 1) * 16 + 12}px` }}
-                    className={`group flex items-start gap-3 py-2.5 rounded-xl transition-all cursor-pointer ${
-                        activeChapterId === chapter.id ? 'bg-white shadow-sm ring-1 ring-slate-200 border-white' : 'hover:bg-slate-100 border-transparent'
-                    } border`}
-                    >
-                    <span className="text-[10px] font-mono font-bold text-slate-400 mt-0.5">{idx + 1}.</span>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                        <span className={`text-[12px] truncate ${
-                            activeChapterId === chapter.id ? 'font-black text-slate-900' : 'font-bold text-slate-600'
-                        }`}>
-                            {chapter.title}
-                        </span>
-                        <button 
-                            onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedStatusChapterId(selectedStatusChapterId === chapter.id ? null : chapter.id);
-                            }}
-                            className={`w-5 h-5 rounded-lg flex items-center justify-center transition-all ${
-                            chapter.status === 'completed' ? 'text-emerald-500 hover:bg-emerald-50' :
-                            chapter.status === 'warning' ? 'text-amber-500 hover:bg-amber-50' :
-                            chapter.status === 'running' ? 'text-indigo-600' :
-                            'text-slate-300'
-                            }`}
-                        >
-                            {chapter.status === 'completed' && <i className="fas fa-check-circle"></i>}
-                            {chapter.status === 'warning' && <i className="fas fa-exclamation-triangle"></i>}
-                            {chapter.status === 'running' && <i className="fas fa-circle-notch fa-spin text-[10px]"></i>}
-                            {chapter.status === 'pending' && <i className="far fa-circle text-[10px]"></i>}
-                        </button>
-                        </div>
-                    </div>
-                    </div>
-
-                    {/* 状态详情卡片 */}
-                    <AnimatePresence>
-                    {selectedStatusChapterId === chapter.id && (
-                        <motion.div 
-                        initial={{ opacity: 0, x: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, x: 0, scale: 1 }}
-                        exit={{ opacity: 0, x: 10, scale: 0.95 }}
-                        className="absolute left-[105%] top-0 w-64 bg-white border border-slate-200 rounded-2xl shadow-2xl p-4 z-40"
-                        >
-                        <div className="flex items-center justify-between mb-3 border-b border-slate-50 pb-2">
-                            <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-wider">{lang === 'zh' ? '智能体运行详情' : 'AGENT DETAILS'}</h4>
-                            <button onClick={() => setSelectedStatusChapterId(null)} className="text-slate-300 hover:text-slate-600"><i className="fas fa-times text-[10px]"></i></button>
-                        </div>
-                        
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '生成过程' : 'PROCESS'}</span>
-                            <div className="space-y-2">
-                                {chapter.processLogs?.map((log, lidx) => (
-                                    <div key={lidx} className="flex gap-2 text-[10px] text-slate-500 leading-relaxed font-medium">
-                                    <span className="text-indigo-400 mt-0.5"><i className="fas fa-check text-[7px]"></i></span>
-                                    <span>{log}</span>
-                                    </div>
-                                ))}
-                                {chapter.status === 'running' && (
-                                    <div className="flex gap-2 text-[10px] text-indigo-500 font-bold italic animate-pulse">
-                                    <i className="fas fa-sync fa-spin text-[8px] mt-0.5"></i>
-                                    <span>{lang === 'zh' ? '正在编写并检索知识库...' : 'Writing & Retrieving...'}</span>
-                                    </div>
-                                )}
-                            </div>
-                            </div>
-
-                            {chapter.status === 'warning' && (
-                            <div className="pt-2 border-t border-slate-50">
-                                <span className="text-[9px] font-bold text-amber-500 uppercase tracking-widest">{lang === 'zh' ? '待关注的问题' : 'DETECTED ISSUES'}</span>
-                                <div className="mt-2 p-2.5 bg-amber-50 rounded-xl text-[10px] text-amber-700 leading-normal font-medium border border-amber-100/50">
-                                    {chapter.warning}
-                                </div>
-                            </div>
-                            )}
-                        </div>
-                        </motion.div>
-                    )}
-                    </AnimatePresence>
-                </div>
-                ))}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* 右侧正文区域 */}
-        <div className="flex-1 flex flex-col relative overflow-hidden bg-[#f0f2f5]">
-            {/* Sidebar toggle button - Fixed relative to the content area */}
-            <button 
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="absolute top-6 left-6 w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:shadow-md transition-all z-40"
-            >
-                <i className={`fas ${isSidebarOpen ? 'fa-indent' : 'fa-outdent'}`}></i>
-            </button>
-
-            <div className="flex-1 py-12 px-8 overflow-y-auto custom-scrollbar" ref={contentRef}>
-                <div className="max-w-[840px] mx-auto bg-white min-h-[1180px] shadow-xl p-20 relative">
-              
-                    {/* 文档装饰 */}
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-600"></div>
-                    
-                    {/* 文档头 */}
-                    <div className="text-center mb-32 space-y-8">
-                        <h1 className="text-4xl font-serif font-bold text-slate-900 tracking-tight">{lang === 'zh' ? '钻井地质设计报告' : 'Drilling Geo Design Report'}</h1>
-                        <div className="w-16 h-1 bg-slate-200 mx-auto rounded-full"></div>
-                        <div className="flex justify-center gap-10 text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-                            <div className="flex flex-col items-center gap-1">
-                                <span className="opacity-50">{lang === 'zh' ? '目标井号' : 'WELL ID'}</span>
-                                <span className="text-slate-600">{config.well?.name || '长庆XX-1井'}</span>
-                            </div>
-                            <div className="w-px h-8 bg-slate-100"></div>
-                            <div className="flex flex-col items-center gap-1">
-                                <span className="opacity-50">{lang === 'zh' ? '文件版本' : 'VERSION'}</span>
-                                <span className="text-slate-600">V1.0.0 DRAFT</span>
-                            </div>
-                            <div className="w-px h-8 bg-slate-100"></div>
-                            <div className="flex flex-col items-center gap-1">
-                                <span className="opacity-50">{lang === 'zh' ? '日期' : 'DATE'}</span>
-                                <span className="text-slate-600">{new Date().toLocaleDateString()}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 章节流 */}
-                    <div className="space-y-16">
-                        {chapters.map((chapter, idx) => (
-                        <div 
-                            key={chapter.id} 
-                            id={`doc-chapter-${chapter.id}`}
-                            ref={activeChapterId === chapter.id ? activeChapterRef : null}
-                            className="relative"
-                        >
-                            <div className="mb-8">
-                                <h2 className={`${chapter.level === 1 ? 'text-2xl font-bold border-b border-slate-100 pb-4' : 'text-lg font-bold'} text-slate-900 mb-6 flex items-baseline gap-4`}>
-                                <span className="text-slate-300 font-serif italic text-3xl">{idx + 1}</span>
-                                {chapter.title}
-                                </h2>
-                            </div>
-
-                            <div className="text-slate-700 text-[15px] leading-[1.8] text-justify space-y-6 font-medium px-4">
-                                {chapter.status === 'pending' && (
-                                <div className="py-12 flex flex-col items-center gap-4 text-slate-200">
-                                    <div className="w-full h-px bg-gradient-to-r from-transparent via-slate-100 to-transparent"></div>
-                                    <span className="text-[10px] font-black uppercase tracking-[0.3em]">
-                                        {lang === 'zh' ? '等待智能体生成...' : 'WAITING FOR AGENT'}
-                                    </span>
-                                </div>
-                                )}
-
-                                {chapter.content && (
-                                <div dangerouslySetInnerHTML={{ __html: chapter.content.replace(/\n/g, '<br/>') }} className="prose prose-slate max-w-none prose-sm" />
-                                )}
-
-                                {activeChapterId === chapter.id && (
-                                <div className="relative p-6 bg-indigo-50/20 rounded-2xl border border-indigo-100/30">
-                                    <span className="whitespace-pre-wrap">{streamingText}</span>
-                                    <motion.span 
-                                    animate={{ opacity: [0, 1, 0] }}
-                                    transition={{ repeat: Infinity, duration: 0.8 }}
-                                    className="inline-block w-1.5 h-4 bg-indigo-600 ml-1 translate-y-0.5"
-                                    />
-                                </div>
-                                )}
-                                
-                                {chapter.status === 'warning' && (
-                                <div className="mt-8 p-6 border-l-4 border-amber-400 bg-amber-50/30 rounded-r-2xl shadow-sm">
-                                    <h4 className="text-[11px] font-black text-amber-800 uppercase tracking-widest mb-2 flex items-center gap-2">
-                                        <i className="fas fa-exclamation-triangle"></i>
-                                        {lang === 'zh' ? '业务偏差提示' : 'BUSINESS ALERT'}
-                                    </h4>
-                                    <p className="text-xs text-amber-700/80 leading-relaxed italic">{chapter.warning}</p>
-                                </div>
-                                )}
-                            </div>
-                        </div>
-                        ))}
-                    </div>
-
-                    {/* 页脚 */}
-                    <div className="mt-40 pt-10 border-t border-slate-50 text-center">
-                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.4em] mb-2">
-                            CONFIDENTIAL — MBU INTELLIGENCE WORKSPACE
-                        </p>
-                        <p className="text-[8px] text-slate-300">
-                            Document identification: 2024-DR-001 | Powered by Gemini Multimodal Agent
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {/* 右侧助手侧边栏 */}
+        {/* Directory Sidebar */}
         <AnimatePresence>
-          {isAssistantOpen && (
+          {isSidebarVisible && (
             <motion.div 
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 320, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              className="bg-white border-l border-slate-200 flex flex-col overflow-hidden relative shadow-2xl"
+              initial={{ x: -280, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -280, opacity: 0 }}
+              className="w-72 flex flex-col bg-white border-r border-slate-200 shadow-sm z-20"
             >
-              <div className="flex-1 flex flex-col min-w-[320px]">
-                {/* 助手头部 */}
-                <div className="p-6 border-b border-slate-50">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white text-xs">
-                        <i className="fas fa-robot"></i>
-                      </div>
-                      <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{lang === 'zh' ? '运行中智能体' : 'RUNNING AGENT'}</span>
-                    </div>
-                    <button onClick={() => setIsAssistantOpen(false)} className="text-slate-300 hover:text-slate-600">
-                      <i className="fas fa-times"></i>
-                    </button>
-                  </div>
-                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-2">
-                    <h4 className="text-[12px] font-black text-indigo-600 mb-1">{lang === 'zh' ? '钻井地质设计智能助手' : 'Drilling Geo Design AI'}</h4>
-                    <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-                      {lang === 'zh' ? '我是当前正在执行报告编制的智能助手。您可以随时向我询问报告生成的细节或相关业务逻辑。' : 'I am the AI assistant currently preparing your report. Ask me about generation details or business logic.'}
-                    </p>
-                  </div>
-                </div>
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '文档大纲' : 'OUTLINE'}</span>
+              </div>
 
-                {/* 推荐问题与对话区 */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-                  <div>
-                    <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">{lang === 'zh' ? '推荐问题' : 'SUGGESTED'}</h5>
-                    <div className="space-y-2">
-                      {suggestedQuestions.map((q, idx) => (
-                        <button 
-                          key={idx}
-                          onClick={() => setChatInput(q)}
-                          className="w-full text-left p-3 rounded-xl bg-indigo-50/30 border border-indigo-100/50 hover:bg-indigo-50 transition-all text-[11px] font-bold text-indigo-700 leading-normal"
-                        >
-                          {q}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+              <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar">
+                {chapters.map((chapter) => {
+                  const isActive = activeChapterId === chapter.id;
+                  const isSub = chapter.level === 2;
                   
-                  <div className="pt-4 border-t border-slate-50">
-                     <div className="flex flex-col items-center justify-center py-10 opacity-30">
-                        <i className="fas fa-comments text-2xl text-slate-300 mb-2"></i>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">{lang === 'zh' ? '暂无对话记录' : 'NO HISTORY'}</span>
-                     </div>
-                  </div>
-                </div>
+                  return (
+                    <div key={chapter.id} className="mb-0.5">
+                      <button
+                        onClick={() => handleDirectoryClick(chapter.id)}
+                        onMouseEnter={() => setHoveredChapterId(chapter.id)}
+                        onMouseLeave={() => setHoveredChapterId(null)}
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
+                          isActive ? 'bg-indigo-50/80' : 'hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="w-4 h-4 flex items-center justify-center shrink-0">
+                          {getStatusIcon(chapter.status)}
+                        </div>
+                        <div className={`text-left overflow-hidden ${isSub ? 'pl-4 border-l border-slate-100' : ''}`}>
+                          <p className={`text-[11px] truncate font-bold ${
+                            isActive ? 'text-indigo-600' : chapter.status === 'pending' ? 'text-slate-400' : 'text-slate-700'
+                          }`}>
+                            {chapter.title}
+                          </p>
+                        </div>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
 
-                {/* 输入框 */}
-                <div className="p-6 border-t border-slate-100 bg-white">
-                  <div className="relative">
-                    <textarea 
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      placeholder={lang === 'zh' ? '在此输入您的问题...' : 'Type your question...'}
-                      className="w-full h-24 bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 text-xs font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none"
-                    />
-                    <button className="absolute bottom-3 right-3 w-8 h-8 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">
-                      <i className="fas fa-paper-plane text-[10px]"></i>
-                    </button>
-                  </div>
+              <div className="p-6 border-t border-slate-100 bg-slate-50/30">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-slate-400 tracking-widest">{lang === 'zh' ? '视窗跟随' : 'FOLLOW'}</span>
+                  <button 
+                    onClick={() => setIsFollowMode(!isFollowMode)}
+                    className={`w-9 h-5 rounded-full transition-all relative ${isFollowMode ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                  >
+                    <motion.div animate={{ x: isFollowMode ? 16 : 0 }} className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full" />
+                  </button>
                 </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Paper Workspace */}
+        <div className="flex-1 overflow-hidden relative flex flex-col">
+          <div ref={contentRef} className="report-content-scroll-container flex-1 overflow-y-auto px-12 pt-4 pb-64 custom-scrollbar bg-slate-100/50">
+            <div className="max-w-[816px] mx-auto bg-white shadow-xl min-h-[1056px] p-24 relative mb-20 ring-1 ring-slate-200">
+              {/* Report Cover Elements */}
+              <div className="text-center mb-32 space-y-6">
+                <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-tight">
+                  {lang === 'zh' ? '钻井地质设计报告' : 'Drilling Geology Design Report'}
+                </h1>
+                <div className="w-32 h-1.5 bg-indigo-600 mx-auto rounded-full"></div>
+                <div className="pt-4 text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">{objectName}</div>
+              </div>
+
+              <div className="space-y-16">
+                {chapters.map((chapter) => {
+                  const isWriting = activeChapterId === chapter.id;
+                  const isHighlight = highlightedChapterId === chapter.id;
+                  const showsContent = chapter.status !== 'pending' || isWriting;
+                  const isH1 = chapter.level === 1;
+
+                  return (
+                    <motion.div 
+                      id={`doc-chapter-${chapter.id}`}
+                      key={chapter.id}
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ 
+                        opacity: 1, y: 0,
+                        backgroundColor: isHighlight ? 'rgb(254 249 195)' : 'transparent'
+                      }}
+                      onMouseEnter={() => setHoveredChapterId(chapter.id)}
+                      onMouseLeave={() => setHoveredChapterId(null)}
+                      className="relative rounded-2xl p-4 -mx-4 transition-colors duration-1000 cursor-default"
+                    >
+                      {isH1 ? (
+                        <h2 className="text-2xl font-black text-slate-900 mb-8 tracking-tight border-b-2 border-slate-900/5 pb-4">
+                          {chapter.title}
+                        </h2>
+                      ) : (
+                        <h3 className="text-sm font-black text-slate-500 mb-6 uppercase tracking-[0.1em]">
+                          {chapter.title}
+                        </h3>
+                      )}
+                      
+                      {showsContent && (
+                        <div className="text-[17px] leading-[1.8] text-slate-700 font-medium text-justify">
+                          {chapter.content}
+                          {isWriting && (
+                            <motion.span 
+                              animate={{ opacity: [1, 0] }}
+                              transition={{ repeat: Infinity, duration: 0.8 }}
+                              className="inline-block w-1.5 h-6 bg-indigo-600 ml-1 translate-y-1"
+                            />
+                          )}
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Persistent Completion Status Bar */}
+          <AnimatePresence>
+              {isCompleted && (
+                  <motion.div 
+                      initial={{ y: 80 }} animate={{ y: 0 }}
+                      className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 flex items-center gap-6 px-10 py-5 bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl"
+                  >
+                      <div className="w-12 h-12 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center text-xl">
+                          <i className="fas fa-file-circle-check"></i>
+                      </div>
+                      <div>
+                          <h4 className="text-sm font-black text-slate-900 leading-none mb-1.5">{lang === 'zh' ? '报告编制全面完成' : 'Generation Complete'}</h4>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '文档已自动校对并归档至资源树' : 'Auto-audited & Archived'}</p>
+                      </div>
+                      <button onClick={onCloseAgent} className="bg-slate-900 text-white px-8 py-3 rounded-2xl text-[11px] font-black hover:bg-black transition-all">
+                          {lang === 'zh' ? '退出协作空间' : 'Finish Session'}
+                      </button>
+                  </motion.div>
+              )}
+          </AnimatePresence>
+        </div>
       </div>
-      
-      {/* 底部悬浮控制 */}
-      <div className="fixed bottom-10 right-12 flex gap-3 z-30">
-        <button 
-          onClick={() => setIsAutoScroll(!isAutoScroll)}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-2xl hover:scale-105 active:scale-95 ${
-            isAutoScroll ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border border-slate-200'
-          }`}
-        >
-          <i className={`fas ${isAutoScroll ? 'fa-eye' : 'fa-eye-slash'}`}></i>
-          {lang === 'zh' ? '跟随编写' : 'Auto Follow'}
-        </button>
-      </div>
+
+      {/* Global Detail Overlays for Warnings */}
+      <AnimatePresence>
+          {hoveredChapterId && chapters.find(c => c.id === hoveredChapterId)?.status === 'warning' && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, x: 20 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.95, x: 20 }}
+                className="fixed right-12 top-1/2 -translate-y-1/2 w-80 bg-white border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-[2rem] p-8 z-[100]"
+              >
+                  <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center">
+                        <i className="fas fa-triangle-exclamation"></i>
+                      </div>
+                      <h4 className="text-sm font-black text-slate-800 tracking-tight">
+                        {lang === 'zh' ? '该章节存在生成提示' : 'Chapter Notice'}
+                      </h4>
+                  </div>
+                  <div className="space-y-6 text-xs font-bold leading-relaxed">
+                      <div>
+                          <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-1.5">{lang === 'zh' ? '情况说明' : 'DESCRIPTION'}</p>
+                          <p className="text-slate-600">
+                            {chapters.find(c => c.id === hoveredChapterId)?.warning?.reason}
+                          </p>
+                      </div>
+                      <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
+                          <p className="text-[10px] text-indigo-500 uppercase tracking-widest mb-1.5">{lang === 'zh' ? '协同建议' : 'ADVICE'}</p>
+                          <p className="text-indigo-700 italic">
+                            {chapters.find(c => c.id === hoveredChapterId)?.warning?.suggestion}
+                          </p>
+                      </div>
+                  </div>
+              </motion.div>
+          )}
+      </AnimatePresence>
     </div>
   );
 };

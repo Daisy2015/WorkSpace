@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language } from '../types';
+import { CreateAgentModal } from './CreateAgentModal';
 
 interface AdminAgentManagementProps {
   lang: Language;
@@ -420,6 +421,7 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
   const [selectedAgent, setSelectedAgent] = useState<ManagedAgent | null>(null);
   const [activeTab, setActiveTab] = useState<'basic' | 'capabilities'>('basic');
   const [filterType, setFilterType] = useState<string | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const handleUpdateAgent = (id: string, updates: Partial<ManagedAgent>) => {
     if (selectedAgent && selectedAgent.id === id) {
@@ -480,7 +482,10 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-100">
+          <button 
+            onClick={() => setIsCreateModalOpen(true)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-100"
+          >
             <i className="fas fa-plus"></i>
             {lang === 'zh' ? '新建智能体' : 'New Agent'}
           </button>
@@ -626,32 +631,17 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
                 className="absolute right-0 top-0 bottom-0 w-[600px] bg-white shadow-2xl z-40 flex flex-col border-l border-slate-200"
               >
                 {/* Drawer Header */}
-                <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                <div className="px-8 py-4 border-b border-slate-100 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10">
                   <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${
-                      selectedAgent.type === 'Role' ? 'bg-indigo-100 text-indigo-600' :
-                      selectedAgent.type === 'Scenario' ? 'bg-purple-100 text-purple-600' :
-                      'bg-blue-100 text-blue-600'
-                    }`}>
-                      <i className={`fas ${
-                        selectedAgent.type === 'Role' ? 'fa-user-tie' :
-                        selectedAgent.type === 'Scenario' ? 'fa-cube' :
-                        'fa-bolt'
-                      }`}></i>
+                    <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-lg">
+                      <i className="fas fa-id-card"></i>
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-slate-800">{selectedAgent.name}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-slate-400 font-mono">{selectedAgent.id}</span>
-                        <span className="text-slate-200">•</span>
-                        <span className="text-xs font-bold text-indigo-600">{selectedAgent.currentVersion}</span>
-                      </div>
+                      <h3 className="text-lg font-black text-slate-800">{lang === 'zh' ? '智能体详情' : 'Agent Details'}</h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedAgent.type} • ID: {selectedAgent.id}</p>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => setSelectedAgent(null)}
-                    className="w-10 h-10 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all"
-                  >
+                  <button onClick={() => setSelectedAgent(null)} className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-50 transition-all">
                     <i className="fas fa-times text-lg"></i>
                   </button>
                 </div>
@@ -931,6 +921,11 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
           )}
         </AnimatePresence>
       </div>
+      <CreateAgentModal 
+        isOpen={isCreateModalOpen} 
+        onClose={() => setIsCreateModalOpen(false)} 
+        lang={lang} 
+      />
     </div>
   );
 };

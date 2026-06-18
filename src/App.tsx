@@ -11,6 +11,8 @@ import { ExecutionHistoryPage } from './components/enterprise/ExecutionHistoryPa
 import { Dashboard } from './components/Dashboard';
 import { AdminPanel } from './components/AdminPanel';
 import { IntelligencePlatform } from './components/IntelligencePlatform';
+import { AgentActionBar } from './components/AgentActionBar';
+import { AssistantSidebar } from './components/AssistantSidebar';
 import { KnowledgeBase } from './components/KnowledgeBase';
 import { DocumentEditor } from './components/DocumentEditor';
 import { IntegratedSearchPanel } from './components/IntegratedSearchPanel';
@@ -99,6 +101,7 @@ const App: React.FC = () => {
 
   // Pro Report Generation State
   const [isReportModeActive, setIsReportModeActive] = useState(false);
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [reportConfig, setReportConfig] = useState<any>(null);
   const [originalResourceTree, setOriginalResourceTree] = useState<ResourceNode[]>([]);
   const [originalObjectScope, setOriginalObjectScope] = useState<any[]>([]);
@@ -788,7 +791,7 @@ const App: React.FC = () => {
           
           {/* Logo & Toggle */}
           <div className="h-16 flex items-center justify-between px-3 mb-6 mt-2">
-              <div className="flex items-center gap-3 cursor-pointer overflow-hidden" onClick={() => handleTabChange('dashboard')}>
+              <div className="flex items-center gap-3 cursor-pointer overflow-hidden" onClick={(e) => { e.stopPropagation(); handleTabChange('dashboard'); }}>
                   <div className="w-10 h-10 min-w-[2.5rem] bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg">
                       <span className="font-bold text-white text-lg">J</span>
                   </div>
@@ -1115,6 +1118,7 @@ const App: React.FC = () => {
                             onUpdateWorkspaceName={() => {}}
                             lang={lang}
                             onEditReport={handleEditReport}
+                            activeAgent={agents.find(a => a.status === 'Running')}
                         />
                     </div>
 
@@ -1372,19 +1376,34 @@ const App: React.FC = () => {
                             </div>
 
                             {/* Center Panel: Chat or Config */}
-                            <div className="flex-1 h-full min-w-0 z-0 bg-gray-50 flex flex-row">
-                                <div className="flex-1 h-full">
-                                    {isReportModeActive ? (
-                                        <ReportGenerationAgent 
-                                            lang={lang}
-                                            config={reportConfig}
-                                            onComplete={() => {
-                                                setIsReportModeActive(false);
-                                                setResourceTree(originalResourceTree);
-                                                setConstructionObjectScope(originalObjectScope);
-                                            }}
-                                        />
-                                    ) : workspaceVersion === 'enterprise' && configAgentId ? (
+                            <div className="flex-1 h-full min-w-0 z-0 bg-gray-50 flex flex-col overflow-hidden">
+                                {isReportModeActive && (
+                                    <AgentActionBar 
+                                        lang={lang}
+                                        agentName={lang === 'zh' ? '钻井地质设计专家' : 'Drilling Geo-Design Expert'}
+                                        statusText={lang === 'zh' ? '智能编写中' : 'AI DRAFTING...'}
+                                        isAssistantOpen={isAssistantOpen}
+                                        onToggleAssistant={() => setIsAssistantOpen(!isAssistantOpen)}
+                                        onClose={() => {
+                                            setIsReportModeActive(false);
+                                            setResourceTree(originalResourceTree);
+                                            setConstructionObjectScope(originalObjectScope);
+                                        }}
+                                    />
+                                )}
+                                <div className={`flex-1 relative flex flex-row ${isAssistantOpen && isReportModeActive ? 'pr-[400px]' : ''}`}>
+                                    <div className="flex-1 h-full relative">
+                                        {isReportModeActive ? (
+                                            <ReportGenerationAgent 
+                                                lang={lang}
+                                                config={reportConfig}
+                                                onCloseAgent={() => {
+                                                    setIsReportModeActive(false);
+                                                    setResourceTree(originalResourceTree);
+                                                    setConstructionObjectScope(originalObjectScope);
+                                                }}
+                                            />
+                                        ) : workspaceVersion === 'enterprise' && configAgentId ? (
                                         <AgentConfigWizard 
                                             agent={displayAgents.find(a => a.id === configAgentId) || displayAgents[1]}
                                             onSave={(updated) => {
@@ -1457,8 +1476,9 @@ const App: React.FC = () => {
                                     </div>
                                 )}
                             </div>
+                        </div>
 
-                            {/* Right Panel: Trace & Audit or Enterprise Agents Panel */}
+                        {/* Right Panel: Trace & Audit or Enterprise Agents Panel */}
                             {(workspaceVersion === 'enterprise' || workspaceVersion === 'professional' || workspaceVersion === 'foundation') && !activeAgentAppId ? (
                                 <div className={`${isTracePanelOpen ? 'w-96 border-l' : 'w-0 border-none'} h-full flex-shrink-0 border-gray-200 z-10 bg-white transition-all duration-300 ease-in-out overflow-hidden`}>
                                     <div className="w-96 h-full">
@@ -1542,6 +1562,17 @@ const App: React.FC = () => {
                         />
                     </div>
                 )}
+                <AssistantSidebar 
+                    lang={lang}
+                    isOpen={isAssistantOpen}
+                    onClose={() => setIsAssistantOpen(false)}
+                    agentName={isReportModeActive ? (lang === 'zh' ? '钻井地质设计专家' : 'Drilling Geo-Design Expert') : 'AI Agent'}
+                    onSendMessage={(msg) => {
+                        console.log('Sending message to agent:', msg);
+                        // Here we would ideally call a function in ReportGenerationAgent
+                        // or trigger a regeneration process based on the message.
+                    }}
+                />
             </>
         )}
         <AnimatePresence>
@@ -1808,7 +1839,7 @@ const App: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
-    </div>
+      </div>
   );
 };
 

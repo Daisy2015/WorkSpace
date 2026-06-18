@@ -1,9 +1,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Message, ResourceNode, Language, Workspace } from '../types';
+import { Message, ResourceNode, Language, Workspace, Agent } from '../types';
 import { generateResponse, initializeGemini } from '../services/geminiService';
 import ReactMarkdown from 'react-markdown';
 import { translations } from '../i18n';
+import { Bot, MessageSquare } from 'lucide-react';
+
 
 // --- Subcomponent for rendering individual messages ---
 const ChatMessageItem = ({ 
@@ -264,6 +266,7 @@ interface ChatPanelProps {
   onEditReport: (content: string, msgId: string) => void;
   onToggleTracePanel?: () => void;
   isTracePanelOpen?: boolean;
+  activeAgent?: Agent;
 }
 
 // Flatten for context lookup
@@ -291,7 +294,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   lang,
   onEditReport,
   onToggleTracePanel,
-  isTracePanelOpen
+  isTracePanelOpen,
+  activeAgent,
 }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -533,12 +537,25 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center opacity-40">
-            <div className="w-20 h-20 bg-slate-200 rounded-2xl flex items-center justify-center mb-6">
-                <i className="fas fa-robot text-4xl text-slate-400"></i>
+          <div className="h-full flex flex-col items-center justify-center pt-10">
+            <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-6">
+              <Bot className="w-8 h-8 text-blue-600" />
             </div>
-            <p className="text-xl font-bold text-slate-600">{t.emptyChatTitle}</p>
-            <p className="text-sm text-slate-400 mt-2">{t.emptyChatSubtitle}</p>
+            <h2 className="text-xl font-bold text-slate-800 mb-8">{activeAgent?.name || '智能助手'}</h2>
+            
+            <div className="w-full max-w-md space-y-3">
+              <p className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4 text-center">推荐问题</p>
+              {(activeAgent?.tags || ["如何分析该数据？", "请生成相关报告。", "建议下一步优化方案。"]).map((q, i) => (
+                <button 
+                  key={i}
+                  onClick={() => { setInput(q); }}
+                  className="w-full text-left p-4 bg-white rounded-xl text-sm text-slate-700 hover:text-blue-600 hover:shadow-md border border-slate-200 transition-all flex items-center gap-3"
+                >
+                  <MessageSquare className="w-4 h-4 text-blue-400" />
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
