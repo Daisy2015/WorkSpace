@@ -91,7 +91,7 @@ export const SmartProChartCreateModal: React.FC<SmartProChartCreateModalProps> =
                   value={object}
                   onChange={(e) => setObject(e.target.value)}
                   placeholder={lang === 'zh' ? '请描述您想生成的图件，例如：生成X-1井的长序地层与沉积微相综合柱状图，包含GR、LLS和LLD三条曲线...' : 'Describe what you want to plot...'}
-                  className="w-full h-28 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none shadow-inner"
+                  className="w-full h-10 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none shadow-inner"
                 />
               </div>
 
@@ -120,7 +120,10 @@ export const SmartProChartCreateModal: React.FC<SmartProChartCreateModalProps> =
                   {filteredTemplates.length > 0 ? filteredTemplates.map(t => (
                     <div 
                       key={t.id}
-                      onClick={() => setSelectedTemplate(t.id)}
+                      onClick={() => {
+                        setSelectedTemplate(t.id);
+                        setObject(lang === 'zh' ? `生成${t.name}。` : `Generate ${t.name}.`);
+                      }}
                       className={`group relative flex flex-col rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
                         selectedTemplate === t.id ? 'border-indigo-500 ring-4 ring-indigo-500/10' : 'border-slate-100 hover:border-slate-200'
                       }`}

@@ -20,6 +20,8 @@ interface TracePanelProps {
   resourceTree: ResourceNode[];
   lang: Language;
   onToggle?: () => void;
+  onCollapseResourcePanel?: () => void;
+  onStartProChartGeneration?: () => void;
   workspaceVersion?: string;
   onCreateReport?: () => void;
   onSelectAgent?: (agentId: string) => void;
@@ -36,6 +38,8 @@ export const TracePanel: React.FC<TracePanelProps> = ({
   resourceTree, 
   lang, 
   onToggle, 
+  onCollapseResourcePanel = () => {},
+  onStartProChartGeneration = () => {},
   workspaceVersion = 'foundation',
   onCreateReport,
   onSelectAgent,
@@ -217,6 +221,7 @@ export const TracePanel: React.FC<TracePanelProps> = ({
   };
 
   const handleGenerateProChart = (data: { object: string; chartType: string; template: string }) => {
+    onStartProChartGeneration();
     const newSession = {
       id: Date.now().toString(),
       title: `${data.object} - ${data.template}`,
@@ -387,6 +392,7 @@ export const TracePanel: React.FC<TracePanelProps> = ({
                     } else if (tool.id === 'chart') {
                       setIsSmartChartModalOpen(true);
                     } else if (tool.id === 'pro_chart') {
+                      onCollapseResourcePanel();
                       setIsSmartProChartModalOpen(true);
                     } else if (tool.id === 'well_decline') {
                       onSelectAgent?.(tool.id);

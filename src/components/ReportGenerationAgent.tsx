@@ -5,6 +5,7 @@ interface ReportGenerationAgentProps {
   lang: 'zh' | 'en';
   config: any;
   onCloseAgent: () => void;
+  onComplete?: () => void;
 }
 
 type ChapterStatus = 'completed' | 'running' | 'pending' | 'warning';
@@ -25,7 +26,8 @@ interface ChapterNode {
 export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({ 
   lang, 
   config,
-  onCloseAgent
+  onCloseAgent,
+  onComplete
 }) => {
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [isFollowMode, setIsFollowMode] = useState(true);
@@ -35,9 +37,21 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
   const [hoveredChapterId, setHoveredChapterId] = useState<string | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [selectionPopup, setSelectionPopup] = useState<{ x: number, y: number, text: string } | null>(null);
   
   const contentRef = useRef<HTMLDivElement>(null);
   const hasStarted = useRef(false);
+
+  const handleMouseUp = () => {
+    const selection = window.getSelection();
+    if (selection && selection.toString().trim().length > 0) {
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      setSelectionPopup({ x: rect.left + rect.width / 2, y: rect.top - 10, text: selection.toString().trim() });
+    } else {
+      setSelectionPopup(null);
+    }
+  };
 
   const objectName = config.well?.name || config.projectName || (lang === 'zh' ? '未命名工区' : 'Unnamed Block');
 
@@ -51,10 +65,14 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
           : `${objectName} is located in Ordos Basin, with a designed depth of 3500m. It is an appraisal well targeting the Chang 6 member.`
       },
       { 
-        id: '1-1', title: lang === 'zh' ? '1.1 井基本情况' : '1.1 Well Basic Specs', level: 2, content: '', status: 'pending',
+        id: '1-1', title: lang === 'zh' ? '1.1 井基本情况' : '1.1 Well Basic Specs', level: 2, content: '', status: 'warning',
         fullContentText: lang === 'zh'
           ? '设计井身结构采用三开程序，一开封隔表层松散地层，二开进入主要含油层段，三开完钻并进行试油评价。钻井流体设计采用水基聚合物体系，以满足井壁稳定及环境保护要求。'
-          : 'The well structure adopts a 3-stage program using water-based polymer system for drilling fluids.'
+          : 'The well structure adopts a 3-stage program using water-based polymer system for drilling fluids.',
+        warning: {
+          reason: lang === 'zh' ? '缺少输入的资料' : 'Missing input data',
+          suggestion: lang === 'zh' ? '建议补充井基本信息表' : 'Suggest adding well basic info table'
+        }
       },
       { 
         id: '2', title: lang === 'zh' ? '第二章 区域地质' : 'Chapter 2: Regional Geology', level: 1, content: '', status: 'pending',
@@ -133,6 +151,9 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
       setIsCompleted(true);
       setActiveChapterId(null);
       setIsGenerating(false);
+      if (onComplete) {
+        onComplete();
+      }
     };
 
     runSimulation();
@@ -146,8 +167,16 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
             behavior: 'smooth'
         });
     }
-  }, [isGenerating, isFollowMode]);
+  }, [isGenerating, isFollowMode, chapters]);
 
+  useEffect(() => {
+      // Trigger scroll only once on load for chapter 3
+      const timer = setTimeout(() => {
+        scrollToChapterTop('3');
+      }, 500);
+      return () => clearTimeout(timer);
+  }, []);
+  
   const scrollToActiveChapter = (id: string, isSmooth = true) => {
     const el = document.getElementById(`doc-chapter-${id}`);
     const container = contentRef.current;
@@ -188,6 +217,7 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
   };
 
   const handleDirectoryClick = (id: string) => {
+    setIsFollowMode(false);
     scrollToChapterTop(id);
     setHighlightedChapterId(id);
     setTimeout(() => setHighlightedChapterId(null), 3000);
@@ -245,7 +275,7 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
               initial={{ x: -280, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -280, opacity: 0 }}
-              className="w-72 flex flex-col bg-white border-r border-slate-200 shadow-sm z-20"
+              className="w-72 flex flex-col bg-white border-r border-slate-200 shadow-sm z-20 shrink-0"
             >
               <div className="p-5 border-b border-slate-100 flex items-center justify-between">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '文档大纲' : 'OUTLINE'}</span>
@@ -299,18 +329,9 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
 
         {/* Paper Workspace */}
         <div className="flex-1 overflow-hidden relative flex flex-col">
-          <div ref={contentRef} className="report-content-scroll-container flex-1 overflow-y-auto px-12 pt-4 pb-64 custom-scrollbar bg-slate-100/50">
-            <div className="max-w-[816px] mx-auto bg-white shadow-xl min-h-[1056px] p-24 relative mb-20 ring-1 ring-slate-200">
-              {/* Report Cover Elements */}
-              <div className="text-center mb-32 space-y-6">
-                <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-tight">
-                  {lang === 'zh' ? '钻井地质设计报告' : 'Drilling Geology Design Report'}
-                </h1>
-                <div className="w-32 h-1.5 bg-indigo-600 mx-auto rounded-full"></div>
-                <div className="pt-4 text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">{objectName}</div>
-              </div>
-
-              <div className="space-y-16">
+          <div ref={contentRef} className="report-content-scroll-container flex-1 overflow-y-auto custom-scrollbar bg-slate-100/50 py-[10px]">
+            <div className="max-w-[816px] mx-auto bg-white shadow-xl min-h-[900px] p-10 relative mb-10 ring-1 ring-slate-200">
+              <div className="space-y-[10px]">
                 {chapters.map((chapter) => {
                   const isWriting = activeChapterId === chapter.id;
                   const isHighlight = highlightedChapterId === chapter.id;
@@ -321,34 +342,43 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
                     <motion.div 
                       id={`doc-chapter-${chapter.id}`}
                       key={chapter.id}
-                      initial={{ opacity: 0, y: 15 }}
+                      initial={{ opacity: 0, y: 10 }}
                       animate={{ 
                         opacity: 1, y: 0,
                         backgroundColor: isHighlight ? 'rgb(254 249 195)' : 'transparent'
                       }}
                       onMouseEnter={() => setHoveredChapterId(chapter.id)}
                       onMouseLeave={() => setHoveredChapterId(null)}
-                      className="relative rounded-2xl p-4 -mx-4 transition-colors duration-1000 cursor-default"
+                      className="relative rounded-xl p-3 -mx-3 transition-colors duration-1000 cursor-default"
                     >
                       {isH1 ? (
-                        <h2 className="text-2xl font-black text-slate-900 mb-8 tracking-tight border-b-2 border-slate-900/5 pb-4">
+                        <h2 className="text-xl font-black text-slate-900 mb-4 tracking-tight border-b-2 border-slate-900/5 pb-2">
                           {chapter.title}
                         </h2>
                       ) : (
-                        <h3 className="text-sm font-black text-slate-500 mb-6 uppercase tracking-[0.1em]">
+                        <h3 className="text-xs font-black text-slate-500 mb-3 uppercase tracking-[0.1em]">
                           {chapter.title}
                         </h3>
                       )}
                       
                       {showsContent && (
-                        <div className="text-[17px] leading-[1.8] text-slate-700 font-medium text-justify">
+                        <div 
+                          className="text-[15px] leading-[1.6] text-slate-700 font-medium text-justify"
+                          onMouseUp={handleMouseUp}
+                        >
                           {chapter.content}
                           {isWriting && (
                             <motion.span 
                               animate={{ opacity: [1, 0] }}
                               transition={{ repeat: Infinity, duration: 0.8 }}
-                              className="inline-block w-1.5 h-6 bg-indigo-600 ml-1 translate-y-1"
+                              className="inline-block w-1 h-5 bg-indigo-600 ml-1 translate-y-0.5"
                             />
+                          )}
+                          {chapter.id === '2' && (
+                              <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200 group relative">
+                                  <div className="h-32 bg-slate-200 rounded flex items-center justify-center text-slate-500 font-bold mb-2 text-sm italic">构造图</div>
+                                  <button className="hidden group-hover:flex absolute top-2 right-2 p-2 bg-indigo-600 text-white rounded-lg text-[10px] font-bold">替换</button>
+                              </div>
                           )}
                         </div>
                       )}
@@ -378,6 +408,23 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
                       </button>
                   </motion.div>
               )}
+          </AnimatePresence>
+
+          {/* AI Rewriting Popup */}
+          <AnimatePresence>
+            {selectionPopup && (
+              <motion.div 
+                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
+                className="fixed z-[100] bg-white border border-slate-200 shadow-xl rounded-lg p-1 flex gap-1 -translate-x-1/2 -translate-y-full"
+                style={{ left: selectionPopup.x, top: selectionPopup.y }}
+              >
+                {['润色', '扩写', '缩写'].map(action => (
+                    <button key={action} className="px-3 py-1 text-[11px] font-bold text-slate-700 hover:bg-slate-100 rounded-md">
+                        {action}
+                    </button>
+                ))}
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
       </div>

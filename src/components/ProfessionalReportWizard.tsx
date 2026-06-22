@@ -164,6 +164,25 @@ export const ProfessionalReportWizard: React.FC<ProfessionalReportWizardProps> =
   const [activeChapterId, setActiveChapterId] = useState<string>('4');
   const [expandedMBUId, setExpandedMBUId] = useState<string | null>(null);
   const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null);
+  const [isAddMbuOpen, setIsAddMbuOpen] = useState(false);
+
+  const handleAddMbu = (mbuDef: any) => {
+    setOutlineNodes(prev => prev.map(n => {
+      if (n.id === activeChapterId) {
+        return {
+          ...n,
+          selectedMBUs: [
+            ...n.selectedMBUs,
+            {
+              id: mbuDef.id,
+              categories: { inputs: [], process: [], outcome: [], management: [], standards: [], questions: [] }
+            }
+          ]
+        };
+      }
+      return n;
+    }));
+  };
 
   // Mock Resource Database
   const resourceDatabase: any = {
@@ -651,9 +670,28 @@ export const ProfessionalReportWizard: React.FC<ProfessionalReportWizardProps> =
 
               {/* MBU Resource Configuration */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2 px-1">
-                  <div className="w-1.5 h-4 bg-slate-300 rounded-full"></div>
-                  <h5 className="text-xs font-bold text-slate-600 uppercase tracking-wider">{lang === 'zh' ? 'MBU 资源内容' : 'MBU Resources'}</h5>
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-slate-300 rounded-full"></div>
+                    <h5 className="text-xs font-bold text-slate-600 uppercase tracking-wider">{lang === 'zh' ? 'MBU 资源内容' : 'MBU Resources'}</h5>
+                  </div>
+                  <button 
+                    onClick={() => setIsAddMbuOpen(!isAddMbuOpen)}
+                    className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg font-bold hover:bg-indigo-100 relative"
+                  >
+                    {lang === 'zh' ? '+ 添加 MBU' : '+ Add MBU'}
+                    {isAddMbuOpen && (
+                        <div className="absolute right-0 top-7 z-50 bg-white shadow-xl rounded-xl border border-slate-100 p-2 w-48">
+                          {mbuDefinitions.filter(m => !activeNode.selectedMBUs.find(s => s.id === m.id)).map(m => (
+                            <button key={m.id} onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddMbu(m);
+                                setIsAddMbuOpen(false);
+                            }} className="w-full text-left text-xs p-2 hover:bg-slate-50 font-bold text-slate-700">{m.name}</button>
+                          ))}
+                        </div>
+                    )}
+                  </button>
                 </div>
                 
                 <div className="space-y-3">
@@ -695,6 +733,17 @@ export const ProfessionalReportWizard: React.FC<ProfessionalReportWizardProps> =
                             </div>
                           </div>
                           <div className="flex items-center gap-4 text-slate-300">
+                            <button onClick={(e) => {
+                                e.stopPropagation();
+                                setOutlineNodes(prev => prev.map(n => {
+                                    if(n.id === activeChapterId) {
+                                        return {...n, selectedMBUs: n.selectedMBUs.filter(m => m.id !== mbuEntry.id)}
+                                    }
+                                    return n;
+                                }));
+                            }} className="text-red-400 hover:text-red-600">
+                                <i className="fas fa-trash-alt text-[10px]"></i>
+                            </button>
                             <i className={`fas fa-chevron-down transition-transform ${isExpanded ? 'rotate-180' : ''}`}></i>
                           </div>
                         </div>

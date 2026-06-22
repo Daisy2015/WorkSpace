@@ -5,6 +5,7 @@ interface AgentActionBarProps {
   lang: 'zh' | 'en';
   agentName: string;
   statusText?: string;
+  isCompleted?: boolean;
   isAssistantOpen: boolean;
   onToggleAssistant: () => void;
   onClose?: () => void;
@@ -14,6 +15,7 @@ export const AgentActionBar: React.FC<AgentActionBarProps> = ({
   lang, 
   agentName, 
   statusText, 
+  isCompleted = false,
   isAssistantOpen,
   onToggleAssistant,
   onClose 
@@ -32,23 +34,16 @@ export const AgentActionBar: React.FC<AgentActionBarProps> = ({
         </div>
 
         {/* Dynamic Status */}
-        {statusText && (() => {
-          const statusMap: Record<string, { text: string; textColor: string; bgColor: string; borderColor: string; dotColor: string }> = {
-            'Running': { text: '运行中', textColor: 'text-indigo-500', bgColor: 'bg-indigo-50', borderColor: 'border-indigo-100', dotColor: 'bg-indigo-500' },
-            'Completed': { text: '已完成', textColor: 'text-emerald-500', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-100', dotColor: 'bg-emerald-500' },
-            'Failed': { text: '异常', textColor: 'text-red-500', bgColor: 'bg-red-50', borderColor: 'border-red-100', dotColor: 'bg-red-500' },
-            'Exception': { text: '异常', textColor: 'text-red-500', bgColor: 'bg-red-50', borderColor: 'border-red-100', dotColor: 'bg-red-500' },
-          };
-          
-          const status = statusMap[statusText] || { text: statusText, textColor: 'text-slate-500', bgColor: 'bg-slate-50', borderColor: 'border-slate-100', dotColor: 'bg-slate-500' };
-          
-          return (
-            <div className={`flex items-center gap-2.5 px-3 py-1.5 ${status.bgColor} border ${status.borderColor} rounded-full`}>
-              <div className={`w-2 h-2 ${status.dotColor} rounded-full ${statusText === 'Running' ? 'animate-pulse' : ''}`}></div>
-              <span className={`text-[10px] font-black ${status.textColor} uppercase tracking-[0.1em]`}>{status.text}</span>
-            </div>
-          );
-        })()}
+        {statusText && (
+          <div className={`flex items-center gap-2.5 px-3 py-1.5 ${isCompleted ? 'bg-green-50/50 border border-green-100/50 text-green-600' : 'bg-indigo-50/50 border border-indigo-100/50 text-indigo-600'} rounded-full`}>
+            {isCompleted ? (
+              <i className="fas fa-check text-[10px]"></i>
+            ) : (
+              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+            )}
+            <span className={`text-[10px] font-black uppercase tracking-[0.1em] ${isCompleted ? 'text-green-600' : 'text-indigo-600'}`}>{statusText}</span>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-3">

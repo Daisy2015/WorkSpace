@@ -32,6 +32,8 @@ import { AgentConfigWizard } from './components/enterprise/AgentConfigWizard';
 import { ResourceDetailModal } from './components/ResourceDetailModal';
 import { WellDeclineDiagnosis } from './components/WellDeclineDiagnosis';
 import { ReportGenerationAgent } from './components/ReportGenerationAgent';
+import { ProChartRequirementTree } from './components/ProChartRequirementTree';
+import { ProChartGenerationAgent } from './components/ProChartGenerationAgent';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESOURCE_TREE, MOCK_TEMPLATES } from './constants';
@@ -66,6 +68,7 @@ const App: React.FC = () => {
   const [isExecutionHistoryPageOpen, setIsExecutionHistoryPageOpen] = useState(false);
   const [isTracePanelOpen, setIsTracePanelOpen] = useState(true);
   const [isResourcePanelOpen, setIsResourcePanelOpen] = useState(true);
+  const [isProChartGenerating, setIsProChartGenerating] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [isStrategyConfirmationOpen, setIsStrategyConfirmationOpen] = useState(false);
   const [configAgentId, setConfigAgentId] = useState<string | null>(null);
@@ -105,6 +108,7 @@ const App: React.FC = () => {
   const [reportConfig, setReportConfig] = useState<any>(null);
   const [originalResourceTree, setOriginalResourceTree] = useState<ResourceNode[]>([]);
   const [originalObjectScope, setOriginalObjectScope] = useState<any[]>([]);
+  const [agentRunStatus, setAgentRunStatus] = useState<'running' | 'completed'>('running');
 
   // Resource Detail Modal State
   const [selectedResourceForDetail, setSelectedResourceForDetail] = useState<ResourceNode | null>(null);
@@ -212,6 +216,7 @@ const App: React.FC = () => {
 
   const handleLaunchReport = (data: any) => {
     setIsReportModeActive(true);
+    setAgentRunStatus('running');
     setReportConfig(data);
     setOriginalResourceTree([...resourceTree]);
     setOriginalObjectScope([...constructionObjectScope]);
@@ -1132,6 +1137,13 @@ const App: React.FC = () => {
                                 onCreateReport={() => setIsReportModalOpen(true)}
                                 onUpdateAgentStatus={(id, status) => setAgents(prev => prev.map(a => a.id === id ? { ...a, status } : a))}
                                 onHistoryClick={handleHistoryClick}
+                                onCollapseResourcePanel={() => setIsResourcePanelOpen(false)}
+                                onStartProChartGeneration={() => {
+                                    setAgentRunStatus('running');
+                                    setIsProChartGenerating(true);
+                                    setIsResourcePanelOpen(true);
+                                    setIsTracePanelOpen(false);
+                                }}
                                 agents={displayAgents}
                             />
                         </div>
@@ -1268,7 +1280,10 @@ const App: React.FC = () => {
                             <div className={`${isResourcePanelOpen ? 'w-96 border-r' : 'w-0 border-none'} h-full flex-shrink-0 z-20 shadow-lg bg-white border-slate-200 flex flex-col transition-all duration-300 ease-in-out overflow-hidden`}>
                                 <div className="w-96 flex-1 flex flex-col overflow-hidden">
                                     <div className="flex-1 overflow-hidden relative">
-                                        <ResourceTree 
+                                        {isProChartGenerating ? (
+                                            <ProChartRequirementTree lang={lang} />
+                                        ) : (
+                                            <ResourceTree 
                                             treeData={resourceTree}
                                             selectedResources={selectedResources} 
                                             onToggleResource={handleToggleResource} 
@@ -1284,6 +1299,7 @@ const App: React.FC = () => {
                                             onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
                                             lang={lang}
                                         />
+                                        )}
                                     </div>
                                     
                                     {/* Selected Object Scope Section */}
@@ -1376,23 +1392,36 @@ const App: React.FC = () => {
                             </div>
 
                             {/* Center Panel: Chat or Config */}
-                            <div className="flex-1 h-full min-w-0 z-0 bg-gray-50 flex flex-col overflow-hidden">
-                                {isReportModeActive && (
+                            <div className="flex-1 min-w-0 z-0 bg-gray-50 flex flex-col overflow-hidden">
+                                { (isReportModeActive || isProChartGenerating) && (
                                     <AgentActionBar 
                                         lang={lang}
-                                        agentName={lang === 'zh' ? '钻井地质设计专家' : 'Drilling Geo-Design Expert'}
-                                        statusText={lang === 'zh' ? '智能编写中' : 'AI DRAFTING...'}
+                                        agentName={isProChartGenerating 
+                                            ? (lang === 'zh' ? '专业成图智能体' : 'Pro Mapping Agent')
+                                            : (lang === 'zh' ? '钻井地质设计专家' : 'Drilling Geo-Design Expert')}
+                                        statusText={
+                                            agentRunStatus === 'completed'
+                                            ? (lang === 'zh' ? '已完成' : 'COMPLETED')
+                                            : isProChartGenerating 
+                                                ? (lang === 'zh' ? '智能成图...' : 'AI MAPPING...')
+                                                : (lang === 'zh' ? '智能编写中...' : 'AI DRAFTING...')
+                                        }
+                                        isCompleted={agentRunStatus === 'completed'}
                                         isAssistantOpen={isAssistantOpen}
                                         onToggleAssistant={() => setIsAssistantOpen(!isAssistantOpen)}
                                         onClose={() => {
-                                            setIsReportModeActive(false);
-                                            setResourceTree(originalResourceTree);
-                                            setConstructionObjectScope(originalObjectScope);
+                                            if (isReportModeActive) {
+                                                setIsReportModeActive(false);
+                                                setResourceTree(originalResourceTree);
+                                                setConstructionObjectScope(originalObjectScope);
+                                            } else {
+                                                setIsProChartGenerating(false);
+                                            }
                                         }}
                                     />
                                 )}
-                                <div className={`flex-1 relative flex flex-row ${isAssistantOpen && isReportModeActive ? 'pr-[400px]' : ''}`}>
-                                    <div className="flex-1 h-full relative">
+                                <div className={`flex-1 relative flex flex-row ${isAssistantOpen && (isReportModeActive || isProChartGenerating) ? 'pr-[400px]' : ''}`}>
+                                    <div className="flex-1 h-full relative p-3">
                                         {isReportModeActive ? (
                                             <ReportGenerationAgent 
                                                 lang={lang}
@@ -1402,6 +1431,12 @@ const App: React.FC = () => {
                                                     setResourceTree(originalResourceTree);
                                                     setConstructionObjectScope(originalObjectScope);
                                                 }}
+                                                onComplete={() => setAgentRunStatus('completed')}
+                                            />
+                                        ) : isProChartGenerating ? (
+                                            <ProChartGenerationAgent 
+                                                lang={lang}
+                                                onComplete={() => setAgentRunStatus('completed')}
                                             />
                                         ) : workspaceVersion === 'enterprise' && configAgentId ? (
                                         <AgentConfigWizard 
@@ -1501,6 +1536,13 @@ const App: React.FC = () => {
                                             onUpdateAgentStatus={(id, status) => setAgents(prev => prev.map(a => a.id === id ? { ...a, status } : a))}
                                             onHistoryClick={handleHistoryClick}
                                             agents={displayAgents}
+                                            onCollapseResourcePanel={() => setIsResourcePanelOpen(false)}
+                                            onStartProChartGeneration={() => {
+                                                setAgentRunStatus('running');
+                                                setIsProChartGenerating(true);
+                                                setIsResourcePanelOpen(true);
+                                                setIsTracePanelOpen(false);
+                                            }}
                                             onOpenProReport={() => setIsResourcePanelOpen(false)}
                                             onLaunchReport={handleLaunchReport}
                                         />
@@ -1566,12 +1608,12 @@ const App: React.FC = () => {
                     lang={lang}
                     isOpen={isAssistantOpen}
                     onClose={() => setIsAssistantOpen(false)}
-                    agentName={isReportModeActive ? (lang === 'zh' ? '钻井地质设计专家' : 'Drilling Geo-Design Expert') : 'AI Agent'}
-                    onSendMessage={(msg) => {
-                        console.log('Sending message to agent:', msg);
-                        // Here we would ideally call a function in ReportGenerationAgent
-                        // or trigger a regeneration process based on the message.
-                    }}
+                    agentName={isProChartGenerating 
+                      ? (lang === 'zh' ? '专业成图智能体' : 'Pro Mapping Agent')
+                      : isReportModeActive 
+                        ? (lang === 'zh' ? '钻井地质设计专家' : 'Drilling Geo-Design Expert') 
+                        : 'AI Agent'}
+                    agentStatus={agents.find(a => a.status === 'Running')?.status || 'Idle'}
                 />
             </>
         )}
