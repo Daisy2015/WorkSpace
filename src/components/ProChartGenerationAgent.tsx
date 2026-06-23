@@ -40,25 +40,59 @@ export const ProChartGenerationAgent: React.FC<Props> = ({ lang, onComplete }) =
     <div className="flex flex-row h-full bg-white relative overflow-hidden">
       {/* Content Area */}
       <div className="flex-1 p-6 flex flex-col items-center justify-center bg-slate-50 overflow-y-auto">
-        <div className="w-full max-w-2xl bg-white p-4 rounded-xl shadow-lg border border-slate-100 flex-shrink-0 relative">
+        <div className="w-full max-w-2xl flex flex-col gap-4 flex-shrink-0">
           {status === 'running' ? (
-              <div className="h-64 flex items-center justify-center text-slate-400 font-bold">
+              <div className="bg-white p-4 rounded-xl shadow-lg border border-slate-100 flex items-center justify-center h-64 text-slate-400 font-bold">
                   <i className="fas fa-circle-notch fa-spin text-4xl mr-4"></i>
                   {lang === 'zh' ? '成图分析中...' : 'Analyzing data...'}
               </div>
           ) : (
-              <div className="relative">
-                  <div className="absolute top-2 right-2 z-10">
-                       <button 
-                         onClick={() => setIsLayerSidebarOpen(!isLayerSidebarOpen)}
-                         className={`px-4 py-2 bg-white border shadow-sm text-sm font-medium transition-colors flex items-center gap-2 rounded ${isLayerSidebarOpen ? 'border-blue-500 text-blue-600' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}
-                       >
-                         <i className="fas fa-layer-group text-blue-500"></i>
-                         {lang === 'zh' ? '图层设置' : 'Layer Settings'}
-                       </button>
+              <>
+                  {/* Top Toolbar */}
+                  <div className="w-full flex justify-end">
+                       <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+                           <button 
+                             onClick={() => setIsLayerSidebarOpen(!isLayerSidebarOpen)}
+                             title={lang === 'zh' ? '图层设置' : 'Layers'}
+                             className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${isLayerSidebarOpen ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
+                           >
+                             <i className="fas fa-layer-group text-sm"></i>
+                           </button>
+                           <button 
+                             title={lang === 'zh' ? '全屏' : 'Full Screen'}
+                             className="w-8 h-8 flex items-center justify-center text-slate-500 rounded hover:bg-slate-50 hover:text-slate-700 transition-colors"
+                           >
+                             <i className="fas fa-expand text-sm"></i>
+                           </button>
+                           <button 
+                             title={lang === 'zh' ? '下载' : 'Download'}
+                             className="w-8 h-8 flex items-center justify-center text-slate-500 rounded hover:bg-slate-50 hover:text-slate-700 transition-colors"
+                           >
+                             <i className="fas fa-download text-sm"></i>
+                           </button>
+                       </div>
                   </div>
-                  <img src="/src/assets/images/regenerated_image_1780629841532.png" alt="Chart" className="w-full h-auto rounded" />
-              </div>
+                  
+                  {/* Chart Container */}
+                  <div className="bg-white p-4 rounded-xl shadow-lg border border-slate-100 relative">
+                      <div className="relative border border-slate-200 rounded overflow-hidden">
+                          <img src="/src/assets/images/regenerated_image_1780629841532.png" alt="Chart" className="w-full h-auto bg-slate-50" />
+                      </div>
+
+                      {/* Bottom Version Management */}
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                         <span className="text-sm text-slate-500 font-medium">{lang === 'zh' ? '历史版本' : 'History Versions'}</span>
+                         <div className="flex items-center gap-2">
+                             <button className="px-4 py-1.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200 shadow-sm">
+                                 V2 ({lang === 'zh' ? '当前' : 'Current'})
+                             </button>
+                             <button className="px-4 py-1.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 transition-colors">
+                                 V1
+                             </button>
+                         </div>
+                      </div>
+                  </div>
+              </>
           )}
         </div>
       </div>
