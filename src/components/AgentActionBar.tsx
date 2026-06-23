@@ -7,6 +7,7 @@ interface AgentActionBarProps {
   statusText?: string;
   isCompleted?: boolean;
   isAssistantOpen: boolean;
+  hideAssistantToggle?: boolean;
   onToggleAssistant: () => void;
   onClose?: () => void;
 }
@@ -17,6 +18,7 @@ export const AgentActionBar: React.FC<AgentActionBarProps> = ({
   statusText, 
   isCompleted = false,
   isAssistantOpen,
+  hideAssistantToggle = false,
   onToggleAssistant,
   onClose 
 }) => {
@@ -47,17 +49,19 @@ export const AgentActionBar: React.FC<AgentActionBarProps> = ({
       </div>
 
       <div className="flex items-center gap-3">
-        <button 
-          onClick={onToggleAssistant}
-          className={`px-5 h-10 flex items-center gap-2 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest shadow-sm ${
-            isAssistantOpen 
-              ? 'bg-indigo-600 text-white ring-4 ring-indigo-100' 
-              : 'bg-indigo-50 text-indigo-600 border border-indigo-100 hover:bg-indigo-100'
-          }`}
-        >
-          <i className={`fas ${isAssistantOpen ? 'fa-comment-dots' : 'fa-sparkles'}`}></i>
-          {lang === 'zh' ? '智能助手' : 'Call Assistant'}
-        </button>
+        {!hideAssistantToggle && (
+          <button 
+            onClick={onToggleAssistant}
+            className={`px-5 h-10 flex items-center gap-2 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest shadow-sm ${
+              isAssistantOpen 
+                ? 'bg-indigo-600 text-white ring-4 ring-indigo-100' 
+                : 'bg-indigo-50 text-indigo-600 border border-indigo-100 hover:bg-indigo-100'
+            }`}
+          >
+            <i className={`fas ${isAssistantOpen ? 'fa-comment-dots' : 'fa-sparkles'}`}></i>
+            {lang === 'zh' ? '智能助手' : 'Call Assistant'}
+          </button>
+        )}
 
         {onClose && (
           <>

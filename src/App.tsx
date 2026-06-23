@@ -33,6 +33,7 @@ import { ResourceDetailModal } from './components/ResourceDetailModal';
 import { WellDeclineDiagnosis } from './components/WellDeclineDiagnosis';
 import { ReportGenerationAgent } from './components/ReportGenerationAgent';
 import { ProChartRequirementTree } from './components/ProChartRequirementTree';
+import { WellDeclineRequirementTree } from './components/WellDeclineRequirementTree';
 import { ProChartGenerationAgent } from './components/ProChartGenerationAgent';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
@@ -1282,6 +1283,8 @@ const App: React.FC = () => {
                                     <div className="flex-1 overflow-hidden relative">
                                         {isProChartGenerating ? (
                                             <ProChartRequirementTree lang={lang} />
+                                        ) : activeAgentAppId === 'well_decline' ? (
+                                            <WellDeclineRequirementTree lang={lang} />
                                         ) : (
                                             <ResourceTree 
                                             treeData={resourceTree}
@@ -1393,24 +1396,30 @@ const App: React.FC = () => {
 
                             {/* Center Panel: Chat or Config */}
                             <div className="flex-1 min-w-0 z-0 bg-gray-50 flex flex-col overflow-hidden">
-                                { (isReportModeActive || isProChartGenerating) && (
+                                { (isReportModeActive || isProChartGenerating || activeAgentAppId === 'well_decline') && (
                                     <AgentActionBar 
                                         lang={lang}
-                                        agentName={isProChartGenerating 
+                                        agentName={activeAgentAppId === 'well_decline'
+                                            ? (lang === 'zh' ? '单井产量下降诊断智能体' : 'Single Well Decline Diagnosis Agent')
+                                            : isProChartGenerating 
                                             ? (lang === 'zh' ? '专业成图智能体' : 'Pro Mapping Agent')
                                             : (lang === 'zh' ? '钻井地质设计专家' : 'Drilling Geo-Design Expert')}
                                         statusText={
                                             agentRunStatus === 'completed'
                                             ? (lang === 'zh' ? '已完成' : 'COMPLETED')
-                                            : isProChartGenerating 
-                                                ? (lang === 'zh' ? '智能成图...' : 'AI MAPPING...')
-                                                : (lang === 'zh' ? '智能编写中...' : 'AI DRAFTING...')
+                                            : activeAgentAppId === 'well_decline'
+                                                ? (lang === 'zh' ? '智能诊断中...' : 'AI DIAGNOSING...')
+                                                : isProChartGenerating 
+                                                    ? (lang === 'zh' ? '智能成图...' : 'AI MAPPING...')
+                                                    : (lang === 'zh' ? '智能编写中...' : 'AI DRAFTING...')
                                         }
                                         isCompleted={agentRunStatus === 'completed'}
                                         isAssistantOpen={isAssistantOpen}
                                         onToggleAssistant={() => setIsAssistantOpen(!isAssistantOpen)}
                                         onClose={() => {
-                                            if (isReportModeActive) {
+                                            if (activeAgentAppId === 'well_decline') {
+                                                setActiveAgentAppId(null);
+                                            } else if (isReportModeActive) {
                                                 setIsReportModeActive(false);
                                                 setResourceTree(originalResourceTree);
                                                 setConstructionObjectScope(originalObjectScope);
@@ -1420,7 +1429,7 @@ const App: React.FC = () => {
                                         }}
                                     />
                                 )}
-                                <div className={`flex-1 relative flex flex-row ${isAssistantOpen && (isReportModeActive || isProChartGenerating) ? 'pr-[400px]' : ''}`}>
+                                <div className={`flex-1 relative flex flex-row ${isAssistantOpen && (isReportModeActive || isProChartGenerating || activeAgentAppId === 'well_decline') ? 'pr-[400px]' : ''}`}>
                                     <div className="flex-1 h-full relative p-3">
                                         {isReportModeActive ? (
                                             <ReportGenerationAgent 
@@ -1452,6 +1461,7 @@ const App: React.FC = () => {
                                         <WellDeclineDiagnosis 
                                             lang={lang} 
                                             onClose={() => setActiveAgentAppId(null)} 
+                                            onComplete={() => setAgentRunStatus('completed')}
                                         />
                                     ) : (
                                         <MultiAgentChatPanel 
@@ -1476,7 +1486,7 @@ const App: React.FC = () => {
                                 </div>
 
                                 {/* Assistant moved to right in App Mode */}
-                                {activeAgentAppId && (
+                                {activeAgentAppId && activeAgentAppId !== 'well_decline' && (
                                     <div className={`${isAssistantExpanded ? 'w-[320px]' : 'w-0'} h-full border-l border-slate-200 shadow-[-4px_0_12px_rgba(0,0,0,0.03)] bg-white transition-all duration-500 ease-in-out relative flex flex-col`}>
                                         {/* Toggle button ball on the left */}
                                         <button 
@@ -1526,8 +1536,10 @@ const App: React.FC = () => {
                                             onCreateReport={() => setIsReportModalOpen(true)}
                                             onSelectAgent={(id) => {
                                                 if (id === 'well_decline') {
+                                                    setAgentRunStatus('running');
                                                     setActiveAgentAppId('well_decline');
                                                     setIsTracePanelOpen(false);
+                                                    setIsResourcePanelOpen(true);
                                                 } else {
                                                     setConfigAgentId(id);
                                                 }
@@ -1608,11 +1620,13 @@ const App: React.FC = () => {
                     lang={lang}
                     isOpen={isAssistantOpen}
                     onClose={() => setIsAssistantOpen(false)}
-                    agentName={isProChartGenerating 
-                      ? (lang === 'zh' ? '专业成图智能体' : 'Pro Mapping Agent')
-                      : isReportModeActive 
-                        ? (lang === 'zh' ? '钻井地质设计专家' : 'Drilling Geo-Design Expert') 
-                        : 'AI Agent'}
+                    agentName={activeAgentAppId === 'well_decline' 
+                      ? (lang === 'zh' ? '单井产量下降诊断智能体' : 'Single Well Decline Diagnosis Agent')
+                      : isProChartGenerating 
+                        ? (lang === 'zh' ? '专业成图智能体' : 'Pro Mapping Agent')
+                        : isReportModeActive 
+                          ? (lang === 'zh' ? '钻井地质设计专家' : 'Drilling Geo-Design Expert') 
+                          : 'AI Agent'}
                     agentStatus={agents.find(a => a.status === 'Running')?.status || 'Idle'}
                 />
             </>

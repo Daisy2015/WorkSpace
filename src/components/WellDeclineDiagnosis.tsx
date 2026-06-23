@@ -9,11 +9,21 @@ import {
 interface WellDeclineDiagnosisProps {
   lang: Language;
   onClose: () => void;
+  onComplete?: () => void;
 }
 
-export const WellDeclineDiagnosis: React.FC<WellDeclineDiagnosisProps> = ({ lang, onClose }) => {
+export const WellDeclineDiagnosis: React.FC<WellDeclineDiagnosisProps> = ({ lang, onClose, onComplete }) => {
   const [activeTab, setActiveTab] = useState(1);
   const [selectedWell, setSelectedWell] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (onComplete) {
+        onComplete();
+      }
+    }, 4000); // 4 seconds diagnostic simulation
+    return () => clearTimeout(timer);
+  }, [onComplete]);
 
   const tabs = [
     { id: 1, name: lang === 'zh' ? '全局总览' : 'Global Overview', icon: 'fa-globe' },
@@ -500,29 +510,18 @@ export const WellDeclineDiagnosis: React.FC<WellDeclineDiagnosisProps> = ({ lang
   );
 
   return (
-    <div className="flex flex-col h-full bg-white relative animate-in fade-in duration-500">
-      {/* Top Header */}
-      <div className="h-16 px-6 border-b border-slate-100 flex items-center justify-between bg-white z-10 sticky top-0 font-sans">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white shadow-lg shadow-red-200">
-            <i className="fas fa-stethoscope text-lg"></i>
-          </div>
-          <div>
-            <h1 className="text-lg font-black text-slate-800 tracking-tight">
-              {lang === 'zh' ? '单井产量下降诊断' : 'Single Well Decline Diagnosis'}
-            </h1>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-2xl border border-slate-200/50">
+    <div className="flex flex-col h-full bg-slate-50 relative animate-in fade-in duration-500">
+      {/* Top Tabs */}
+      <div className="px-6 py-3 flex items-center justify-center bg-white z-10 sticky top-0 font-sans border-b border-slate-200">
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeTab === tab.id
                   ? 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50'
-                  : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
               }`}
             >
               <i className={`fas ${tab.icon}`}></i>
@@ -530,13 +529,6 @@ export const WellDeclineDiagnosis: React.FC<WellDeclineDiagnosisProps> = ({ lang
             </button>
           ))}
         </div>
-
-        <button 
-          onClick={onClose}
-          className="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-50 transition-all"
-        >
-          <i className="fas fa-times text-lg"></i>
-        </button>
       </div>
 
       {/* Main Content Viewport */}

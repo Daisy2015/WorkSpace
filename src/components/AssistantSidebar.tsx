@@ -21,7 +21,13 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
 }) => {
   const [chatInput, setChatInput] = useState('');
   
-  const recommendedQuestions = agentName === '专业成图智能体' || agentName === 'Pro Mapping Agent'
+  const recommendedQuestions = agentName === '单井产量下降诊断智能体' || agentName === 'Single Well Decline Diagnosis Agent'
+    ? [
+        "依据诊断结果，推荐当前最佳治理措施",
+        "对比相似井的治理效果与经验",
+        "生成单井诊断优化报告"
+      ]
+    : agentName === '专业成图智能体' || agentName === 'Pro Mapping Agent'
     ? [
         "一键美化图件样式",
         "调整图层显示设置",
