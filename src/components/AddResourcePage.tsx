@@ -237,6 +237,7 @@ export const AddResourcePage: React.FC<AddResourcePageProps> = ({ onClose, onCon
 
   // Resource Selection State
   const [activeTab, setActiveTab] = useState<'system' | 'local'>('system');
+  const [searchMbuTerm, setSearchMbuTerm] = useState('');
   
   // Accordion State for Sidebar
   const [expandedSection, setExpandedSection] = useState<'mbu' | 'object'>('mbu');
@@ -760,19 +761,29 @@ export const AddResourcePage: React.FC<AddResourcePageProps> = ({ onClose, onCon
                                         </button>
                                     )}
                                 </div>
-                                <div className="text-xs text-gray-400">
-                                    <i className="fas fa-info-circle mr-1"></i>
-                                    勾选 MBU 内的成果文件以加入工作空间
+                                <div className="flex items-center gap-4">
+                                    <div className="relative">
+                                        <i className="fas fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-[10px]"></i>
+                                        <input
+                                            type="text"
+                                            placeholder="搜索成果名称..."
+                                            value={searchMbuTerm}
+                                            onChange={(e) => setSearchMbuTerm(e.target.value)}
+                                            className="pl-7 pr-3 py-1 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-500 w-48 transition-colors"
+                                        />
+                                    </div>
+                                    <div className="text-xs text-gray-400">
+                                        <i className="fas fa-info-circle mr-1"></i>
+                                        勾选 MBU 内的成果文件以加入工作空间
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Table Header */}
                             <div className="flex items-center px-4 py-2 bg-gray-100 border-y border-gray-200 text-xs font-bold text-gray-500 flex-shrink-0">
-                                <div className="w-10 text-center flex-shrink-0">选择</div>
-                                <div className="w-[25%] px-3">MBU 节点名称</div>
+                                <div className="w-12 text-center flex-shrink-0">选择</div>
+                                <div className="w-[40%] px-3">MBU 节点名称</div>
                                 <div className="flex-1 px-3">成果名称</div>
-                                <div className="w-[100px] text-center px-3">实例数据</div>
-                                <div className="w-[140px] text-right px-3">操作</div>
                             </div>
                             
                             {/* MBU List - FLATTENED VIEW */}
@@ -783,9 +794,24 @@ export const AddResourcePage: React.FC<AddResourcePageProps> = ({ onClose, onCon
                                         <p className="text-sm">请在左侧选择对象并点击“加载”</p>
                                     </div>
                                 ) : (
-                                    mbuList.flatMap((mbu) => 
-                                        mbu.files.map((file, idx) => {
-                                            const fileKey = `${mbu.uniqueId}-${idx}`;
+                                    (() => {
+                                        const flatFiles = mbuList.flatMap((mbu) => 
+                                            mbu.files.map((file, idx) => ({ mbu, file, idx, fileKey: `${mbu.uniqueId}-${idx}` }))
+                                        );
+                                        const filteredFiles = searchMbuTerm.trim() === '' 
+                                            ? flatFiles 
+                                            : flatFiles.filter(f => removeExtension(f.file.name).toLowerCase().includes(searchMbuTerm.trim().toLowerCase()));
+
+                                        if (filteredFiles.length === 0) {
+                                            return (
+                                                <div className="h-32 flex flex-col items-center justify-center text-gray-400 opacity-60">
+                                                    <i className="fas fa-search text-2xl mb-2"></i>
+                                                    <p className="text-sm">无匹配成果</p>
+                                                </div>
+                                            );
+                                        }
+
+                                        return filteredFiles.map(({ mbu, file, idx, fileKey }) => {
                                             const isUploaded = !!uploadedSystemFiles[fileKey];
                                             const isMissingAndEmpty = file.missing && !isUploaded;
                                             const isSelected = selectedFileKeys.has(fileKey);
@@ -801,7 +827,7 @@ export const AddResourcePage: React.FC<AddResourcePageProps> = ({ onClose, onCon
                                                     } ${isSelected ? 'ring-1 ring-blue-500 border-blue-500 bg-blue-50/20' : ''}`}
                                                 >
                                                     {/* Checkbox Column */}
-                                                    <div className="w-10 flex justify-center flex-shrink-0">
+                                                    <div className="w-12 flex justify-center flex-shrink-0">
                                                         <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
                                                             isSelected 
                                                             ? 'bg-blue-600 border-blue-600 text-white' 
@@ -812,7 +838,7 @@ export const AddResourcePage: React.FC<AddResourcePageProps> = ({ onClose, onCon
                                                     </div>
 
                                                     {/* MBU Name Column */}
-                                                    <div className="w-[25%] px-3 min-w-0">
+                                                    <div className="w-[40%] px-3 min-w-0">
                                                         <div className={`font-bold text-sm truncate ${isMissingAndEmpty ? 'text-gray-400' : 'text-gray-700'}`} title={mbu.name}>
                                                             {mbu.name}
                                                         </div>
@@ -825,52 +851,10 @@ export const AddResourcePage: React.FC<AddResourcePageProps> = ({ onClose, onCon
                                                             {removeExtension(file.name)}
                                                         </span>
                                                     </div>
-
-                                                    {/* Data Status Column */}
-                                                    <div className="w-[100px] text-center px-3">
-                                                        {isMissingAndEmpty ? (
-                                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-gray-400">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
-                                                                无数据
-                                                            </span>
-                                                        ) : (
-                                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-600">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                                                有数据
-                                                            </span>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Actions Column */}
-                                                    <div className="w-[140px] px-3 flex items-center justify-end gap-2 flex-shrink-0">
-                                                        {isUploaded && (
-                                                            <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex-shrink-0">已上传</span>
-                                                        )}
-                                                        {file.missing && !isUploaded && (
-                                                            <button 
-                                                                onClick={(e) => initiateMissingUpload(fileKey, e)}
-                                                                className="text-xs border border-blue-200 text-blue-600 px-2 py-0.5 rounded hover:bg-blue-50 transition-colors flex-shrink-0"
-                                                            >
-                                                                上传
-                                                            </button>
-                                                        )}
-                                                        
-                                                        {/* Delete MBU Node Button */}
-                                                        <button 
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                removeMBU(mbu.uniqueId);
-                                                            }}
-                                                            className="text-gray-300 hover:text-red-500 p-1.5 rounded hover:bg-red-50 transition-colors ml-1"
-                                                            title="移除此 MBU"
-                                                        >
-                                                            <i className="fas fa-trash-alt"></i>
-                                                        </button>
-                                                    </div>
                                                 </div>
                                             );
-                                        })
-                                    )
+                                        });
+                                    })()
                                 )}
                             </div>
                             <input type="file" ref={missingFileInputRef} className="hidden" onChange={handleMissingFileChange} />
