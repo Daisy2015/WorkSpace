@@ -11,7 +11,6 @@ import { ExecutionHistoryPage } from './components/enterprise/ExecutionHistoryPa
 import { Dashboard } from './components/Dashboard';
 import { AdminPanel } from './components/AdminPanel';
 import { IntelligencePlatform } from './components/IntelligencePlatform';
-import { AgentActionBar } from './components/AgentActionBar';
 import { AssistantSidebar } from './components/AssistantSidebar';
 import { KnowledgeBase } from './components/KnowledgeBase';
 import { DocumentEditor } from './components/DocumentEditor';
@@ -30,6 +29,7 @@ import { SaveOutcomeModal } from './components/SaveOutcomeModal';
 import { EvidenceChainPanel } from './components/EvidenceChainPanel';
 import { AgentConfigWizard } from './components/enterprise/AgentConfigWizard';
 import { ResourceDetailModal } from './components/ResourceDetailModal';
+import { WorkspaceDetailTopBar } from './components/WorkspaceDetailTopBar';
 import { WellDeclineDiagnosis } from './components/WellDeclineDiagnosis';
 import { ReportGenerationAgent } from './components/ReportGenerationAgent';
 import { ProChartRequirementTree } from './components/ProChartRequirementTree';
@@ -44,6 +44,58 @@ import { translations } from './i18n';
 type MainTab = 'dashboard' | 'workspaces' | 'admin' | 'intelligence' | 'knowledge' | 'integration' | 'templates' | 'construction' | 'construction-v2' | 'construction-completion';
 
 const CURRENT_USER = '李明';
+
+const getChapterFiles = (chapterId: string, title: string, lang: 'zh' | 'en'): ResourceNode[] => {
+  const normalizedTitle = title.toLowerCase();
+  
+  if (normalizedTitle.includes('前言') || normalizedTitle.includes('preface') || chapterId === '1') {
+    return [
+      { id: 'curr-1', name: lang === 'zh' ? 'XX-1井钻井设计方案说明书.docx' : 'Well XX-1 Drilling Design Spec.docx', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } },
+      { id: 'curr-2', name: lang === 'zh' ? '陆相碎屑岩地层划分国家标准.pdf' : 'Continental Siliciclastic Stratigraphy Standard.pdf', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } }
+    ];
+  }
+  
+  if (normalizedTitle.includes('区域地质') || normalizedTitle.includes('区域地层') || normalizedTitle.includes('geology') || chapterId === '2' || chapterId === '2.1') {
+    return [
+      { id: 'curr-3', name: lang === 'zh' ? '陆相碎屑岩地层划分国家标准.pdf' : 'Continental Siliciclastic Stratigraphy Standard.pdf', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } },
+      { id: 'curr-4', name: lang === 'zh' ? '地层分层精细结果表.xlsx' : 'Fine Stratigraphy Result Table.xlsx', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } }
+    ];
+  }
+  
+  if (normalizedTitle.includes('构造特征') || normalizedTitle.includes('structural') || chapterId === '2.2') {
+    return [
+      { id: 'curr-5', name: lang === 'zh' ? 'XX区块三维地震解释成果.segy' : 'XX Block 3D Seismic Interpretation.segy', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } },
+      { id: 'curr-6', name: lang === 'zh' ? '三维地震层位解释成果数据.csv' : '3D Seismic Horizon Interpretation Data.csv', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } }
+    ];
+  }
+  
+  if (normalizedTitle.includes('邻井') || normalizedTitle.includes('offset') || chapterId === '3') {
+    return [
+      { id: 'curr-7', name: lang === 'zh' ? '长庆XX-2井测井原始曲线.las' : 'Changqing XX-2 Original Logs.las', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } },
+      { id: 'curr-8', name: lang === 'zh' ? '邻井测井综合解释图.pdf' : 'Offset Well Log Interpretation Chart.pdf', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } }
+    ];
+  }
+  
+  if (normalizedTitle.includes('地层预测') || normalizedTitle.includes('prediction') || chapterId === '4') {
+    return [
+      { id: 'curr-9', name: lang === 'zh' ? '一键分层成果专家会签.docx' : 'Expert Co-signature Report.docx', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } },
+      { id: 'curr-10', name: lang === 'zh' ? '自动分层比对算法流.py' : 'Automated Layering Workflow.py', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } },
+      { id: 'curr-11', name: lang === 'zh' ? '地层分层精细结果表.xlsx' : 'Fine Stratigraphy Result Table.xlsx', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } }
+    ];
+  }
+  
+  if (normalizedTitle.includes('完井') || normalizedTitle.includes('completion') || chapterId === '5') {
+    return [
+      { id: 'curr-12', name: lang === 'zh' ? 'XX-1井钻井设计方案说明书.docx' : 'Well XX-1 Drilling Design Spec.docx', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } },
+      { id: 'curr-13', name: lang === 'zh' ? '地层流体物性实验分析报告.pdf' : 'Formation Fluid Physical Property Analysis.pdf', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } }
+    ];
+  }
+  
+  return [
+    { id: 'curr-14', name: lang === 'zh' ? '陆相碎屑岩地层划分国家标准.pdf' : 'Continental Siliciclastic Stratigraphy Standard.pdf', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } },
+    { id: 'curr-15', name: lang === 'zh' ? '地层分层精细结果表.xlsx' : 'Fine Stratigraphy Result Table.xlsx', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } }
+  ];
+};
 
 const App: React.FC = () => {
   // Navigation State
@@ -95,7 +147,6 @@ const App: React.FC = () => {
   const [editingDoc, setEditingDoc] = useState<{ content: string, msgId: string } | null>(null);
   
   const [workspaceVersion, setWorkspaceVersion] = useState<'foundation' | 'professional' | 'enterprise'>('foundation');
-  const [isVersionDropdownOpen, setIsVersionDropdownOpen] = useState(false);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isSaveOutcomeModalOpen, setIsSaveOutcomeModalOpen] = useState(false);
@@ -110,6 +161,7 @@ const App: React.FC = () => {
   const [originalResourceTree, setOriginalResourceTree] = useState<ResourceNode[]>([]);
   const [originalObjectScope, setOriginalObjectScope] = useState<any[]>([]);
   const [agentRunStatus, setAgentRunStatus] = useState<'running' | 'completed'>('running');
+  const [agentRefreshKey, setAgentRefreshKey] = useState(0);
 
   // Resource Detail Modal State
   const [selectedResourceForDetail, setSelectedResourceForDetail] = useState<ResourceNode | null>(null);
@@ -215,6 +267,27 @@ const App: React.FC = () => {
     return () => window.removeEventListener('bulk-select', handleBulkSelect);
   }, []);
 
+  // Listen for global preview-report events
+  useEffect(() => {
+    const handlePreviewReportGlobal = (e: any) => {
+      const reportData = e.detail;
+      if (reportData?.title?.includes('本周生产运行简报') || reportData?.id === 'report-weekly-001') {
+        setIsReportModeActive(true);
+        setAgentRunStatus('completed');
+        setReportConfig({
+          isSmartReport: true,
+          isWeeklyBrief: true,
+          projectName: lang === 'zh' ? '本周生产运行简报' : 'Weekly Production Operation Brief',
+          outline: []
+        });
+        setIsTracePanelOpen(false);
+        setIsResourcePanelOpen(false);
+      }
+    };
+    window.addEventListener('preview-report', handlePreviewReportGlobal);
+    return () => window.removeEventListener('preview-report', handlePreviewReportGlobal);
+  }, [lang]);
+
   const handleLaunchReport = (data: any) => {
     setIsReportModeActive(true);
     setAgentRunStatus('running');
@@ -250,7 +323,87 @@ const App: React.FC = () => {
     setConstructionObjectScope(reportObjects);
 
     // Transform MBU resources for the left sidebar
-    const reportResources: ResourceNode[] = [
+    const reportResources: ResourceNode[] = data.isSmartReport ? [
+      {
+        id: 'current-chapter-resources',
+        name: lang === 'zh' ? '当前章节相关资料' : 'Current Chapter Materials',
+        type: 'folder',
+        children: [
+          { id: 'curr-1', name: lang === 'zh' ? 'XX-1井钻井设计方案说明书.docx' : 'Well XX-1 Drilling Design Spec.docx', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } },
+          { id: 'curr-2', name: lang === 'zh' ? '陆相碎屑岩地层划分国家标准.pdf' : 'Continental Siliciclastic Stratigraphy Standard.pdf', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } }
+        ]
+      },
+      {
+        id: 'all-materials',
+        name: lang === 'zh' ? '全部资料' : 'All Materials',
+        type: 'folder',
+        children: [
+          {
+            id: 'basic-materials',
+            name: lang === 'zh' ? '基础资料' : 'Basic Data',
+            type: 'folder',
+            children: [
+              { id: 'basic-1', name: lang === 'zh' ? '陆相碎屑岩地层划分国家标准.pdf' : 'Continental Siliciclastic Stratigraphy Standard.pdf', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } },
+              { id: 'basic-2', name: lang === 'zh' ? '地层分层精细结果表.xlsx' : 'Fine Stratigraphy Result Table.xlsx', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } }
+            ]
+          },
+          {
+            id: 'seismic-materials',
+            name: lang === 'zh' ? '地震资料' : 'Seismic Data',
+            type: 'folder',
+            children: [
+              { id: 'seismic-1', name: lang === 'zh' ? 'XX区块三维地震解释成果.segy' : 'XX Block 3D Seismic Interpretation.segy', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } },
+              { id: 'seismic-2', name: lang === 'zh' ? '三维地震层位解释成果数据.csv' : '3D Seismic Horizon Interpretation Data.csv', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } }
+            ]
+          },
+          {
+            id: 'log-materials',
+            name: lang === 'zh' ? '测井资料' : 'Well Log Data',
+            type: 'folder',
+            children: [
+              { id: 'log-1', name: lang === 'zh' ? '长庆XX-2井测井原始曲线.las' : 'Changqing XX-2 Original Logs.las', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } },
+              { id: 'log-2', name: lang === 'zh' ? '邻井测井综合解释图.pdf' : 'Offset Well Log Interpretation Chart.pdf', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } }
+            ]
+          },
+          {
+            id: 'mud-log-materials',
+            name: lang === 'zh' ? '录井资料' : 'Mud Log Data',
+            type: 'folder',
+            children: [
+              { id: 'mud-1', name: lang === 'zh' ? 'XX-1井录井日得原始记录.xlsx' : 'Well XX-1 Mud Log Daily Record.xlsx', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } },
+              { id: 'mud-2', name: lang === 'zh' ? '井底岩屑录井特征数据.csv' : 'Bottom Cuttings Mud Log Characteristics.csv', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } }
+            ]
+          },
+          {
+            id: 'drilling-materials',
+            name: lang === 'zh' ? '钻井资料' : 'Drilling Data',
+            type: 'folder',
+            children: [
+              { id: 'drilling-1', name: lang === 'zh' ? 'XX-1井钻井设计方案说明书.docx' : 'Well XX-1 Drilling Design Spec.docx', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } },
+              { id: 'drilling-2', name: lang === 'zh' ? '邻井钻头使用及进尺记录.xlsx' : 'Offset Well Drill Bit & Footage Record.xlsx', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } }
+            ]
+          },
+          {
+            id: 'experimental-materials',
+            name: lang === 'zh' ? '实验分析资料' : 'Experimental Analysis Data',
+            type: 'folder',
+            children: [
+              { id: 'exp-1', name: lang === 'zh' ? '岩芯压汞测试及孔隙结构分析.xlsx' : 'Core Mercury Injection Test & Pore Structure Analysis.xlsx', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } },
+              { id: 'exp-2', name: lang === 'zh' ? '地层流体物性实验分析报告.pdf' : 'Formation Fluid Physical Property Analysis.pdf', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } }
+            ]
+          },
+          {
+            id: 'historical-reports',
+            name: lang === 'zh' ? '历史报告' : 'Historical Reports',
+            type: 'folder',
+            children: [
+              { id: 'hist-1', name: lang === 'zh' ? '一键分层成果专家会签.docx' : 'Expert Co-signature Report.docx', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } },
+              { id: 'hist-2', name: lang === 'zh' ? '自动分层比对算法流.py' : 'Automated Layering Workflow.py', type: 'artifact', meta: { sourceType: 'system', fileType: 'Outcome' } }
+            ]
+          }
+        ]
+      }
+    ] : [
       {
         id: 'mbu-resources',
         name: lang === 'zh' ? '确定的MBU数字化成果' : 'Determined MBU Resources',
@@ -272,6 +425,29 @@ const App: React.FC = () => {
     setResourceTree(reportResources);
     setIsTracePanelOpen(false); 
     setIsResourcePanelOpen(true); 
+  };
+
+  const handleActiveChapterChange = (chapterId: string, chapterTitle: string) => {
+    setResourceTree(prevTree => {
+      const currentChapterNode = prevTree.find(n => n.id === 'current-chapter-resources');
+      const newFiles = getChapterFiles(chapterId, chapterTitle, lang);
+      if (currentChapterNode) {
+        const currentChildrenIds = currentChapterNode.children?.map(c => c.id).join(',') || '';
+        const newChildrenIds = newFiles.map(c => c.id).join(',');
+        if (currentChildrenIds === newChildrenIds) {
+          return prevTree;
+        }
+      }
+      return prevTree.map(node => {
+        if (node.id === 'current-chapter-resources') {
+          return {
+            ...node,
+            children: newFiles
+          };
+        }
+        return node;
+      });
+    });
   };
 
   // Navigation Handlers
@@ -1160,120 +1336,52 @@ const App: React.FC = () => {
                     // Workspace Detail View (Editor Mode)
                     <div className="h-full relative flex flex-col">
                         {/* Top Bar for Workspace Detail */}
-                        <nav className="h-14 bg-white border-b border-slate-200 flex items-center px-6 justify-between flex-shrink-0 z-40 shadow-sm">
-                            <div className="flex items-center gap-4">
-                                <button 
-                                    onClick={handleBackToList} 
-                                    className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all"
-                                >
-                                    <i className="fas fa-arrow-left text-sm"></i>
-                                </button>
-                                <div className="h-6 w-px bg-slate-200"></div>
-                                <div className="flex flex-col">
-                                    <div className="flex items-center gap-2 group">
-                                        <span className="font-bold text-slate-900 tracking-tight">{activeWorkspaceData?.name}</span>
-                                        {activeWorkspaceData?.owner === CURRENT_USER && (
-                                            <button 
-                                                onClick={handleEditCurrentWorkspace}
-                                                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-indigo-600 transition-all"
-                                                title={t.editWorkspace}
-                                            >
-                                                <i className="fas fa-edit text-xs"></i>
-                                            </button>
-                                        )}
-                                        <span className="px-1.5 py-0.5 rounded bg-blue-50 text-[10px] font-bold text-blue-600 uppercase tracking-wider border border-blue-100">
-                                            {activeWorkspaceData?.status || 'DRAFT'}
-                                        </span>
-                                    </div>
-                                    {activeWorkspaceData?.description && (
-                                        <span className="text-[10px] text-slate-400 font-medium truncate max-w-[300px]">{activeWorkspaceData.description}</span>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-6">
-                                <div className="relative">
-                                    <button 
-                                        onClick={() => setIsVersionDropdownOpen(!isVersionDropdownOpen)}
-                                        className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 transition-colors"
-                                    >
-                                        <div className="w-6 h-6 rounded flex items-center justify-center bg-white border border-slate-200 shadow-sm text-slate-600">
-                                            <i className={`fas ${currentVersionData.icon} text-xs`}></i>
-                                        </div>
-                                        <div className="flex flex-col items-start">
-                                            <span className="text-xs font-bold text-slate-800 leading-tight">{currentVersionData.name}</span>
-                                            <span className="text-[10px] text-slate-500 leading-tight">{currentVersionData.desc}</span>
-                                        </div>
-                                        <i className={`fas fa-chevron-down text-[10px] text-slate-400 ml-2 transition-transform duration-200 ${isVersionDropdownOpen ? 'rotate-180' : ''}`}></i>
-                                    </button>
-
-                                    {isVersionDropdownOpen && (
-                                        <>
-                                            <div className="fixed inset-0 z-40" onClick={() => setIsVersionDropdownOpen(false)}></div>
-                                            <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                                                <div className="p-3 border-b border-slate-100 bg-slate-50/50">
-                                                    <h4 className="text-sm font-bold text-slate-800">切换版本</h4>
-                                                    <p className="text-xs text-slate-500 mt-0.5">体验不同版本的能力差异</p>
-                                                </div>
-                                                <div className="p-2 flex flex-col gap-1">
-                                                    {versions.map(v => (
-                                                        <button
-                                                            key={v.id}
-                                                            onClick={() => {
-                                                                setWorkspaceVersion(v.id as any);
-                                                                setIsVersionDropdownOpen(false);
-                                                            }}
-                                                            className={`flex items-center gap-3 p-2 rounded-lg transition-all text-left ${workspaceVersion === v.id ? 'bg-blue-50 border border-blue-100' : 'hover:bg-slate-50 border border-transparent'}`}
-                                                        >
-                                                            <div className={`px-2 py-1 rounded text-[10px] font-bold whitespace-nowrap ${v.tagClass}`}>
-                                                                {v.name}
-                                                            </div>
-                                                            <div className="flex flex-col min-w-0">
-                                                                <span className={`text-sm font-bold truncate ${workspaceVersion === v.id ? 'text-blue-700' : 'text-slate-700'}`}>{v.enName}</span>
-                                                                <span className="text-[10px] text-slate-500 truncate">{v.desc}</span>
-                                                            </div>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                                <div 
-                                                    onClick={() => {
-                                                        setIsVersionModalOpen(true);
-                                                        setIsVersionDropdownOpen(false);
-                                                    }}
-                                                    className="p-3 border-t border-slate-100 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer flex items-center gap-2"
-                                                >
-                                                    <span className="text-xs font-medium text-blue-600">查看版本对比详情</span>
-                                                    <i className="fas fa-arrow-right text-[10px] text-blue-600"></i>
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-1 text-slate-400">
-                                    <button className="hover:text-slate-600 p-2 rounded-lg hover:bg-slate-100 transition-colors" title="分享">
-                                        <i className="fas fa-share-alt"></i>
-                                    </button>
-                                    <button className="hover:text-slate-600 p-2 rounded-lg hover:bg-slate-100 transition-colors" title="设置">
-                                        <i className="fas fa-cog"></i>
-                                    </button>
-                                    <div className="w-px h-4 bg-slate-200 mx-1"></div>
-                                    <button 
-                                        onClick={() => setIsResourcePanelOpen(!isResourcePanelOpen)}
-                                        className={`p-2 rounded-lg transition-colors ${!isResourcePanelOpen ? 'text-indigo-600 bg-indigo-50' : 'hover:text-slate-600 hover:bg-slate-100'}`}
-                                        title={isResourcePanelOpen ? "收起资源面板" : "展开资源面板"}
-                                    >
-                                        <i className="fas fa-bars"></i>
-                                    </button>
-                                    <div className="w-px h-4 bg-slate-200 mx-1"></div>
-                                    <button 
-                                        onClick={() => setIsTracePanelOpen(!isTracePanelOpen)}
-                                        className={`p-2 rounded-lg transition-colors ${isTracePanelOpen ? 'text-indigo-600 bg-indigo-50' : 'hover:text-slate-600 hover:bg-slate-100'}`}
-                                        title={isTracePanelOpen ? "收起工具面板" : "展开工具面板"}
-                                    >
-                                        <i className="fas fa-columns"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </nav>
+                        <WorkspaceDetailTopBar
+                            lang={lang}
+                            activeWorkspaceData={activeWorkspaceData}
+                            currentUser={CURRENT_USER}
+                            onBackToList={handleBackToList}
+                            onEditCurrentWorkspace={handleEditCurrentWorkspace}
+                            workspaceVersion={workspaceVersion}
+                            setWorkspaceVersion={setWorkspaceVersion}
+                            isResourcePanelOpen={isResourcePanelOpen}
+                            setIsResourcePanelOpen={setIsResourcePanelOpen}
+                            isTracePanelOpen={isTracePanelOpen}
+                            setIsTracePanelOpen={setIsTracePanelOpen}
+                            setIsVersionModalOpen={setIsVersionModalOpen}
+                            isAgentRunning={isReportModeActive || isProChartGenerating || activeAgentAppId === 'well_decline'}
+                            agentName={activeAgentAppId === 'well_decline'
+                                ? (lang === 'zh' ? '单井产量下降诊断智能体' : 'Single Well Decline Diagnosis Agent')
+                                : isProChartGenerating 
+                                ? (lang === 'zh' ? '专业成图智能体' : 'Pro Mapping Agent')
+                                : (isReportModeActive && reportConfig?.isSmartReport)
+                                ? (lang === 'zh' ? '智能报告' : 'Smart Report')
+                                : (lang === 'zh' ? '钻井地质设计专家' : 'Drilling Geo-Design Expert')}
+                            statusText={
+                                agentRunStatus === 'completed'
+                                ? (lang === 'zh' ? '已完成' : 'COMPLETED')
+                                : activeAgentAppId === 'well_decline'
+                                    ? (lang === 'zh' ? '智能诊断中...' : 'AI DIAGNOSING...')
+                                    : isProChartGenerating 
+                                        ? (lang === 'zh' ? '智能成图...' : 'AI MAPPING...')
+                                        : (lang === 'zh' ? '智能编写中...' : 'AI DRAFTING...')
+                            }
+                            isCompleted={agentRunStatus === 'completed'}
+                            isAssistantOpen={isAssistantOpen}
+                            onToggleAssistant={() => setIsAssistantOpen(!isAssistantOpen)}
+                            onCloseAgent={() => {
+                                if (activeAgentAppId === 'well_decline') {
+                                    setActiveAgentAppId(null);
+                                } else if (isReportModeActive) {
+                                    setIsReportModeActive(false);
+                                    setResourceTree(originalResourceTree);
+                                    setConstructionObjectScope(originalObjectScope);
+                                } else {
+                                    setIsProChartGenerating(false);
+                                }
+                                setIsTracePanelOpen(true);
+                            }}
+                        />
                         
                         {/* CONTENT CONTAINER */}
                         <div className="flex-1 flex flex-row overflow-hidden relative">
@@ -1301,6 +1409,8 @@ const App: React.FC = () => {
                                             onTogglePublic={handleTogglePublic}
                                             onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
                                             lang={lang}
+                                            hideCheckboxes={isReportModeActive || isProChartGenerating || activeAgentAppId === 'well_decline'}
+                                            isSmartReport={isReportModeActive && reportConfig?.isSmartReport}
                                         />
                                         )}
                                     </div>
@@ -1394,45 +1504,22 @@ const App: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Center Panel: Chat or Config */}
+                            {/* Toggle button on Left Panel boundary */}
+                            <button 
+                                onClick={() => setIsResourcePanelOpen(!isResourcePanelOpen)}
+                                className={`absolute top-1/2 -translate-y-1/2 w-5 h-12 bg-white border border-slate-200 shadow-md rounded-r-md flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-slate-50 transition-all z-30 cursor-pointer ${isResourcePanelOpen ? 'left-[384px]' : 'left-0'}`}
+                                title={isResourcePanelOpen ? (lang === 'zh' ? '收起资源面板' : 'Collapse Resources') : (lang === 'zh' ? '展开资源面板' : 'Expand Resources')}
+                                style={{ transition: 'left 300ms ease-in-out' }}
+                            >
+                                <i className={`fas ${isResourcePanelOpen ? 'fa-chevron-left' : 'fa-chevron-right'} text-[10px]`}></i>
+                            </button>
+
                             <div className="flex-1 min-w-0 z-0 bg-gray-50 flex flex-col overflow-hidden">
-                                { (isReportModeActive || isProChartGenerating || activeAgentAppId === 'well_decline') && (
-                                    <AgentActionBar 
-                                        lang={lang}
-                                        agentName={activeAgentAppId === 'well_decline'
-                                            ? (lang === 'zh' ? '单井产量下降诊断智能体' : 'Single Well Decline Diagnosis Agent')
-                                            : isProChartGenerating 
-                                            ? (lang === 'zh' ? '专业成图智能体' : 'Pro Mapping Agent')
-                                            : (lang === 'zh' ? '钻井地质设计专家' : 'Drilling Geo-Design Expert')}
-                                        statusText={
-                                            agentRunStatus === 'completed'
-                                            ? (lang === 'zh' ? '已完成' : 'COMPLETED')
-                                            : activeAgentAppId === 'well_decline'
-                                                ? (lang === 'zh' ? '智能诊断中...' : 'AI DIAGNOSING...')
-                                                : isProChartGenerating 
-                                                    ? (lang === 'zh' ? '智能成图...' : 'AI MAPPING...')
-                                                    : (lang === 'zh' ? '智能编写中...' : 'AI DRAFTING...')
-                                        }
-                                        isCompleted={agentRunStatus === 'completed'}
-                                        isAssistantOpen={isAssistantOpen}
-                                        onToggleAssistant={() => setIsAssistantOpen(!isAssistantOpen)}
-                                        onClose={() => {
-                                            if (activeAgentAppId === 'well_decline') {
-                                                setActiveAgentAppId(null);
-                                            } else if (isReportModeActive) {
-                                                setIsReportModeActive(false);
-                                                setResourceTree(originalResourceTree);
-                                                setConstructionObjectScope(originalObjectScope);
-                                            } else {
-                                                setIsProChartGenerating(false);
-                                            }
-                                        }}
-                                    />
-                                )}
                                 <div className={`flex-1 relative flex flex-row ${isAssistantOpen && (isReportModeActive || isProChartGenerating || activeAgentAppId === 'well_decline') ? 'pr-[400px]' : ''}`}>
                                     <div className="flex-1 h-full relative p-3">
                                         {isReportModeActive ? (
                                             <ReportGenerationAgent 
+                                                key={`report-${agentRefreshKey}`}
                                                 lang={lang}
                                                 config={reportConfig}
                                                 onCloseAgent={() => {
@@ -1441,9 +1528,11 @@ const App: React.FC = () => {
                                                     setConstructionObjectScope(originalObjectScope);
                                                 }}
                                                 onComplete={() => setAgentRunStatus('completed')}
+                                                onActiveChapterChange={handleActiveChapterChange}
                                             />
                                         ) : isProChartGenerating ? (
                                             <ProChartGenerationAgent 
+                                                key={`pro-chart-${agentRefreshKey}`}
                                                 lang={lang}
                                                 onComplete={() => setAgentRunStatus('completed')}
                                             />
@@ -1459,8 +1548,9 @@ const App: React.FC = () => {
                                         />
                                     ) : activeAgentAppId === 'well_decline' ? (
                                         <WellDeclineDiagnosis 
+                                            key={`well-decline-${agentRefreshKey}`}
                                             lang={lang} 
-                                            onClose={() => setActiveAgentAppId(null)} 
+                                            onClose={() => { setActiveAgentAppId(null); setIsTracePanelOpen(true); }} 
                                             onComplete={() => setAgentRunStatus('completed')}
                                         />
                                     ) : (
@@ -1561,6 +1651,18 @@ const App: React.FC = () => {
                                     </div>
                                 </div>
                             ) : null}
+
+                            {/* Toggle button on Right Panel boundary */}
+                            {(workspaceVersion === 'enterprise' || workspaceVersion === 'professional' || workspaceVersion === 'foundation') && !activeAgentAppId && (
+                                <button 
+                                    onClick={() => setIsTracePanelOpen(!isTracePanelOpen)}
+                                    className={`absolute top-1/2 -translate-y-1/2 w-5 h-12 bg-white border border-slate-200 shadow-md rounded-l-md flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-slate-50 transition-all z-30 cursor-pointer ${isTracePanelOpen ? 'right-[384px]' : 'right-0'}`}
+                                    title={isTracePanelOpen ? (lang === 'zh' ? '收起智能面板' : 'Collapse Intelligent Panel') : (lang === 'zh' ? '展开智能面板' : 'Expand Intelligent Panel')}
+                                    style={{ transition: 'right 300ms ease-in-out' }}
+                                >
+                                    <i className={`fas ${isTracePanelOpen ? 'fa-chevron-right' : 'fa-chevron-left'} text-[10px]`}></i>
+                                </button>
+                            )}
                         </div>
 
                         {/* Evidence Chain Panel */}
@@ -1625,9 +1727,13 @@ const App: React.FC = () => {
                       : isProChartGenerating 
                         ? (lang === 'zh' ? '专业成图智能体' : 'Pro Mapping Agent')
                         : isReportModeActive 
-                          ? (lang === 'zh' ? '钻井地质设计专家' : 'Drilling Geo-Design Expert') 
+                          ? (reportConfig?.isSmartReport 
+                            ? (lang === 'zh' ? '智能报告' : 'Smart Report')
+                            : (lang === 'zh' ? '钻井地质设计专家' : 'Drilling Geo-Design Expert')) 
                           : 'AI Agent'}
                     agentStatus={agents.find(a => a.status === 'Running')?.status || 'Idle'}
+                    mode="absolute"
+                    onRefreshAgent={() => setAgentRefreshKey(prev => prev + 1)}
                 />
             </>
         )}

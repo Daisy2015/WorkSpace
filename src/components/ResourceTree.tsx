@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { ResourceNode, Language } from '../types';
 import { translations } from '../i18n';
 
@@ -13,6 +13,8 @@ interface ResourceTreeProps {
   onTogglePublic: (id: string, node: ResourceNode) => void;
   onOpenAddResourcePage: () => void;
   lang: Language;
+  hideCheckboxes?: boolean;
+  isSmartReport?: boolean;
 }
 
 // --- Helper for Tree IDs ---
@@ -39,7 +41,8 @@ const ResourceTreeNode: React.FC<{
   onTogglePublic: (id: string, node: ResourceNode) => void;
   lang: Language;
   searchTerm: string;
-}> = ({ node, level, selectedResources, onToggleResource, onSelectNode, selectedNodeId, onDelete, onUpload, onTogglePublic, lang, searchTerm }) => {
+  hideCheckboxes?: boolean;
+}> = ({ node, level, selectedResources, onToggleResource, onSelectNode, selectedNodeId, onDelete, onUpload, onTogglePublic, lang, searchTerm, hideCheckboxes }) => {
   const [expanded, setExpanded] = useState(true);
   const isSelected = selectedResources.has(node.id);
   const isCurrent = selectedNodeId === node.id;
@@ -57,15 +60,26 @@ const ResourceTreeNode: React.FC<{
   };
 
   const getIcon = () => {
+    if (node.meta?.customIcon) {
+      return node.meta.customIcon;
+    }
     if (node.meta?.isArtifactOutcome) {
       return 'fa-gem text-amber-500 shimmer-effect';
     }
-    if (node.meta?.fileType === 'Outcome') {
-        const name = node.name.toLowerCase();
-        if (name.includes('文档')) return 'fa-file-alt text-blue-500';
-        if (name.includes('表格')) return 'fa-file-excel text-green-600';
-        if (name.includes('图片')) return 'fa-file-image text-purple-500';
-        return 'fa-chart-bar text-emerald-500';
+    if (node.type === 'folder' || node.type === 'mbu' || node.type === 'domain') {
+      if (node.id === 'mbu-resources' || node.id === 'current-chapter-resources') {
+        return 'fa-briefcase text-indigo-500';
+      }
+      return 'fa-folder text-amber-500';
+    }
+    const name = node.name.toLowerCase();
+    if (node.meta?.fileType === 'Outcome' || node.type === 'artifact') {
+        if (name.includes('文档') || name.includes('.docx') || name.includes('.pdf')) return 'fa-file-alt text-blue-500';
+        if (name.includes('表格') || name.includes('.xlsx') || name.includes('.csv')) return 'fa-file-excel text-green-600';
+        if (name.includes('图片') || name.includes('.png') || name.includes('.jpg')) return 'fa-file-image text-purple-500';
+        if (name.includes('.segy') || name.includes('.las')) return 'fa-wave-square text-cyan-500';
+        if (name.includes('.py')) return 'fa-code text-teal-600';
+        return 'fa-file text-slate-500';
     }
     return 'fa-map-marker-alt text-indigo-500';
   };
@@ -91,13 +105,15 @@ const ResourceTreeNode: React.FC<{
           )}
         </div>
 
-        <input 
-          type="checkbox" 
-          checked={isSelected} 
-          onChange={handleCheckboxChange}
-          onClick={(e) => e.stopPropagation()}
-          className="mr-2 h-3.5 w-3.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 flex-shrink-0"
-        />
+        {!hideCheckboxes && (
+          <input 
+            type="checkbox" 
+            checked={isSelected} 
+            onChange={handleCheckboxChange}
+            onClick={(e) => e.stopPropagation()}
+            className="mr-2 h-3.5 w-3.5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 flex-shrink-0"
+          />
+        )}
 
         <div className="flex items-center flex-1 min-w-0">
           <i className={`fas ${getIcon()} mr-2 text-sm w-4 text-center flex-shrink-0`}></i>
@@ -154,6 +170,7 @@ const ResourceTreeNode: React.FC<{
               onTogglePublic={onTogglePublic}
               lang={lang}
               searchTerm={searchTerm}
+              hideCheckboxes={hideCheckboxes}
             />
           ))}
         </div>
@@ -172,7 +189,9 @@ export const ResourceTree: React.FC<ResourceTreeProps> = ({
   onDeleteResources,
   onTogglePublic,
   onOpenAddResourcePage,
-  lang
+  lang,
+  hideCheckboxes = false,
+  isSmartReport = false
 }) => {
   const t = translations[lang];
   const [searchTerm, setSearchTerm] = useState('');
@@ -280,6 +299,7 @@ export const ResourceTree: React.FC<ResourceTreeProps> = ({
             onTogglePublic={onTogglePublic}
             lang={lang}
             searchTerm={searchTerm}
+            hideCheckboxes={hideCheckboxes}
           />
         ))}
       </div>

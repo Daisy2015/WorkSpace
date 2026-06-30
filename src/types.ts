@@ -42,6 +42,7 @@ export interface ResourceNode {
     outcomeType?: string;
     objectId?: string;
     isArtifactOutcome?: boolean;
+    customIcon?: string;
   };
 }
 

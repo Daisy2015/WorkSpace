@@ -1,92 +1,176 @@
 import React, { useState } from 'react';
+import { ResourceTree } from './ResourceTree';
+import { ResourceNode } from '../types';
 
 interface ProChartRequirementTreeProps {
     lang: 'zh' | 'en';
 }
 
-const ProChartNode: React.FC<{ name: string; children?: string[]; level: number; defaultExpanded?: boolean }> = ({ name, children, level, defaultExpanded = true }) => {
-    const [expanded, setExpanded] = useState(defaultExpanded);
-    const hasChildren = children && children.length > 0;
-
-    const getLeafIcon = (idx: number) => {
-        return idx % 2 === 0 ? "fas fa-file-alt text-blue-500" : "fas fa-align-left text-emerald-500";
-    };
-
-    return (
-        <div className="select-none text-[13px]">
-            <div 
-                className="group flex items-center py-2 hover:bg-slate-50 cursor-pointer pr-4 transition-colors text-slate-700"
-                style={{ paddingLeft: `${level * 24 + 16}px` }}
-                onClick={() => hasChildren && setExpanded(!expanded)}
-            >
-                <div className="w-5 flex-shrink-0 flex justify-center text-slate-400">
-                    {hasChildren && (
-                        <i className={`fas fa-chevron-right text-[10px] transform transition-transform ${expanded ? 'rotate-90' : ''}`}></i>
-                    )}
-                </div>
-                <div className="mr-2.5" onClick={(e) => e.stopPropagation()}>
-                    <input type="checkbox" className="w-[14px] h-[14px] rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
-                </div>
-                <i className={`fas fa-map-marker-alt text-indigo-500 mr-2 text-[12px] flex-shrink-0`}></i>
-                <span className="truncate">{name} {hasChildren ? `(${children.length})` : ''}</span>
-            </div>
-            {hasChildren && expanded && (
-                <div>
-                     {children!.map((child, i) => (
-                        <div key={i} className="group flex items-center py-2 hover:bg-slate-50 cursor-pointer pr-4 transition-colors text-slate-700" style={{ paddingLeft: `${(level + 1) * 24 + 16}px` }}>
-                            <div className="w-5 flex-shrink-0 flex justify-center"></div>
-                            <div className="mr-2.5" onClick={(e) => e.stopPropagation()}>
-                                <input type="checkbox" className="w-[14px] h-[14px] rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
-                            </div>
-                            <i className={`${getLeafIcon(i)} mr-2 text-[13px] flex-shrink-0`}></i>
-                            <span className="truncate flex-1">{child}</span>
-                            <div className="w-6 h-6 rounded flex items-center justify-center text-red-500 opacity-0 group-hover:opacity-100 group-hover:bg-red-50 transition-all flex-shrink-0 ml-2 cursor-pointer">
-                                <i className="fas fa-trash-alt text-[12px]"></i>
-                            </div>
-                        </div>
-                     ))}
-                </div>
-            )}
-        </div>
-    );
-};
-
 export const ProChartRequirementTree: React.FC<ProChartRequirementTreeProps> = ({ lang }) => {
-    const data = [
-        { name: '深度道', children: ['深度刻度层 (Layer)', '井基础信息 (Well_Info)'] },
-        { name: '地层道', children: ['地层界线层 (Layer) - 地层分层数据 (Formation_Interval)', '地层标签层 (Layer) - 地层分层数据 (Formation_Interval)'] },
-        { name: '岩性道', children: ['岩性填充层 (Layer) - 岩性解释数据 (Lithology_Interpretation)', '岩性边界层 (Layer) - 岩性解释数据 (Lithology_Interpretation)', '岩性标签层 (Layer) - 岩性解释数据 (Lithology_Interpretation)'] },
-        { name: '测井曲线道', children: ['GR曲线层 (Layer) - 测井曲线数据 (Log_Curve_Data)', '电阻率曲线层 (Layer) - 测井曲线数据 (Log_Curve_Data)', '曲线名称层 (Layer) - 测井曲线配置数据 (Log_Curve_Info)'] },
-        { name: '层序地层道', children: ['层序界线层 (Layer) - 层序解释数据 (Sequence_Stratigraphy)', '体系域填充层 (Layer) - 层序解释数据 (Sequence_Stratigraphy)', '层序标签层 (Layer) - 层序解释数据 (Sequence_Stratigraphy)'] },
-        { name: '沉积微相道', children: ['微相填充层 (Layer) - 沉积微相数据 (Sedimentary_Microfacies)', '微相边界层 (Layer) - 沉积微相数据 (Sedimentary_Microfacies)', '微相标签层 (Layer) - 沉积微相数据 (Sedimentary_Microfacies)'] },
+    const [selectedResources] = useState<Set<string>>(new Set());
+
+    const proChartResources: ResourceNode[] = [
+        {
+            id: 'pro-template',
+            name: lang === 'zh' ? '图件模板' : 'Chart Templates',
+            type: 'folder',
+            children: [
+                {
+                    id: 'pro-temp-1',
+                    name: lang === 'zh' ? '沉积微相综合柱状图模板' : 'Sedimentary Microfacies Columnar Template',
+                    type: 'artifact',
+                    meta: { customIcon: 'fa-palette text-indigo-500' }
+                }
+            ]
+        },
+        {
+            id: 'pro-data',
+            name: lang === 'zh' ? '数据准备' : 'Data Preparation',
+            type: 'folder',
+            children: [
+                {
+                    id: 'pro-data-1',
+                    name: lang === 'zh' ? '测井数据' : 'Well Log Data',
+                    type: 'artifact',
+                    meta: { customIcon: 'fa-database text-slate-500' }
+                },
+                {
+                    id: 'pro-data-2',
+                    name: lang === 'zh' ? '录井数据' : 'Mud Log Data',
+                    type: 'artifact',
+                    meta: { customIcon: 'fa-file-alt text-slate-500' }
+                },
+                {
+                    id: 'pro-data-3',
+                    name: lang === 'zh' ? '岩心数据' : 'Core Data',
+                    type: 'artifact',
+                    meta: { customIcon: 'fa-file-image text-slate-500' }
+                },
+                {
+                    id: 'pro-data-4',
+                    name: lang === 'zh' ? '分层数据' : 'Layering Data',
+                    type: 'artifact',
+                    meta: { customIcon: 'fa-table text-slate-500' }
+                }
+            ]
+        },
+        {
+            id: 'pro-structure',
+            name: lang === 'zh' ? '图件结构' : 'Chart Structure',
+            type: 'folder',
+            children: [
+                {
+                    id: 'pro-layers',
+                    name: lang === 'zh' ? '图层（8）' : 'Layers (8)',
+                    type: 'folder',
+                    children: [
+                        {
+                            id: 'layer-depth',
+                            name: lang === 'zh' ? '深度层' : 'Depth Layer',
+                            type: 'folder',
+                            meta: { customIcon: 'fa-folder-open text-slate-400' },
+                            children: [
+                                {
+                                    id: 'track-depth',
+                                    name: lang === 'zh' ? '深度图道' : 'Depth Track',
+                                    type: 'artifact',
+                                    meta: { customIcon: 'fa-columns text-slate-400' }
+                                }
+                            ]
+                        },
+                        {
+                            id: 'layer-lithology',
+                            name: lang === 'zh' ? '岩性层' : 'Lithology Layer',
+                            type: 'folder',
+                            meta: { customIcon: 'fa-folder-open text-slate-400' },
+                            children: [
+                                {
+                                    id: 'track-lithology',
+                                    name: lang === 'zh' ? '岩性图道' : 'Lithology Track',
+                                    type: 'artifact',
+                                    meta: { customIcon: 'fa-columns text-slate-400' }
+                                }
+                            ]
+                        },
+                        {
+                            id: 'layer-electric',
+                            name: lang === 'zh' ? '电测层' : 'Electric Logging Layer',
+                            type: 'folder',
+                            meta: { customIcon: 'fa-folder-open text-slate-400' },
+                            children: [
+                                {
+                                    id: 'track-gr',
+                                    name: lang === 'zh' ? 'GR曲线图道' : 'GR Curve Track',
+                                    type: 'artifact',
+                                    meta: { customIcon: 'fa-columns text-slate-400' }
+                                },
+                                {
+                                    id: 'track-rt',
+                                    name: lang === 'zh' ? 'RT曲线图道' : 'RT Curve Track',
+                                    type: 'artifact',
+                                    meta: { customIcon: 'fa-columns text-slate-400' }
+                                },
+                                {
+                                    id: 'track-ac',
+                                    name: lang === 'zh' ? 'AC曲线图道' : 'AC Curve Track',
+                                    type: 'artifact',
+                                    meta: { customIcon: 'fa-columns text-slate-400' }
+                                }
+                            ]
+                        },
+                        {
+                            id: 'layer-sediment',
+                            name: lang === 'zh' ? '沉积相层' : 'Sedimentary Facies Layer',
+                            type: 'folder',
+                            meta: { customIcon: 'fa-folder-open text-slate-400' },
+                            children: [
+                                {
+                                    id: 'track-micro',
+                                    name: lang === 'zh' ? '微相图道' : 'Microfacies Track',
+                                    type: 'artifact',
+                                    meta: { customIcon: 'fa-columns text-slate-400' }
+                                },
+                                {
+                                    id: 'track-assoc',
+                                    name: lang === 'zh' ? '相组合图道' : 'Facies Association Track',
+                                    type: 'artifact',
+                                    meta: { customIcon: 'fa-columns text-slate-400' }
+                                }
+                            ]
+                        },
+                        {
+                            id: 'layer-formation',
+                            name: lang === 'zh' ? '地层层' : 'Stratigraphy Layer',
+                            type: 'folder',
+                            meta: { customIcon: 'fa-folder-open text-slate-400' },
+                            children: [
+                                {
+                                    id: 'track-boundary',
+                                    name: lang === 'zh' ? '地层界线图道' : 'Stratigraphic Boundary Track',
+                                    type: 'artifact',
+                                    meta: { customIcon: 'fa-columns text-slate-400' }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
     ];
 
     return (
-        <div className="h-full flex flex-col bg-white border-r border-slate-200">
-             <div className="p-3 border-b border-slate-100 flex flex-col gap-3">
-                <div className="relative">
-                    <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-[11px]"></i>
-                    <input 
-                        type="text" 
-                        placeholder={lang === 'zh' ? "搜索资源..." : "Search resources..."}
-                        className="w-full pl-8 pr-3 py-2 text-[13px] bg-white border border-slate-200 rounded shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-slate-600 placeholder-slate-400"
-                    />
-                </div>
-                <div className="flex gap-2 h-[34px]">
-                    <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2 rounded text-[13px] font-medium transition-colors shadow-sm">
-                        <i className="fas fa-plus text-[11px]"></i>
-                        {lang === 'zh' ? '添加资源' : 'Add resource'}
-                    </button>
-                    <button className="w-10 flex items-center justify-center bg-white border border-slate-200 rounded text-slate-500 hover:bg-slate-50 transition-colors shadow-sm focus:outline-none">
-                        <i className="fas fa-angle-double-down text-[12px]"></i>
-                    </button>
-                </div>
-             </div>
-             <div className="flex-1 overflow-y-auto custom-scrollbar py-2 border-t border-transparent shadow-[inset_0_2px_4px_-2px_rgba(0,0,0,0.05)]">
-                {data.map((item, i) => (
-                    <ProChartNode key={i} name={item.name} children={item.children} level={0} />
-                ))}
-            </div>
-        </div>
+        <ResourceTree
+            treeData={proChartResources}
+            selectedResources={selectedResources}
+            onToggleResource={() => {}}
+            onSelectNode={() => {}}
+            onAddResource={() => {}}
+            onDeleteResources={() => {}}
+            onTogglePublic={() => {}}
+            onOpenAddResourcePage={() => {}}
+            lang={lang}
+            hideCheckboxes={true}
+            isSmartReport={true}
+        />
     );
 };

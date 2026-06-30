@@ -143,6 +143,85 @@ export const TracePanel: React.FC<TracePanelProps> = ({
   }, [workspaceVersion, lang]);
 
   const handleGenerateReport = (data: { topic: string; outline: boolean; language: string }) => {
+    // Invoke report writing agent with smart report configs
+    onLaunchReport?.({
+      well: { name: data.topic },
+      outline: [
+        { 
+          id: '1', 
+          title: lang === 'zh' ? '第一章 前言' : 'Chapter 1: Preface', 
+          level: 1, 
+          isOpen: true, 
+          objectScope: { wells: [data.topic], blocks: [], structures: [], horizons: [], reservoirUnits: [] },
+          selectedMBUs: []
+        },
+        { 
+          id: '2', 
+          title: lang === 'zh' ? '第二章 区域地质概况' : 'Chapter 2: Regional Geology', 
+          level: 1, 
+          isOpen: true, 
+          objectScope: { wells: [data.topic], blocks: [], structures: [], horizons: [], reservoirUnits: [] },
+          selectedMBUs: []
+        },
+        { 
+          id: '2.1', 
+          title: lang === 'zh' ? '2.1 区域地层' : '2.1 Regional Stratigraphy', 
+          level: 2, 
+          isOpen: true, 
+          objectScope: { wells: [data.topic], blocks: [], structures: [], horizons: [], reservoirUnits: [] },
+          selectedMBUs: []
+        },
+        { 
+          id: '2.2', 
+          title: lang === 'zh' ? '2.2 构造特征' : '2.2 Structural Features', 
+          level: 2, 
+          isOpen: true, 
+          objectScope: { wells: [data.topic], blocks: [], structures: [], horizons: [], reservoirUnits: [] },
+          selectedMBUs: []
+        },
+        { 
+          id: '3', 
+          title: lang === 'zh' ? '第三章 邻井地质特征' : 'Chapter 3: Offset Well Features', 
+          level: 1, 
+          isOpen: true, 
+          objectScope: { wells: [data.topic], blocks: [], structures: [], horizons: [], reservoirUnits: [] },
+          selectedMBUs: []
+        },
+        { 
+          id: '4', 
+          title: lang === 'zh' ? '第四章 地层预测' : 'Chapter 4: Stratigraphic Prediction', 
+          level: 1, 
+          isOpen: true, 
+          objectScope: { wells: [data.topic], blocks: ['XX区块'], structures: ['XX背斜'], horizons: ['长6'], reservoirUnits: [] },
+          selectedMBUs: [
+            {
+              id: 'MBU-01',
+              categories: {
+                inputs: ['地震解释资料', '邻井测井曲线'],
+                process: ['地层划分流程'],
+                outcome: ['地层分层结果'],
+                management: ['专家审核记录'],
+                standards: ['地层划分规范'],
+                questions: []
+              }
+            }
+          ]
+        },
+        { 
+          id: '5', 
+          title: lang === 'zh' ? '第五章 完井设计' : 'Chapter 5: Completion Design', 
+          level: 1, 
+          isOpen: true, 
+          objectScope: { wells: [data.topic], blocks: [], structures: [], horizons: [], reservoirUnits: [] },
+          selectedMBUs: []
+        }
+      ],
+      isSmartReport: true,
+      outlineConfirmRequired: data.outline,
+      topic: data.topic,
+      language: data.language
+    });
+
     const newSession = {
       id: Date.now().toString(),
       title: data.topic,
@@ -383,6 +462,7 @@ export const TracePanel: React.FC<TracePanelProps> = ({
                   onClick={(e) => {
                     e.stopPropagation();
                     if (tool.id === 'report') {
+                      onCollapseResourcePanel();
                       setIsSmartReportModalOpen(true);
                     } else if (tool.id === 'pro_report') {
                       setIsProReportWizardOpen(true);

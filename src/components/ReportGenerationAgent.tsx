@@ -6,6 +6,7 @@ interface ReportGenerationAgentProps {
   config: any;
   onCloseAgent: () => void;
   onComplete?: () => void;
+  onActiveChapterChange?: (chapterId: string, chapterTitle: string) => void;
 }
 
 type ChapterStatus = 'completed' | 'running' | 'pending' | 'warning';
@@ -27,8 +28,19 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
   lang, 
   config,
   onCloseAgent,
-  onComplete
+  onComplete,
+  onActiveChapterChange
 }) => {
+  const [currentPhase, setCurrentPhase] = useState<'confirm_outline' | 'writing'>(
+    config?.isWeeklyBrief ? 'writing' : (config?.outlineConfirmRequired ? 'confirm_outline' : 'writing')
+  );
+
+  const [outlineNodes, setOutlineNodes] = useState<any[]>(config?.outline || []);
+  const [activeConfigChapterId, setActiveConfigChapterId] = useState<string>('1');
+  const [expandedMBUId, setExpandedMBUId] = useState<string | null>(null);
+  const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null);
+  const [isAddMbuOpen, setIsAddMbuOpen] = useState(false);
+
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [isFollowMode, setIsFollowMode] = useState(true);
   const [chapters, setChapters] = useState<ChapterNode[]>([]);
@@ -41,6 +53,133 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
   
   const contentRef = useRef<HTMLDivElement>(null);
   const hasStarted = useRef(false);
+  const lastNotifiedChapterId = useRef<string | null>(null);
+
+  const getMbuDefinitions = (l: 'zh' | 'en') => [
+    { id: 'MBU-01', name: l === 'zh' ? '地层资料' : 'Stratigraphic Data' },
+    { id: 'MBU-02', name: l === 'zh' ? '构造资料' : 'Structural Data' },
+    { id: 'MBU-03', name: l === 'zh' ? '储层资料' : 'Reservoir Data' }
+  ];
+
+  const getResourceDatabase = (l: 'zh' | 'en'): Record<string, any> => ({
+    '地震解释资料': {
+      name: l === 'zh' ? 'XX区块三维地震解释成果' : 'XX Block 3D Seismic Interpretation',
+      type: l === 'zh' ? '地震成果' : 'Seismic Outcome',
+      time: '2025-03-15',
+      objects: l === 'zh' ? 'XX区块、长6层' : 'XX Block, Chang 6',
+      summary: l === 'zh' ? '包含主要断层解释、层位构造图和目标层预测结果。' : 'Includes major fault interpretation, horizon maps and target layer predictions.'
+    },
+    '邻井测井曲线': {
+      name: l === 'zh' ? '长庆XX-2井测井原始曲线' : 'Changqing XX-2 Original Logs',
+      type: l === 'zh' ? '测井资料' : 'Well Log',
+      time: '2024-11-20',
+      objects: 'XX-2井',
+      summary: l === 'zh' ? 'XX-2井全井段常规测井曲线。' : 'Standard logs for the entire well XX-2.'
+    },
+    '地层划分流程': {
+      name: l === 'zh' ? '自动分层比对算法流' : 'Automated Layering Workflow',
+      type: l === 'zh' ? '处理流程' : 'Process Workflow',
+      time: '2025-01-10',
+      objects: l === 'zh' ? '全区块' : 'All blocks',
+      summary: l === 'zh' ? '基于深度学习的测井曲线地层分界点自动识别算法流程。' : 'Deep learning based boundary identification workflow.'
+    },
+    '地层分层结果': {
+      name: l === 'zh' ? '地层分层精细结果表' : 'Fine Stratigraphy Result Table',
+      type: l === 'zh' ? '分层数据' : 'Stratigraphy Data',
+      time: '2025-06-25',
+      objects: l === 'zh' ? 'XX-1井' : 'Well XX-1',
+      summary: l === 'zh' ? '经过专家校对的最终地层对比划分深度表。' : 'Expert-verified stratigraphic division depths.'
+    },
+    '专家审核记录': {
+      name: l === 'zh' ? '一键分层成果专家会签' : 'Expert Co-signature Report',
+      type: l === 'zh' ? '管理记录' : 'Management Record',
+      time: '2025-06-28',
+      objects: l === 'zh' ? '项目专家组' : 'Expert Panel',
+      summary: l === 'zh' ? '专家组对地层对比和预测深度成果的审核签署意见。' : 'Sign-off and approval on stratigraphy by expert panel.'
+    },
+    '地层划分规范': {
+      name: l === 'zh' ? '陆相碎屑岩地层划分国家标准' : 'Continental Siliciclastic Stratigraphy Standard',
+      type: l === 'zh' ? '标准规范' : 'Standard Norm',
+      time: '2020-12-01',
+      objects: l === 'zh' ? '国家能源局' : 'National Energy Board',
+      summary: l === 'zh' ? '标准号GB/T-31024。规定了陆相湖盆地层对比的基本原则和技术要求。' : 'GB/T-31024 standards for continental basin correlation.'
+    }
+  });
+
+  const moveNode = (id: string, direction: 'up' | 'down') => {
+    const index = outlineNodes.findIndex(n => n.id === id);
+    if (index === -1) return;
+    const newNodes = [...outlineNodes];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newNodes.length) return;
+    [newNodes[index], newNodes[targetIndex]] = [newNodes[targetIndex], newNodes[index]];
+    setOutlineNodes(newNodes);
+  };
+
+  const changeLevel = (id: string, delta: number) => {
+    setOutlineNodes(prev => prev.map(n => {
+      if (n.id === id) {
+        const newLevel = Math.max(1, Math.min(3, (n.level || 1) + delta));
+        return { ...n, level: newLevel };
+      }
+      return n;
+    }));
+  };
+
+  const addNode = (id: string, type: 'sibling' | 'child') => {
+    const index = outlineNodes.findIndex(n => n.id === id);
+    if (index === -1) return;
+    const refNode = outlineNodes[index];
+    const newNode = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: lang === 'zh' ? '新章节' : 'New Chapter',
+      level: type === 'sibling' ? (refNode.level || 1) : (refNode.level || 1) + 1,
+      isOpen: true,
+      objectScope: { wells: [], blocks: [], structures: [], horizons: [], reservoirUnits: [] },
+      selectedMBUs: []
+    };
+    const newNodes = [...outlineNodes];
+    newNodes.splice(index + 1, 0, newNode);
+    setOutlineNodes(newNodes);
+  };
+
+  const deleteNode = (id: string) => {
+    setOutlineNodes(prev => prev.filter(n => n.id !== id));
+    if (activeConfigChapterId === id) {
+      const remaining = outlineNodes.filter(n => n.id !== id);
+      if (remaining.length > 0) {
+        setActiveConfigChapterId(remaining[0].id);
+      }
+    }
+  };
+
+  const handleAddMbu = (mbuDef: any) => {
+    setOutlineNodes(prev => prev.map(n => {
+      if (n.id === activeConfigChapterId) {
+        return {
+          ...n,
+          selectedMBUs: [
+            ...(n.selectedMBUs || []),
+            {
+              id: mbuDef.id,
+              categories: { inputs: [], process: [], outcome: [], management: [], standards: [], questions: [] }
+            }
+          ]
+        };
+      }
+      return n;
+    }));
+  };
+
+  useEffect(() => {
+    if (config?.outline && config.outline.length > 0) {
+      setOutlineNodes(config.outline);
+      const firstId = config.outline[0]?.id;
+      if (firstId) {
+        setActiveConfigChapterId(firstId);
+      }
+    }
+  }, [config]);
 
   const handleMouseUp = () => {
     const selection = window.getSelection();
@@ -57,71 +196,136 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
 
   // Initialize Chapters
   useEffect(() => {
-    const defaultChapters: ChapterNode[] = [
-      { 
-        id: '1', title: lang === 'zh' ? '第一章 基础信息' : 'Chapter 1: Basic Info', level: 1, content: '', status: 'pending',
-        fullContentText: lang === 'zh' 
-          ? `${objectName}位于鄂尔多斯盆地XX区块，设计井深3500m，井别为评价井。该井主要勘探目的层为长6段，旨在评价区域含油气性及储层发育状况。本井由分公司承担钻探任务，预计于2026年第三季度开钻。`
-          : `${objectName} is located in Ordos Basin, with a designed depth of 3500m. It is an appraisal well targeting the Chang 6 member.`
-      },
-      { 
-        id: '1-1', title: lang === 'zh' ? '1.1 井基本情况' : '1.1 Well Basic Specs', level: 2, content: '', status: 'warning',
-        fullContentText: lang === 'zh'
-          ? '设计井身结构采用三开程序，一开封隔表层松散地层，二开进入主要含油层段，三开完钻并进行试油评价。钻井流体设计采用水基聚合物体系，以满足井壁稳定及环境保护要求。'
-          : 'The well structure adopts a 3-stage program using water-based polymer system for drilling fluids.',
-        warning: {
-          reason: lang === 'zh' ? '缺少输入的资料' : 'Missing input data',
-          suggestion: lang === 'zh' ? '建议补充井基本信息表' : 'Suggest adding well basic info table'
-        }
-      },
-      { 
-        id: '2', title: lang === 'zh' ? '第二章 区域地质' : 'Chapter 2: Regional Geology', level: 1, content: '', status: 'pending',
-        fullContentText: lang === 'zh'
-          ? '研究区块位于鄂尔多斯盆地伊陕斜坡中段，构造平缓。区域盖层条件优质，发育多套生油层系，具备良好的成藏背景。地层自上而下发育白垩系、侏罗系及三叠系，厚度变化规律。'
-          : 'The block is situated in the central Yishan Slope of Ordos Basin. It features gentle structures and high-quality regional seals.'
-      },
-      { 
-        id: '3', title: lang === 'zh' ? '第三章 地层预测' : 'Chapter 3: Formation Prediction', level: 1, content: '', status: 'pending',
-        fullContentText: lang === 'zh'
-          ? '根据三维地震资料解释，目标井区地层发育齐全。通过邻井对比及变速成图技术，对目的层深度进行了精细预测，误差控制在合理范围内。'
-          : 'Seismic interpretation shows a complete stratigraphic sequence. Depth prediction was refined using offset well correlation.'
-      },
-      { 
-        id: '3-1', title: lang === 'zh' ? '3.1 地层划分' : '3.1 Stratigraphy', level: 2, content: '', status: 'pending',
-        fullContentText: lang === 'zh'
-          ? '根据测井响应特征，本区块地层划分方案明确。自地壳表层向下，地层序列稳定，主要目的层长6段预计在钻遇深度3250m处呈现明显的岩性突变。'
-          : 'Based on log responses, the stratigraphic scheme is clear. The primary target Chang 6 is expected at 3250m.'
-      },
-      { 
-        id: '3-2', title: lang === 'zh' ? '3.2 地层界面预测' : '3.2 Interface Prediction', level: 2, content: '', status: 'pending',
-        fullContentText: lang === 'zh'
-          ? '预测结果显示，陆相碎屑岩盖层与储集层界面清晰。预计目标井将在3250m进入长6层，预测深度准确率超过98%。'
-          : 'Predicted entry into Chang 6 is at 3250m with high accuracy.'
-      },
-      { 
-        id: '4', title: lang === 'zh' ? '第四章 压力预测' : 'Chapter 4: Pressure Prediction', level: 1, content: '', status: 'pending',
-        fullContentText: lang === 'zh'
-          ? '根据声波时差及电阻率测井资料，结合邻井钻探压力测试，预测该井地层压力梯度为1.02-1.08 MPa/100m。破裂压力预测值约为2.15 MPa/100m，为井控安全提供重要参考。'
-          : 'Predicted formation pressure gradient is 1.02-1.08 MPa/100m.',
-        warning: {
-          reason: lang === 'zh' ? '缺少该区块实测压力资料' : 'Missing actual pressure data',
-          suggestion: lang === 'zh' ? '已采用标准模板完成基础生成，建议审阅阶段补充资料后重新生成。' : 'Basic generation completed using templates. Review recommended.'
-        }
-      },
-      { 
-        id: '5', title: lang === 'zh' ? '第五章 完井设计' : 'Chapter 5: Completion Design', level: 1, content: '', status: 'pending',
-        fullContentText: lang === 'zh'
-          ? '完井方式推荐采用套管固井射孔完井，选用P110级套管，以应对主力油层的地层强度与后期增产措施的需求。'
-          : 'P110 casing and cemented completion with perforation is recommended.'
-      }
-    ];
+    if (currentPhase === 'confirm_outline') {
+      return;
+    }
 
-    setChapters(defaultChapters);
-  }, [lang, objectName]);
+    const initialOutline = outlineNodes.length > 0 ? outlineNodes : (config?.outline || []);
+    
+    if (config?.isWeeklyBrief) {
+      const briefChapters: ChapterNode[] = [
+        {
+          id: '1', title: lang === 'zh' ? '第一章 生产整体概况' : 'Chapter 1: Overall Production Summary', level: 1, content: '', status: 'pending',
+          fullContentText: lang === 'zh'
+            ? '本周全区整体生产稳中有升，日产达成率超计划 2.5%。各单位认真落实生产计划，紧密配合，实现全区原油产量稳步增长。全区平均日产油 1.25 万吨，累产油 8.75 万吨，整体运行平稳有序。'
+            : 'Overall production across the district saw steady growth this week, with the daily target execution exceeding plans by 2.5%. District average daily oil production reached 12.5 thousand tons, with cumulative production of 87.5 thousand tons.'
+        },
+        {
+          id: '2', title: lang === 'zh' ? '第二章 重点井与异常井分析' : 'Chapter 2: Key & Abnormal Wells Analysis', level: 1, content: '', status: 'pending',
+          fullContentText: lang === 'zh'
+            ? '本周针对异常下降和突发减产井启动了智能诊断巡检。其中，A1井由于地面输油管线短时故障维护，日产量曾短时下降；经在4月14日进行抢修后，已完全恢复满产，目前生产状况优良。B5井目前压力微幅波动，整体平稳。'
+            : 'Intelligent anomaly inspection was triggered this week. Well A1 experienced a brief drop in daily production due to surface pipeline maintenance. Following repairs on April 14, full capacity has been restored, and its current status is excellent. Well B5 remains steady with minor pressure fluctuations.'
+        },
+        {
+          id: '3', title: lang === 'zh' ? '第三章 后续生产治理与管理建议' : 'Chapter 3: Management Recommendations', level: 1, content: '', status: 'pending',
+          fullContentText: lang === 'zh'
+            ? '根据智能问数及产量下降诊断大模型分析结果，建议采取以下对策：\n1. 持续跟踪关注 A1 井管线修复后的压力与液量波动情况，防止发生二次泄漏或故障。\n2. 建议下周加大对老井递减区的稳产注水监控力度，精细调节各井组注水配额，延缓产量递减。\n3. 提早准备下月原油生产计划的滚动预测与动态排产，对重点增产层位进行前瞻性技术论证。'
+            : 'Based on diagnosis: 1. Monitor well A1 closely after pipeline repairs to prevent recurring issues. 2. Increase water flooding monitoring next week in mature areas to delay natural decline. 3. Prepare predictive rolling plan for next month.'
+        }
+      ];
+      setChapters(briefChapters);
+    } else if (initialOutline.length > 0) {
+      const mappedChapters: ChapterNode[] = initialOutline.map((node: any) => {
+        const targetWells = node.objectScope?.wells?.map((w: string) => w.replace(/^井：/, '')) || [];
+        const mbus = node.selectedMBUs?.map((m: any) => m.id) || [];
+        
+        let fullContentText = node.fullContentText || '';
+        if (!fullContentText) {
+          if (lang === 'zh') {
+            fullContentText = `${node.title}相关的业务要素已经准备妥当。经过对工区地质和环境参数的仔细校核，本次分析地质对象涵盖了：[${
+              targetWells.length > 0 ? targetWells.join(', ') : objectName
+            }]。在编写过程中，系统深度关联并校对了数字化成果MBU：[${
+              mbus.length > 0 ? mbus.join(', ') : '系统标准知识库'
+            }]，所得出的各项压力指数与井身参数完全符合国家级和企业级勘探安全技术规程。数据质量满足后续工程建设及安全施工要求。`;
+          } else {
+            fullContentText = `We have verified all operational factors for ${node.title}. Focused exploration targets ${
+              targetWells.length > 0 ? targetWells.join(', ') : objectName
+            } were thoroughly modeled using standard workflows and MBU artifacts: [${
+              mbus.length > 0 ? mbus.join(', ') : 'standard knowledge base'
+            }]. The precision meets safety and enterprise design requirements.`;
+          }
+        }
+
+        return {
+          id: node.id,
+          title: node.title,
+          level: Math.min(2, Math.max(1, node.level || 1)) as 1 | 2,
+          status: 'pending' as const,
+          content: '',
+          fullContentText,
+          warning: (node.selectedMBUs || []).length === 0 ? {
+            reason: lang === 'zh' ? '本章暂未关联到参考MBU数字化成果' : 'No MBU referenced for this chapter',
+            suggestion: lang === 'zh' ? '该章节已采用系统默认标准模板进行编写。若有相关地勘、测井等成果，建议在左侧配置关联MBU以获取极高精准度的生成文本。' : 'Default knowledge base was used for report generation. Adding real MBU records is suggested.'
+          } : undefined
+        };
+      });
+      setChapters(mappedChapters);
+    } else {
+      const defaultChapters: ChapterNode[] = [
+        { 
+          id: '1', title: lang === 'zh' ? '第一章 基础信息' : 'Chapter 1: Basic Info', level: 1, content: '', status: 'pending',
+          fullContentText: lang === 'zh' 
+            ? `${objectName}位于鄂尔多斯盆地XX区块，设计井深3500m，井别为评价井。该井主要勘探目的层为长6段，旨在评价区域含油气性及储层发育状况。本井由分公司承担钻探任务，预计于2026年第三季度开钻。`
+            : `${objectName} is located in Ordos Basin, with a designed depth of 3500m. It is an appraisal well targeting the Chang 6 member.`
+        },
+        { 
+          id: '1-1', title: lang === 'zh' ? '1.1 井基本情况' : '1.1 Well Basic Specs', level: 2, content: '', status: 'warning',
+          fullContentText: lang === 'zh'
+            ? '设计井身结构采用三开程序，一开封隔表层松散地层，二开进入主要含油层段，三开完钻并进行试油评价。钻井流体设计采用水基聚合物体系，以满足井壁稳定及环境保护要求。'
+            : 'The well structure adopts a 3-stage program using water-based polymer system for drilling fluids.',
+          warning: {
+            reason: lang === 'zh' ? '缺少输入的资料' : 'Missing input data',
+            suggestion: lang === 'zh' ? '建议补充井基本信息表' : 'Suggest adding well basic info table'
+          }
+        },
+        { 
+          id: '2', title: lang === 'zh' ? '第二章 区域地质' : 'Chapter 2: Regional Geology', level: 1, content: '', status: 'pending',
+          fullContentText: lang === 'zh'
+            ? '研究区块位于鄂尔多斯盆地伊陕斜坡中段，构造平缓。区域盖层条件优质，发育多套生油层系，具备良好的成藏背景。地层自上而下发育白垩系、侏罗系及三叠系，厚度变化规律。'
+            : 'The block is situated in the central Yishan Slope of Ordos Basin. It features gentle structures and high-quality regional seals.'
+        },
+        { 
+          id: '3', title: lang === 'zh' ? '第三章 地层预测' : 'Chapter 3: Formation Prediction', level: 1, content: '', status: 'pending',
+          fullContentText: lang === 'zh'
+            ? '根据三维地震资料解释，目标井区地层发育齐全。通过邻井对比及变速成图技术，对目的层深度进行了精细预测，误差控制在合理范围内。'
+            : 'Seismic interpretation shows a complete stratigraphic sequence. Depth prediction was refined using offset well correlation.'
+        },
+        { 
+          id: '3-1', title: lang === 'zh' ? '3.1 地层划分' : '3.1 Stratigraphy', level: 2, content: '', status: 'pending',
+          fullContentText: lang === 'zh'
+            ? '根据测井响应特征，本区块地层划分方案明确。自地壳表层向下，地层序列稳定，主要目的层长6段预计在钻遇深度3250m处呈现明显的岩性突变。'
+            : 'Based on log responses, the stratigraphic scheme is clear. The primary target Chang 6 is expected at 3250m.'
+        },
+        { 
+          id: '3-2', title: lang === 'zh' ? '3.2 地层界面预测' : '3.2 Interface Prediction', level: 2, content: '', status: 'pending',
+          fullContentText: lang === 'zh'
+            ? '预测结果显示，陆相碎屑岩盖层与储集层界面清晰。预计目标井将在3250m进入长6层，预测深度准确率超过98%。'
+            : 'Predicted entry into Chang 6 is at 3250m with high accuracy.'
+        },
+        { 
+          id: '4', title: lang === 'zh' ? '第四章 压力预测' : 'Chapter 4: Pressure Prediction', level: 1, content: '', status: 'pending',
+          fullContentText: lang === 'zh'
+            ? '根据声波时差及电阻率测井资料，结合邻井钻探压力测试，预测该井地层压力梯度为1.02-1.08 MPa/100m。破裂压力预测值约为2.15 MPa/100m，为井控安全提供重要参考。'
+            : 'Predicted formation pressure gradient is 1.02-1.08 MPa/100m.',
+          warning: {
+            reason: lang === 'zh' ? '缺少该区块实测压力资料' : 'Missing actual pressure data',
+            suggestion: lang === 'zh' ? '已采用标准模板完成基础生成，建议审阅阶段补充资料后重新生成。' : 'Basic generation completed using templates. Review recommended.'
+          }
+        },
+        { 
+          id: '5', title: lang === 'zh' ? '第五章 完井设计' : 'Chapter 5: Completion Design', level: 1, content: '', status: 'pending',
+          fullContentText: lang === 'zh'
+            ? '完井方式推荐采用套管固井射孔完井，选用P110级套管，以应对主力油层的地层强度与后期增产措施的需求。'
+            : 'P110 casing and cemented completion with perforation is recommended.'
+        }
+      ];
+      setChapters(defaultChapters);
+    }
+  }, [lang, objectName, currentPhase]);
 
   // Simulation Logic
   useEffect(() => {
-    if (chapters.length === 0 || hasStarted.current) return;
+    if (chapters.length === 0 || hasStarted.current || currentPhase !== 'writing') return;
     hasStarted.current = true;
 
     const runSimulation = async () => {
@@ -157,27 +361,25 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
     };
 
     runSimulation();
-  }, [chapters.length]);
+  }, [chapters.length, currentPhase]);
 
   useEffect(() => {
-    if (isFollowMode && isGenerating && contentRef.current) {
-        const container = contentRef.current;
-        container.scrollTo({
-            top: container.scrollHeight,
-            behavior: 'smooth'
-        });
+    if (isFollowMode && isGenerating && activeChapterId) {
+      scrollToActiveChapter(activeChapterId);
     }
-  }, [isGenerating, isFollowMode, chapters]);
+  }, [activeChapterId, chapters, isGenerating, isFollowMode]);
 
   useEffect(() => {
-      // Trigger scroll only once on load for chapter 3
-      const timer = setTimeout(() => {
-        scrollToChapterTop('3');
-      }, 500);
-      return () => clearTimeout(timer);
-  }, []);
+    if (activeChapterId && onActiveChapterChange && lastNotifiedChapterId.current !== activeChapterId) {
+      const ch = chapters.find(c => c.id === activeChapterId);
+      if (ch) {
+        lastNotifiedChapterId.current = activeChapterId;
+        onActiveChapterChange(activeChapterId, ch.title);
+      }
+    }
+  }, [activeChapterId, chapters, onActiveChapterChange]);
   
-  const scrollToActiveChapter = (id: string, isSmooth = true) => {
+  const scrollToActiveChapter = (id: string, isSmooth = false) => {
     const el = document.getElementById(`doc-chapter-${id}`);
     const container = contentRef.current;
     if (el && container) {
@@ -188,13 +390,10 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
         const elementBottom = rect.bottom - containerRect.top;
         const viewportHeight = containerRect.height;
         
-        // Threshold: Keep the "cursor" at about 70% of the screen height
-        if (elementBottom > viewportHeight * 0.7) {
-            const scrollAmount = elementBottom - (viewportHeight * 0.7);
-            container.scrollBy({ 
-                top: scrollAmount, 
-                behavior: isSmooth ? 'smooth' : 'auto' 
-            });
+        // Threshold: Keep the "cursor" at about 60% of the screen height
+        if (elementBottom > viewportHeight * 0.6) {
+            const scrollAmount = elementBottom - (viewportHeight * 0.6);
+            container.scrollTop = container.scrollTop + scrollAmount;
         }
     }
   };
@@ -220,6 +419,7 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
     setIsFollowMode(false);
     scrollToChapterTop(id);
     setHighlightedChapterId(id);
+    setActiveChapterId(id);
     setTimeout(() => setHighlightedChapterId(null), 3000);
   };
 
@@ -231,6 +431,435 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
       default: return <i className="far fa-circle text-slate-300"></i>;
     }
   };
+
+  if (currentPhase === 'confirm_outline') {
+    const activeNode = outlineNodes.find(n => n.id === activeConfigChapterId) || outlineNodes[0] || {
+      id: '1', title: 'Preface', level: 1, objectScope: { wells: [], blocks: [], structures: [], horizons: [], reservoirUnits: [] }, selectedMBUs: []
+    };
+    const activeSelectedResource = selectedResourceId ? getResourceDatabase(lang)[selectedResourceId] : null;
+
+    return (
+      <div className="flex flex-col h-full bg-slate-50 overflow-hidden font-sans text-slate-900" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="w-full h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-30 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <i className="fas fa-file-invoice text-sm"></i>
+            </div>
+            <div>
+              <h1 className="text-sm font-black text-slate-800 leading-none flex items-center gap-2">
+                {lang === 'zh' ? '智能报告编写编制准备' : 'Smart Report Preparation'}
+                <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[9px] font-black uppercase border border-indigo-100">
+                  {lang === 'zh' ? '人机大纲确认' : 'Confirming Outline'}
+                </span>
+              </h1>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">
+                {lang === 'zh' ? `当前对象：${objectName}` : `Target: ${objectName}`}
+              </p>
+            </div>
+          </div>
+          
+          <button 
+            onClick={onCloseAgent}
+            className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-all"
+          >
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+
+        {/* Content Workspace */}
+        <div className="flex-1 flex overflow-hidden p-6 gap-6 relative">
+          
+          {/* Left Column: Outline Tree */}
+          <div className="w-[38%] flex flex-col bg-white border border-slate-200/60 rounded-2xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-3.5 bg-indigo-500 rounded-full"></div>
+                <h2 className="text-xs font-black text-slate-700 uppercase tracking-wider">
+                  {lang === 'zh' ? '报告大纲目录' : 'Report Structure Outline'}
+                </h2>
+              </div>
+              <button
+                onClick={() => {
+                  const id = Math.random().toString(36).substr(2, 9);
+                  const newNode = {
+                    id,
+                    title: lang === 'zh' ? '新章节' : 'New Chapter',
+                    level: 1,
+                    isOpen: true,
+                    objectScope: { wells: [objectName], blocks: [], structures: [], horizons: [], reservoirUnits: [] },
+                    selectedMBUs: []
+                  };
+                  setOutlineNodes([...outlineNodes, newNode]);
+                  setActiveConfigChapterId(id);
+                }}
+                className="px-2.5 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold hover:bg-indigo-700 transition-all flex items-center gap-1 shadow-sm"
+              >
+                <i className="fas fa-plus text-[8px]"></i>
+                {lang === 'zh' ? '新增章节' : 'Add Chapter'}
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-1.5 custom-scrollbar">
+              {outlineNodes.map((node, index) => {
+                const isActive = activeConfigChapterId === node.id;
+                return (
+                  <div 
+                    key={node.id}
+                    onClick={() => setActiveConfigChapterId(node.id)}
+                    className={`group flex items-center gap-2 py-2 px-3 rounded-xl cursor-pointer transition-all border ${
+                      isActive 
+                        ? 'bg-indigo-50/80 border-indigo-100 text-indigo-700 shadow-sm' 
+                        : 'bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:border-slate-100'
+                    }`}
+                    style={{ marginLeft: `${((node.level || 1) - 1) * 20}px` }}
+                  >
+                    <div className="flex items-center gap-1.5 text-slate-300 group-hover:text-slate-400">
+                      <i className="fas fa-bars text-[10px]"></i>
+                    </div>
+                    <span className="text-[10px] font-mono opacity-40 font-bold w-4">{index + 1}</span>
+                    <input 
+                      type="text"
+                      value={node.title}
+                      onClick={e => e.stopPropagation()}
+                      onChange={(e) => {
+                        setOutlineNodes(prev => prev.map(n => n.id === node.id ? { ...n, title: e.target.value } : n));
+                      }}
+                      className="flex-1 bg-transparent border-none outline-none text-xs font-bold text-inherit focus:ring-0 p-0"
+                    />
+
+                    {/* Quick controls on hover */}
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                      <button 
+                        onClick={() => moveNode(node.id, 'up')}
+                        className="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-white rounded transition-all"
+                      >
+                        <i className="fas fa-arrow-up text-[8px]"></i>
+                      </button>
+                      <button 
+                        onClick={() => moveNode(node.id, 'down')}
+                        className="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-white rounded transition-all"
+                      >
+                        <i className="fas fa-arrow-down text-[8px]"></i>
+                      </button>
+                      <button 
+                        onClick={() => changeLevel(node.id, 1)}
+                        title={lang === 'zh' ? '降级' : 'Indent'}
+                        className="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-white rounded transition-all"
+                      >
+                        <i className="fas fa-indent text-[8px]"></i>
+                      </button>
+                      <button 
+                        onClick={() => changeLevel(node.id, -1)}
+                        title={lang === 'zh' ? '升级' : 'Outdent'}
+                        className="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-white rounded transition-all"
+                      >
+                        <i className="fas fa-outdent text-[8px]"></i>
+                      </button>
+                      <button 
+                        onClick={() => deleteNode(node.id)}
+                        className="w-5 h-5 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
+                      >
+                        <i className="fas fa-trash-alt text-[8px]"></i>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right Column: Material Config */}
+          <div className="flex-1 flex flex-col bg-white border border-slate-200/60 rounded-2xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-3.5 bg-emerald-500 rounded-full"></div>
+                <h2 className="text-xs font-black text-slate-700 uppercase tracking-wider">
+                  {lang === 'zh' ? '章节资料与对象范围配置' : 'Chapter Resource Config'}
+                </h2>
+              </div>
+              <span className="px-2.5 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100/50 rounded-lg text-[10px] font-black">
+                {activeNode.title}
+              </span>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+              {/* Object scope list */}
+              <div className="space-y-3">
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <i className="fas fa-bullseye text-slate-300"></i>
+                  {lang === 'zh' ? '本章关联地质对象' : 'Related Geological Objects'}
+                </h3>
+                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex flex-wrap gap-2">
+                  {[
+                    ...(activeNode.objectScope?.wells?.length > 0 ? activeNode.objectScope.wells : [objectName]).map((w: string) => ({ type: lang === 'zh' ? '井' : 'Well', name: w.replace(/^井：/, '') })),
+                    ...(activeNode.objectScope?.blocks || []).map((b: string) => ({ type: lang === 'zh' ? '区块' : 'Block', name: b })),
+                    ...(activeNode.objectScope?.structures || []).map((s: string) => ({ type: lang === 'zh' ? '构造' : 'Structure', name: s })),
+                    ...(activeNode.objectScope?.horizons || []).map((h: string) => ({ type: lang === 'zh' ? '层位' : 'Horizon', name: h })),
+                    ...(activeNode.objectScope?.reservoirUnits || []).map((r: string) => ({ type: lang === 'zh' ? '单元' : 'Unit', name: r }))
+                  ].map((obj, idx) => (
+                    <div 
+                      key={`${obj.name}-${idx}`}
+                      className="px-2.5 py-1 bg-white border border-slate-200/60 rounded-lg text-[10px] font-bold text-slate-700 flex items-center gap-1.5 shadow-sm"
+                    >
+                      <span className="px-1 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[8px] font-black uppercase">{obj.type}</span>
+                      {obj.name}
+                    </div>
+                  ))}
+                  {/* Default Geological Items */}
+                  <div className="px-2.5 py-1 bg-white/60 border border-dashed border-slate-300 rounded-lg text-[10px] text-slate-400 font-bold flex items-center gap-1 cursor-pointer hover:border-indigo-400 hover:text-indigo-600 transition-colors">
+                    <i className="fas fa-plus text-[8px]"></i>
+                    {lang === 'zh' ? '关联对象' : 'Add Object'}
+                  </div>
+                </div>
+              </div>
+
+              {/* MBU resource items */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <i className="fas fa-folder-open text-slate-300"></i>
+                    {lang === 'zh' ? '关联数字化成果 (MBU)' : 'Linked MBU Resources'}
+                  </h3>
+
+                  <div className="relative">
+                    <button 
+                      onClick={() => setIsAddMbuOpen(!isAddMbuOpen)}
+                      className="text-[10px] bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-2 py-1 rounded-lg font-bold transition-all flex items-center gap-1"
+                    >
+                      <i className="fas fa-plus text-[8px]"></i>
+                      {lang === 'zh' ? '添加 MBU' : 'Add MBU'}
+                    </button>
+                    {isAddMbuOpen && (
+                      <div className="absolute right-0 top-7 z-50 bg-white shadow-xl rounded-xl border border-slate-100 p-1.5 w-48 space-y-0.5">
+                        {getMbuDefinitions(lang).filter(m => !(activeNode.selectedMBUs || []).find((s: any) => s.id === m.id)).map(m => (
+                          <button 
+                            key={m.id} 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddMbu(m);
+                              setIsAddMbuOpen(false);
+                            }} 
+                            className="w-full text-left text-[11px] p-2 hover:bg-slate-50 font-bold text-slate-700 rounded-lg transition-all"
+                          >
+                            {m.id} {m.name}
+                          </button>
+                        ))}
+                        {getMbuDefinitions(lang).filter(m => !(activeNode.selectedMBUs || []).find((s: any) => s.id === m.id)).length === 0 && (
+                          <p className="text-[10px] text-slate-400 p-2 text-center">{lang === 'zh' ? '无可用MBU' : 'No MBU available'}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2.5">
+                  {(activeNode.selectedMBUs || []).map((mbuEntry: any) => {
+                    const mbuDef = getMbuDefinitions(lang).find(d => d.id === mbuEntry.id) || { id: mbuEntry.id, name: 'Unknown' };
+                    const isExpanded = expandedMBUId === mbuEntry.id;
+                    const mbuData = mbuEntry.categories || { inputs: [], process: [], outcome: [], management: [], standards: [], questions: [] };
+
+                    const ipomsq = [
+                      { key: 'I', val: (mbuData.inputs || []).length > 0 },
+                      { key: 'P', val: (mbuData.process || []).length > 0 },
+                      { key: 'O', val: (mbuData.outcome || []).length > 0 },
+                      { key: 'M', val: (mbuData.management || []).length > 0 },
+                      { key: 'S', val: (mbuData.standards || []).length > 0 },
+                      { key: 'Q', val: (mbuData.questions || []).length > 0 },
+                    ];
+
+                    return (
+                      <div key={mbuEntry.id} className="bg-slate-50 border border-slate-200/60 rounded-xl overflow-hidden transition-all shadow-sm">
+                        <div 
+                          className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-100/50 transition-all"
+                          onClick={() => setExpandedMBUId(isExpanded ? null : mbuEntry.id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[10px] font-black text-slate-500 shadow-sm">
+                              {mbuEntry.id.split('-')[1]}
+                            </div>
+                            <div>
+                              <h4 className="text-[11px] font-bold text-slate-700">{mbuEntry.id} {mbuDef.name}</h4>
+                              <div className="flex gap-2.5 mt-1">
+                                {ipomsq.map(cat => (
+                                  <div key={cat.key} className="flex items-center gap-1 font-bold">
+                                    <div className={`w-1.5 h-1.5 rounded-full ${cat.val ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]' : 'border border-slate-300'}`}></div>
+                                    <span className={`text-[8px] font-black ${cat.val ? 'text-slate-600' : 'text-slate-300'}`}>{cat.key}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-3 text-slate-400">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOutlineNodes(prev => prev.map(n => {
+                                  if (n.id === activeConfigChapterId) {
+                                    return { ...n, selectedMBUs: (n.selectedMBUs || []).filter((m: any) => m.id !== mbuEntry.id) };
+                                  }
+                                  return n;
+                                }));
+                              }} 
+                              className="text-red-400 hover:text-red-600 transition-colors"
+                            >
+                              <i className="fas fa-trash-alt text-[10px]"></i>
+                            </button>
+                            <i className={`fas fa-chevron-down text-[10px] transition-transform ${isExpanded ? 'rotate-180' : ''}`}></i>
+                          </div>
+                        </div>
+
+                        {/* MBU Sub-categories expansion */}
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div 
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="border-t border-slate-100 bg-white"
+                            >
+                              <div className="p-4 space-y-4">
+                                {[
+                                  { key: 'inputs', label: lang === 'zh' ? 'Inputs（输入依据）' : 'Inputs' },
+                                  { key: 'process', label: lang === 'zh' ? 'Process（处理过程）' : 'Process' },
+                                  { key: 'outcome', label: lang === 'zh' ? 'Outcome（输出成果）' : 'Outcome' },
+                                  { key: 'management', label: lang === 'zh' ? 'Management（管理确认）' : 'Management' },
+                                  { key: 'standards', label: lang === 'zh' ? 'Standards（标准规则）' : 'Standards' },
+                                  { key: 'questions', label: lang === 'zh' ? 'Questions（缺陷不确定）' : 'Questions' }
+                                ].map(cat => {
+                                  const items = mbuData[cat.key] || [];
+                                  if (items.length === 0) return null;
+                                  
+                                  return (
+                                    <div key={cat.key} className="space-y-2">
+                                      <div className="flex items-center justify-between border-b border-slate-50 pb-1.5">
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{cat.label}</span>
+                                        <span className="text-[9px] font-bold text-slate-400">{items.length}</span>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-1.5">
+                                        {items.map((item: string) => (
+                                          <div 
+                                            key={item} 
+                                            onClick={() => setSelectedResourceId(item)}
+                                            className="group flex items-center gap-2 p-2 bg-slate-50 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-lg cursor-pointer transition-all"
+                                          >
+                                            <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></div>
+                                            <span className="flex-1 text-[10px] font-bold text-slate-600 group-hover:text-indigo-600 truncate">{item}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  })}
+
+                  {(activeNode.selectedMBUs || []).length === 0 && (
+                    <div className="p-8 border border-dashed border-slate-200 rounded-xl text-center text-slate-400">
+                      <i className="fas fa-folder-closed text-lg mb-2 text-slate-300"></i>
+                      <p className="text-[10px] font-bold">{lang === 'zh' ? '本章暂未配置数字化成果 MBU' : 'No MBU referenced for this chapter'}</p>
+                      <p className="text-[9px] text-slate-400/80 mt-1">{lang === 'zh' ? '点击右上角【添加 MBU】推荐核心专业成果资料' : 'Click Add MBU to import core geological data'}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Tip bar */}
+            <div className="p-3 border-t border-slate-100 bg-slate-50/50 text-[10px] text-slate-400 text-center font-bold">
+              {lang === 'zh' ? '核对大纲节点并配置核心生产依据，实现业务与AI在编制前的深度确认' : 'Verify the nodes and inputs to fully guide the automated report writing.'}
+            </div>
+          </div>
+
+          {/* Side Panel: Resource Details */}
+          <AnimatePresence>
+            {activeSelectedResource && (
+              <motion.div 
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                className="absolute top-0 right-0 w-80 h-full bg-white shadow-2xl border-l border-slate-200/80 z-[60] p-5 flex flex-col"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">{lang === 'zh' ? '资源详情' : 'Resource Details'}</h5>
+                  <button 
+                    onClick={() => setSelectedResourceId(null)}
+                    className="w-7 h-7 rounded-full hover:bg-slate-50 text-slate-400 transition-all flex items-center justify-center"
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                </div>
+
+                <div className="flex-1 space-y-5 font-bold">
+                  <div>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">{lang === 'zh' ? '资源成果名称' : 'Resource Name'}</label>
+                    <p className="text-xs font-black text-slate-800 leading-snug">{activeSelectedResource.name}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">{lang === 'zh' ? '资源类型' : 'Type'}</label>
+                      <p className="text-[10px] text-slate-600">{activeSelectedResource.type}</p>
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">{lang === 'zh' ? '同步时间' : 'Synced Time'}</label>
+                      <p className="text-[10px] text-slate-600">{activeSelectedResource.time}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">{lang === 'zh' ? '关联井对象' : 'Related Objects'}</label>
+                    <p className="text-[10px] text-slate-600">{activeSelectedResource.objects}</p>
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">{lang === 'zh' ? '核心提炼/摘要' : 'Extracted Summary'}</label>
+                    <p className="text-[10px] text-slate-500 leading-relaxed font-bold">{activeSelectedResource.summary}</p>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100">
+                  <button className="w-full py-2.5 bg-indigo-600 text-white text-[10px] font-black rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-1.5">
+                    <i className="fas fa-external-link-alt"></i>
+                    {lang === 'zh' ? '打开原始数字化MBU' : 'Open MBU Asset'}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Global Bottom Wizard Controls */}
+        <div className="w-full h-16 bg-white border-t border-slate-200/80 px-6 flex items-center justify-between shadow-md">
+          <div className="flex items-center gap-2 text-slate-400 text-xs">
+            <i className="fas fa-circle-info text-indigo-500 animate-bounce"></i>
+            <span className="font-bold">{lang === 'zh' ? '大纲及编写素材已确认，智能体整装待命' : 'Outline & source materials verified. Ready to write.'}</span>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={onCloseAgent}
+              className="px-5 py-2 border border-slate-200 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all"
+            >
+              {lang === 'zh' ? '取消返回' : 'Cancel'}
+            </button>
+            <button
+              onClick={() => {
+                setCurrentPhase('writing');
+              }}
+              className="px-8 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-1.5"
+            >
+              <i className="fas fa-file-signature text-[10px]"></i>
+              {lang === 'zh' ? '确认并开始编写' : 'Confirm & Start Writing'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] overflow-hidden font-sans text-slate-900" onClick={e => e.stopPropagation()}>
@@ -247,7 +876,10 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
              <div className="h-4 w-px bg-slate-200"></div>
              <h1 className="text-xs font-black text-slate-600 tracking-tight flex items-center gap-2">
                <i className="fas fa-file-word text-blue-600"></i>
-               {objectName}{lang === 'zh' ? ' 钻井地质设计报告' : ' Drilling Geology Design'}.docx
+               {config?.isWeeklyBrief 
+                 ? (lang === 'zh' ? '本周生产运行简报_20240416' : 'Weekly_Production_Operation_Brief_20240416')
+                 : `${objectName}${lang === 'zh' ? ' 钻井地质设计报告' : ' Drilling Geology Design'}`
+               }.docx
              </h1>
           </div>
           
@@ -267,7 +899,7 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
           </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex overflow-hidden relative min-h-0">
         {/* Directory Sidebar */}
         <AnimatePresence>
           {isSidebarVisible && (
@@ -275,7 +907,7 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
               initial={{ x: -280, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -280, opacity: 0 }}
-              className="w-72 flex flex-col bg-white border-r border-slate-200 shadow-sm z-20 shrink-0"
+              className="w-72 h-full max-h-full flex flex-col bg-white border-r border-slate-200 shadow-sm z-20 shrink-0 overflow-hidden"
             >
               <div className="p-5 border-b border-slate-100 flex items-center justify-between">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '文档大纲' : 'OUTLINE'}</span>
@@ -312,7 +944,7 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
                 })}
               </div>
 
-              <div className="p-6 border-t border-slate-100 bg-slate-50/30">
+              <div className="shrink-0 p-5 border-t border-slate-100 bg-white">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black text-slate-400 tracking-widest">{lang === 'zh' ? '视窗跟随' : 'FOLLOW'}</span>
                   <button 

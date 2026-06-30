@@ -1042,25 +1042,25 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
       )}
 
       {/* Chat Area */}
-      <div className={`flex-1 overflow-y-auto ${isMiniAssistant ? 'p-4 space-y-4' : 'p-6 space-y-6'}`}>
+      <div className={`flex-1 ${messages.length === 0 ? 'overflow-hidden' : 'overflow-y-auto'} ${isMiniAssistant ? 'p-4 space-y-4' : 'p-6 space-y-6'}`}>
         {messages.length === 0 ? (
-          <div className={`h-full flex flex-col items-center ${isMiniAssistant ? 'w-full' : 'max-w-3xl mx-auto py-12'}`}>
+          <div className={`h-full flex flex-col items-center justify-center ${isMiniAssistant ? 'w-full' : 'max-w-3xl mx-auto py-2'}`}>
             {!isMiniAssistant && (
               <>
-                <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center mb-8 text-white shadow-xl shadow-indigo-100 animate-pulse">
-                  <i className="fas fa-sparkles text-3xl"></i>
+                <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mb-4 text-white shadow-lg shadow-indigo-100 animate-pulse">
+                  <i className="fas fa-sparkles text-xl"></i>
                 </div>
                 
-                <div className={`text-center mb-12`}>
-                  <h2 className={`text-2xl font-bold text-gray-900 mb-4 tracking-tight`}>
+                <div className={`text-center mb-5 w-full`}>
+                  <h2 className={`text-xl font-bold text-gray-900 mb-3 tracking-tight`}>
                     {lang === 'zh' ? '欢迎使用智能协作空间' : 'Welcome to AI Workspace'}
                   </h2>
-                  <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm max-w-2xl mx-auto">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-1.5 h-4 bg-indigo-500 rounded-full"></div>
-                      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{lang === 'zh' ? '空间总结' : 'Space Summary'}</span>
+                  <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm max-w-2xl mx-auto">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-1 h-3 bg-indigo-500 rounded-full"></div>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{lang === 'zh' ? '空间总结' : 'Space Summary'}</span>
                     </div>
-                    <p className="text-sm text-gray-600 leading-relaxed text-left">
+                    <p className="text-xs text-gray-600 leading-relaxed text-left">
                       {getVersionSummary()}
                     </p>
                   </div>
@@ -1068,16 +1068,16 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
               </>
             )}
 
-            <div className="w-full space-y-4">
+            <div className="w-full space-y-2">
               {!isMiniAssistant && (
-                <div className={`flex items-center gap-2 px-1`}>
-                  <div className="w-1.5 h-4 bg-emerald-500 rounded-full"></div>
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                <div className={`flex items-center gap-2 px-1 mb-1`}>
+                  <div className="w-1 h-3 bg-emerald-500 rounded-full"></div>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                     {lang === 'zh' ? '推荐问题示例' : 'Recommended Questions'}
                   </span>
                 </div>
               )}
-              <div className="grid grid-cols-1 gap-3">
+              <div className="grid grid-cols-1 gap-2">
                 {(isMiniAssistant ? getRecommendedQuestions() : getRecommendedQuestions()).map((q, i) => (
                   <button
                     key={i}
@@ -1085,16 +1085,13 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
                       setInput(q.text);
                       inputRef.current?.focus();
                     }}
-                    className={`flex items-center gap-4 ${isMiniAssistant ? 'p-3' : 'p-5'} bg-white border border-gray-100 rounded-2xl text-left hover:border-indigo-300 hover:shadow-lg transition-all group relative overflow-hidden`}
+                    className={`flex items-center gap-3 ${isMiniAssistant ? 'py-2 px-3' : 'py-2.5 px-4'} bg-white border border-gray-100 rounded-xl text-left hover:border-indigo-300 hover:shadow-md transition-all group relative overflow-hidden`}
                   >
                     <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className={`${isMiniAssistant ? 'w-10 h-10' : 'w-12 h-12'} rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors shadow-sm`}>
-                      <i className={`fas ${q.icon} ${isMiniAssistant ? 'text-base' : 'text-lg'}`}></i>
-                    </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className={`${isMiniAssistant ? 'text-xs' : 'text-sm'} font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors`}>{q.text}</div>
                     </div>
-                    <div className={`${isMiniAssistant ? 'w-6 h-6' : 'w-8 h-8'} rounded-full bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-all`}>
+                    <div className={`${isMiniAssistant ? 'w-5 h-5' : 'w-6 h-6'} rounded-full bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-all flex-shrink-0`}>
                       <i className="fas fa-arrow-right text-[10px]"></i>
                     </div>
                   </button>
