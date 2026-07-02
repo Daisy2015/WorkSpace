@@ -17,6 +17,7 @@ import { SceneSkillWizard } from './SceneSkillWizard';
 
 interface IntelligencePlatformProps {
   lang: Language;
+  onExit?: () => void;
 }
 
 // --- Mock Data ---
@@ -72,7 +73,7 @@ const MOCK_FEEDBACK: FeedbackEntry[] = [
 
 type AdminModule = 'audit' | 'feedback' | 'agentManagement' | 'toolManagement' | 'skillManagement' | 'workflowManagement' | 'semanticManagement' | 'nerModelManagement' | 'llmManagement' | 'llmConfig' | 'corpusManagement' | 'trainingSetManagement' | 'sceneSkillWizard';
 
-export const IntelligencePlatform: React.FC<IntelligencePlatformProps> = ({ lang }) => {
+export const IntelligencePlatform: React.FC<IntelligencePlatformProps> = ({ lang, onExit }) => {
   const t = translations[lang];
   const [activeModule, setActiveModule] = useState<AdminModule>('agentManagement');
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(true);
@@ -167,25 +168,17 @@ export const IntelligencePlatform: React.FC<IntelligencePlatformProps> = ({ lang
             </div>
         </nav>
 
-        <div className="p-4 border-t border-gray-100 space-y-1 bg-gray-50/50">
-            {[
-                { id: 'audit', label: t.userQaLogs, icon: 'fa-history' },
-                { id: 'feedback', label: t.feedbackProcessing, icon: 'fa-comments' },
-            ].map((item) => (
+        {onExit && (
+            <div className="p-4 border-t border-gray-100 bg-gray-50/50 mt-auto">
                 <button
-                    key={item.id}
-                    onClick={() => setActiveModule(item.id as AdminModule)}
-                    className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                        activeModule === item.id 
-                        ? 'bg-purple-50 text-purple-700' 
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    }`}
+                    onClick={onExit}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 active:bg-slate-100 transition-all cursor-pointer"
                 >
-                    <i className={`fas ${item.icon} w-6 text-center mr-2 ${activeModule === item.id ? 'text-purple-600' : 'text-gray-400'}`}></i>
-                    {item.label}
+                    <i className="fas fa-sign-out-alt text-slate-400"></i>
+                    {lang === 'zh' ? '返回工作空间' : 'Return to Workspace'}
                 </button>
-            ))}
-        </div>
+            </div>
+        )}
 
     </div>
   );
@@ -521,8 +514,6 @@ export const IntelligencePlatform: React.FC<IntelligencePlatformProps> = ({ lang
     <div className="flex h-full w-full">
       {renderSidebar()}
       <div className="flex-1 min-w-0">
-         {activeModule === 'audit' && renderAuditLogs()}
-         {activeModule === 'feedback' && renderFeedback()}
          {activeModule === 'agentManagement' && <AdminAgentManagement lang={lang} />}
          {activeModule === 'skillManagement' && (
            <AdminSkillManagement 

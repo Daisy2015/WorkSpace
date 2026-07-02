@@ -11,10 +11,10 @@ import { ExecutionHistoryPage } from './components/enterprise/ExecutionHistoryPa
 import { Dashboard } from './components/Dashboard';
 import { AdminPanel } from './components/AdminPanel';
 import { IntelligencePlatform } from './components/IntelligencePlatform';
+import { PersonalCenter } from './components/PersonalCenter';
 import { AssistantSidebar } from './components/AssistantSidebar';
 import { KnowledgeBase } from './components/KnowledgeBase';
 import { DocumentEditor } from './components/DocumentEditor';
-import { IntegratedSearchPanel } from './components/IntegratedSearchPanel';
 import { WorkspaceTemplates } from './components/WorkspaceTemplates';
 import { MultiAgentChatPanel } from './components/MultiAgentChatPanel';
 import { AgentsPanel } from './components/AgentsPanel';
@@ -41,7 +41,7 @@ import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESO
 import { Message, ResourceNode, Language, Workspace, KnowledgeItem, WorkspaceStatus, WorkspaceTemplate, Agent } from './types';
 import { translations } from './i18n';
 
-type MainTab = 'dashboard' | 'workspaces' | 'admin' | 'intelligence' | 'knowledge' | 'integration' | 'templates' | 'construction' | 'construction-v2' | 'construction-completion';
+type MainTab = 'dashboard' | 'workspaces' | 'admin' | 'intelligence' | 'knowledge' | 'templates' | 'construction' | 'construction-v2' | 'construction-completion' | 'profile';
 
 const CURRENT_USER = '李明';
 
@@ -125,6 +125,9 @@ const App: React.FC = () => {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [isStrategyConfirmationOpen, setIsStrategyConfirmationOpen] = useState(false);
   const [configAgentId, setConfigAgentId] = useState<string | null>(null);
+
+  // User Profile States
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
   // Edit Workspace State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -453,7 +456,7 @@ const App: React.FC = () => {
   // Navigation Handlers
   const handleTabChange = (tab: MainTab) => {
       setCurrentTab(tab);
-      if (tab === 'dashboard' || tab === 'admin' || tab === 'knowledge' || tab === 'integration' || tab === 'construction') {
+      if (tab === 'dashboard' || tab === 'admin' || tab === 'knowledge' || tab === 'construction' || tab === 'profile') {
           setActiveWorkspaceId(null);
       }
   };
@@ -811,21 +814,6 @@ const App: React.FC = () => {
     });
   };
 
-  const handleAddIntegratedResource = (newResource: ResourceNode) => {
-      setResourceTree(prev => {
-          const newTree = JSON.parse(JSON.stringify(prev));
-          // Find or create "Web Resources" domain if needed, or just add to a general one
-          // Since user asked to remove Web Resources, we might just skip or add to a "External" domain
-          let webDomain = newTree.find((n: ResourceNode) => n.name === '网络资源' && n.type === 'domain');
-          if (!webDomain) {
-              webDomain = { id: 'dom-web-auto', name: '网络资源', type: 'domain', children: [] };
-              newTree.push(webDomain);
-          }
-          webDomain.children = [...(webDomain.children || []), newResource];
-          return newTree;
-      });
-  };
-
   const handleEditReport = (content: string, msgId: string) => {
       setEditingDoc({ content, msgId });
   };
@@ -969,80 +957,57 @@ const App: React.FC = () => {
     <div className="h-screen w-screen bg-slate-50 flex overflow-hidden text-slate-900 font-sans">
       
       {/* LEFT SIDEBAR - Global Navigation */}
-      <div className={`${isSidebarExpanded ? 'w-64' : 'w-16'} bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out flex-shrink-0 z-50 shadow-sm`}>
-          
-          {/* Logo & Toggle */}
-          <div className="h-16 flex items-center justify-between px-3 mb-6 mt-2">
-              <div className="flex items-center gap-3 cursor-pointer overflow-hidden" onClick={(e) => { e.stopPropagation(); handleTabChange('dashboard'); }}>
-                  <div className="w-10 h-10 min-w-[2.5rem] bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg">
-                      <span className="font-bold text-white text-lg">J</span>
-                  </div>
-                  {isSidebarExpanded && (
-                      <span className="font-bold text-gray-800 text-xl tracking-tight whitespace-nowrap opacity-100 transition-opacity duration-300">
-                          JuraWorkSpace
-                      </span>
-                  )}
-              </div>
-          </div>
-
-          {/* Nav Items */}
-          <div className="flex flex-col gap-2 w-full px-2 flex-1">
-              <button 
-                onClick={() => handleTabChange('dashboard')}
-                className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'dashboard' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
-                title={isSidebarExpanded ? '' : t.dashboard}
-              >
-                  <i className="fas fa-chart-pie text-lg min-w-[1.25rem] text-center"></i>
-                  {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.dashboard}</span>}
-              </button>
-              <button 
-                onClick={() => handleTabChange('templates')}
-                className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'templates' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
-                title={isSidebarExpanded ? '' : t.templates}
-              >
-                  <i className="fas fa-layer-group text-lg min-w-[1.25rem] text-center"></i>
-                  {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.templates}</span>}
-              </button>
-              <button 
-                onClick={() => handleTabChange('workspaces')}
-                className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'workspaces' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
-                title={isSidebarExpanded ? '' : t.workspaceManagement}
-              >
-                  <i className="fas fa-project-diagram text-lg min-w-[1.25rem] text-center"></i>
-                  {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.workspaceManagement}</span>}
-              </button>
-              <button 
-                onClick={() => handleTabChange('knowledge')}
-                className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'knowledge' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
-                title={isSidebarExpanded ? '' : t.kbTab}
-              >
-                  <i className="fas fa-book text-lg min-w-[1.25rem] text-center"></i>
-                  {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.kbTab}</span>}
-              </button>
-              <button 
-                onClick={() => handleTabChange('admin')}
-                className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'admin' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
-                title={isSidebarExpanded ? '' : t.adminPanel}
-              >
-                  <i className="fas fa-shield-alt text-lg min-w-[1.25rem] text-center"></i>
-                  {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.adminPanel}</span>}
-              </button>
-              <button 
-                onClick={() => handleTabChange('intelligence')}
-                className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'intelligence' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
-                title={isSidebarExpanded ? '' : t.intelligencePlatform}
-              >
-                  <i className="fas fa-brain text-lg min-w-[1.25rem] text-center"></i>
-                  {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.intelligencePlatform}</span>}
-              </button>
-              <button 
-                onClick={() => handleTabChange('integration')}
-                className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'integration' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
-                title={isSidebarExpanded ? '' : t.integrationDemo}
-              >
-                  <i className="fas fa-puzzle-piece text-lg min-w-[1.25rem] text-center"></i>
-                  {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.integrationDemo}</span>}
-              </button>
+      {currentTab !== 'admin' && currentTab !== 'intelligence' && (
+        <div className={`${isSidebarExpanded ? 'w-64' : 'w-16'} bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out flex-shrink-0 z-50 shadow-sm relative`}>
+            
+            {/* Logo & Toggle */}
+            <div className="h-16 flex items-center justify-between px-3 mb-6 mt-2">
+                <div className="flex items-center gap-3 cursor-pointer overflow-hidden" onClick={(e) => { e.stopPropagation(); handleTabChange('dashboard'); }}>
+                    <div className="w-10 h-10 min-w-[2.5rem] bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg">
+                        <span className="font-bold text-white text-lg">J</span>
+                    </div>
+                    {isSidebarExpanded && (
+                        <span className="font-bold text-gray-800 text-xl tracking-tight whitespace-nowrap opacity-100 transition-opacity duration-300">
+                            JuraWorkSpace
+                        </span>
+                    )}
+                </div>
+            </div>
+  
+            {/* Nav Items */}
+            <div className="flex flex-col gap-2 w-full px-2 flex-1">
+                <button 
+                  onClick={() => handleTabChange('dashboard')}
+                  className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'dashboard' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
+                  title={isSidebarExpanded ? '' : t.dashboard}
+                >
+                    <i className="fas fa-chart-pie text-lg min-w-[1.25rem] text-center"></i>
+                    {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.dashboard}</span>}
+                </button>
+                <button 
+                  onClick={() => handleTabChange('templates')}
+                  className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'templates' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
+                  title={isSidebarExpanded ? '' : t.templates}
+                >
+                    <i className="fas fa-layer-group text-lg min-w-[1.25rem] text-center"></i>
+                    {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.templates}</span>}
+                </button>
+                <button 
+                  onClick={() => handleTabChange('workspaces')}
+                  className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'workspaces' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
+                  title={isSidebarExpanded ? '' : t.workspaceManagement}
+                >
+                    <i className="fas fa-project-diagram text-lg min-w-[1.25rem] text-center"></i>
+                    {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.workspaceManagement}</span>}
+                </button>
+                <button 
+                  onClick={() => handleTabChange('knowledge')}
+                  className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'knowledge' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
+                  title={isSidebarExpanded ? '' : t.kbTab}
+                >
+                    <i className="fas fa-book text-lg min-w-[1.25rem] text-center"></i>
+                    {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.kbTab}</span>}
+                </button>
               <button 
                 onClick={() => {
                   if (currentTab !== 'construction') {
@@ -1075,35 +1040,90 @@ const App: React.FC = () => {
                  <i className={`fas fa-chevron-${isSidebarExpanded ? 'left' : 'right'} text-sm`}></i>
              </button>
 
-             <div className="h-px bg-gray-200 w-full my-1"></div>
-
-             <button 
-                 onClick={() => setLang(l => l === 'zh' ? 'en' : 'zh')}
-                 className={`w-full h-10 rounded-lg flex items-center justify-center text-xs font-bold text-gray-500 hover:text-gray-800 hover:bg-gray-100 border border-gray-200 ${isSidebarExpanded ? 'px-3 justify-between' : ''}`}
+             <div 
+                 onClick={(e) => {
+                     e.stopPropagation();
+                     setIsProfileDropdownOpen(!isProfileDropdownOpen);
+                 }}
+                 className={`w-full rounded-xl border flex items-center cursor-pointer transition-colors overflow-hidden ${
+                     currentTab === 'profile'
+                       ? 'bg-blue-50/80 border-blue-200 text-blue-800 shadow-sm ring-1 ring-blue-100'
+                       : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                 } ${isSidebarExpanded ? 'p-2 gap-3' : 'aspect-square justify-center p-0'} relative`} 
+                 title={lang === 'zh' ? '当前用户: 李明' : 'Current User: Li Ming'}
              >
-                 {isSidebarExpanded ? (
-                     <>
-                        <span>{lang === 'zh' ? 'Language' : '语言'}</span>
-                        <span className="bg-gray-100 border border-gray-200 px-2 py-0.5 rounded text-[10px] text-gray-600">{lang === 'zh' ? 'EN' : '中'}</span>
-                     </>
-                 ) : (
-                     lang === 'zh' ? 'EN' : '中'
-                 )}
-             </button>
-
-             <div className={`w-full rounded-xl bg-gray-50 border border-gray-200 flex items-center cursor-pointer hover:bg-gray-100 transition-colors overflow-hidden ${isSidebarExpanded ? 'p-2 gap-3' : 'aspect-square justify-center p-0'}`} title="当前用户: 李明">
-                 <div className="w-8 h-8 min-w-[2rem] rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+                 <div className="w-8 h-8 min-w-[2rem] rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
                     李
                  </div>
                  {isSidebarExpanded && (
-                     <div className="flex flex-col overflow-hidden">
-                         <span className="text-sm font-bold text-gray-800 truncate">李明</span>
-                         <span className="text-[10px] text-gray-500 truncate">Drilling Engineer</span>
+                     <div className="flex flex-col overflow-hidden flex-1">
+                         <span className={`text-sm font-bold truncate ${currentTab === 'profile' ? 'text-blue-700' : 'text-gray-800'}`}>李明</span>
+                         <span className={`text-[10px] truncate ${currentTab === 'profile' ? 'text-blue-500' : 'text-gray-500'}`}>Drilling Engineer</span>
                      </div>
+                 )}
+                 {isSidebarExpanded && (
+                     <i className={`fas fa-chevron-up text-[10px] transition-transform duration-200 ${currentTab === 'profile' ? 'text-blue-400' : 'text-gray-400'} ${isProfileDropdownOpen ? 'rotate-180' : ''} mr-1`}></i>
                  )}
              </div>
           </div>
-      </div>
+
+          {/* Profile Dropdown Backdrop */}
+          {isProfileDropdownOpen && (
+              <div 
+                  className="fixed inset-0 z-40 cursor-default" 
+                  onClick={(e) => {
+                      e.stopPropagation();
+                      setIsProfileDropdownOpen(false);
+                  }}
+              />
+          )}
+
+          {/* Profile Dropdown */}
+          {isProfileDropdownOpen && (
+              <div 
+                  className={`absolute z-50 bg-white border border-slate-200 rounded-xl shadow-xl flex flex-col p-2 min-w-[180px] ${
+                      isSidebarExpanded ? 'bottom-16 left-2 right-2' : 'bottom-2 left-16 w-48'
+                  } animate-[fadeIn_0.15s_ease-out]`}
+                  onClick={(e) => e.stopPropagation()}
+              >
+                  <div className="px-3 py-2 border-b border-slate-100 flex flex-col">
+                      <span className="text-xs font-bold text-slate-800">{lang === 'zh' ? '李明' : 'Li Ming'}</span>
+                      <span className="text-[10px] text-slate-400">{lang === 'zh' ? '钻井工程师' : 'Drilling Engineer'}</span>
+                  </div>
+                  <button
+                      onClick={() => {
+                          setIsProfileDropdownOpen(false);
+                          handleTabChange('profile');
+                      }}
+                      className="w-full flex items-center px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer text-left mt-1"
+                  >
+                      <i className="fas fa-user-circle mr-2.5 text-slate-400 text-sm"></i>
+                      {lang === 'zh' ? '个人中心' : 'Personal Center'}
+                  </button>
+                  <button
+                      onClick={() => {
+                          setIsProfileDropdownOpen(false);
+                          handleTabChange('intelligence');
+                      }}
+                      className="w-full flex items-center px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer text-left"
+                  >
+                      <i className="fas fa-brain mr-2.5 text-slate-400 text-sm"></i>
+                      {lang === 'zh' ? '智能平台' : 'Intelligence Platform'}
+                  </button>
+                  <button
+                      onClick={() => {
+                          setIsProfileDropdownOpen(false);
+                          handleTabChange('admin');
+                      }}
+                      className="w-full flex items-center px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer text-left"
+                  >
+                      <i className="fas fa-shield-alt mr-2.5 text-slate-400 text-sm"></i>
+                      {lang === 'zh' ? '后台管理' : 'Backend Admin'}
+                  </button>
+              </div>
+          )}
+       </div>
+      )}
 
       {/* RIGHT CONTENT AREA */}
       <div className="flex-1 flex flex-col min-w-0 bg-gray-50 relative">
@@ -1119,12 +1139,17 @@ const App: React.FC = () => {
 
         {/* Scenario 2: Admin View */}
         {currentTab === 'admin' && (
-            <AdminPanel lang={lang} />
+            <AdminPanel lang={lang} onExit={() => handleTabChange('workspaces')} />
         )}
 
         {/* Scenario: Intelligence Platform View */}
         {currentTab === 'intelligence' && (
-            <IntelligencePlatform lang={lang} />
+            <IntelligencePlatform lang={lang} onExit={() => handleTabChange('workspaces')} />
+        )}
+
+        {/* Scenario: Personal Center View */}
+        {currentTab === 'profile' && (
+            <PersonalCenter lang={lang} onExit={() => handleTabChange('workspaces')} onLangChange={setLang} />
         )}
 
         {/* Scenario 3: Knowledge Base View */}
@@ -1250,80 +1275,6 @@ const App: React.FC = () => {
                             objectScope={constructionObjectScope}
                             setObjectScope={setConstructionObjectScope}
                         />
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {/* Scenario 5: Integration Demo View */}
-        {currentTab === 'integration' && (
-            <div className="h-full relative flex flex-col">
-                {/* Top Bar for Integration Demo */}
-                <nav className="h-12 bg-white border-b border-gray-200 flex items-center px-4 justify-between flex-shrink-0 z-40">
-                    <div className="flex items-center">
-                        <span className="font-bold text-gray-700">{t.integrationDemo}</span>
-                    </div>
-                    <div className="text-xs text-gray-400">
-                        {t.appTitle} Integration
-                    </div>
-                </nav>
-                
-                {/* CONTENT CONTAINER */}
-                <div className="flex-1 flex flex-row overflow-hidden relative">
-                    {/* Left Panel: Integrated Search */}
-                    <div className="w-96 h-full flex-shrink-0 z-20 shadow-lg bg-white border-r border-gray-200 flex flex-col">
-                        <IntegratedSearchPanel 
-                            lang={lang} 
-                            onAddResource={handleAddIntegratedResource}
-                        />
-                    </div>
-
-                    {/* Center Panel: Chat */}
-                    <div className="flex-1 h-full min-w-0 z-0 bg-gray-50">
-                        <ChatPanel 
-                            messages={messages}
-                            setMessages={setMessages}
-                            selectedResources={selectedResources}
-                            allResources={resourceTree}
-                            onSelectMessage={setSelectedMessage}
-                            onChatStart={() => setIsTracePanelOpen(true)}
-                            onAddResource={handleAddResource}
-                            currentWorkspace={activeWorkspaceData || {
-                                id: 'demo-integration',
-                                name: 'Integration Demo Workspace',
-                                mbuCount: 0,
-                                createdAt: new Date().toISOString(),
-                                status: WorkspaceStatus.DRAFT,
-                                owner: 'Demo User',
-                                description: 'Temporary workspace for integration demo'
-                            }}
-                            onUpdateWorkspaceName={() => {}}
-                            lang={lang}
-                            onEditReport={handleEditReport}
-                            activeAgent={agents.find(a => a.status === 'Running')}
-                        />
-                    </div>
-
-                    {/* Right Panel: Trace & Audit */}
-                    <div className={`${isTracePanelOpen ? 'w-80 border-l' : 'w-0 border-none'} h-full flex-shrink-0 border-gray-200 z-10 bg-white transition-all duration-300 ease-in-out overflow-hidden`}>
-                        <div className="w-80 h-full">
-                            <TracePanel 
-                                selectedMessage={selectedMessage} 
-                                resourceTree={resourceTree} 
-                                lang={lang} 
-                                onCreateReport={() => setIsReportModalOpen(true)}
-                                onUpdateAgentStatus={(id, status) => setAgents(prev => prev.map(a => a.id === id ? { ...a, status } : a))}
-                                onHistoryClick={handleHistoryClick}
-                                onCollapseResourcePanel={() => setIsResourcePanelOpen(false)}
-                                onStartProChartGeneration={() => {
-                                    setAgentRunStatus('running');
-                                    setIsProChartGenerating(true);
-                                    setIsResourcePanelOpen(true);
-                                    setIsTracePanelOpen(false);
-                                }}
-                                agents={displayAgents}
-                            />
-                        </div>
                     </div>
                 </div>
             </div>
@@ -2000,6 +1951,8 @@ const App: React.FC = () => {
             </motion.div>
           </div>
         )}
+
+
       </AnimatePresence>
       </div>
   );

@@ -8,6 +8,7 @@ import { AdminWorkflowManagement } from './AdminWorkflowManagement';
 
 interface AdminPanelProps {
   lang: Language;
+  onExit?: () => void;
 }
 
 // --- Mock Data ---
@@ -63,7 +64,7 @@ const MOCK_FEEDBACK: FeedbackEntry[] = [
 
 type AdminModule = 'audit' | 'feedback' | 'agentManagement' | 'workflowManagement';
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ lang, onExit }) => {
   const t = translations[lang];
   const [activeModule, setActiveModule] = useState<AdminModule>('agentManagement');
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(true);
@@ -126,6 +127,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ lang }) => {
                 </button>
             ))}
         </div>
+
+        {onExit && (
+            <div className="p-4 border-t border-gray-100 bg-gray-50/50 mt-auto">
+                <button
+                    onClick={onExit}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 active:bg-slate-100 transition-all cursor-pointer"
+                >
+                    <i className="fas fa-sign-out-alt text-slate-400"></i>
+                    {lang === 'zh' ? '返回工作空间' : 'Return to Workspace'}
+                </button>
+            </div>
+        )}
 
     </div>
   );
