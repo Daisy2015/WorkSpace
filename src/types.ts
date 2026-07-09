@@ -387,3 +387,19 @@ export interface TrainingSample {
   sourceTemplate?: string;
   status: 'Audited' | 'Pending';
 }
+
+export interface LLMLogEntry {
+  id: string;
+  modelCode: string;
+  modelName: string;
+  startTime: string;
+  durationMs: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  status: 'success' | 'failed';
+  errorMsg?: string;
+  input: string;
+  output: string;
+  caller?: string;
+}

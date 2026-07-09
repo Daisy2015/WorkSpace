@@ -30,6 +30,7 @@ import { EvidenceChainPanel } from './components/EvidenceChainPanel';
 import { AgentConfigWizard } from './components/enterprise/AgentConfigWizard';
 import { ResourceDetailModal } from './components/ResourceDetailModal';
 import { WorkspaceDetailTopBar } from './components/WorkspaceDetailTopBar';
+import { HarnessFileExplorer } from './components/HarnessFileExplorer';
 import { WellDeclineDiagnosis } from './components/WellDeclineDiagnosis';
 import { ReportGenerationAgent } from './components/ReportGenerationAgent';
 import { ProChartRequirementTree } from './components/ProChartRequirementTree';
@@ -121,6 +122,7 @@ const App: React.FC = () => {
   const [isExecutionHistoryPageOpen, setIsExecutionHistoryPageOpen] = useState(false);
   const [isTracePanelOpen, setIsTracePanelOpen] = useState(true);
   const [isResourcePanelOpen, setIsResourcePanelOpen] = useState(true);
+  const [isHarnessExplorerOpen, setIsHarnessExplorerOpen] = useState(false);
   const [isProChartGenerating, setIsProChartGenerating] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [isStrategyConfirmationOpen, setIsStrategyConfirmationOpen] = useState(false);
@@ -1300,6 +1302,7 @@ const App: React.FC = () => {
                             isTracePanelOpen={isTracePanelOpen}
                             setIsTracePanelOpen={setIsTracePanelOpen}
                             setIsVersionModalOpen={setIsVersionModalOpen}
+                            onOpenSettings={() => setIsHarnessExplorerOpen(true)}
                             isAgentRunning={isReportModeActive || isProChartGenerating || activeAgentAppId === 'well_decline'}
                             agentName={activeAgentAppId === 'well_decline'
                                 ? (lang === 'zh' ? '单井产量下降诊断智能体' : 'Single Well Decline Diagnosis Agent')
@@ -1885,6 +1888,12 @@ const App: React.FC = () => {
             hasData={!selectedResourceForDetail.missing}
           />
         )}
+
+        <HarnessFileExplorer 
+          isOpen={isHarnessExplorerOpen} 
+          onClose={() => setIsHarnessExplorerOpen(false)} 
+          lang={lang} 
+        />
       </div>
       {/* Edit Workspace Modal */}
       <AnimatePresence>

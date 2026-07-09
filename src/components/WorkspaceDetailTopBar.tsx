@@ -15,6 +15,7 @@ interface WorkspaceDetailTopBarProps {
   isTracePanelOpen: boolean;
   setIsTracePanelOpen: (open: boolean) => void;
   setIsVersionModalOpen: (open: boolean) => void;
+  onOpenSettings?: () => void;
 
   // Optional Agent Running Props
   isAgentRunning?: boolean;
@@ -40,6 +41,7 @@ export const WorkspaceDetailTopBar: React.FC<WorkspaceDetailTopBarProps> = ({
   isTracePanelOpen,
   setIsTracePanelOpen,
   setIsVersionModalOpen,
+  onOpenSettings,
 
   // Agent Running Props
   isAgentRunning = false,
@@ -282,6 +284,7 @@ export const WorkspaceDetailTopBar: React.FC<WorkspaceDetailTopBarProps> = ({
             <i className="fas fa-share-alt"></i>
           </button>
           <button 
+            onClick={onOpenSettings}
             className="hover:text-slate-600 p-2 rounded-lg hover:bg-slate-100 transition-colors" 
             title={lang === 'zh' ? '设置' : 'Settings'}
             id="btn-workspace-settings"

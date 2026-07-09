@@ -14,6 +14,7 @@ import { AdminToolManagement } from './AdminToolManagement';
 import { AdminWorkflowManagement } from './AdminWorkflowManagement';
 import { AdminSemanticManagement } from './AdminSemanticManagement';
 import { SceneSkillWizard } from './SceneSkillWizard';
+import { AdminLLMLogs } from './AdminLLMLogs';
 
 interface IntelligencePlatformProps {
   lang: Language;
@@ -71,7 +72,7 @@ const MOCK_FEEDBACK: FeedbackEntry[] = [
     { id: 'fb-4', timestamp: '2024-05-17 14:00', user: '王建国', mbu: '地震解释', notebookName: '构造解释 NB-04', type: 'Error', status: 'Resolved', content: '层位追踪出现明显偏差。', processor: '管理员', result: '已修正知识库索引' },
 ];
 
-type AdminModule = 'audit' | 'feedback' | 'agentManagement' | 'toolManagement' | 'skillManagement' | 'workflowManagement' | 'semanticManagement' | 'nerModelManagement' | 'llmManagement' | 'llmConfig' | 'corpusManagement' | 'trainingSetManagement' | 'sceneSkillWizard';
+type AdminModule = 'audit' | 'feedback' | 'agentManagement' | 'toolManagement' | 'skillManagement' | 'workflowManagement' | 'semanticManagement' | 'nerModelManagement' | 'llmManagement' | 'llmConfig' | 'corpusManagement' | 'trainingSetManagement' | 'sceneSkillWizard' | 'llmLogs';
 
 export const IntelligencePlatform: React.FC<IntelligencePlatformProps> = ({ lang, onExit }) => {
   const t = translations[lang];
@@ -148,6 +149,7 @@ export const IntelligencePlatform: React.FC<IntelligencePlatformProps> = ({ lang
                                 { id: 'trainingSetManagement', label: t.trainingSetManagement, icon: 'fa-layer-group' },
                                 { id: 'llmManagement', label: t.llmManagement, icon: 'fa-brain' },
                                 { id: 'llmConfig', label: t.llmConfig, icon: 'fa-sliders-h' },
+                                { id: 'llmLogs', label: lang === 'zh' ? '日志管理' : 'Log Management', icon: 'fa-list-alt' },
                             ].map((sub) => (
                                 <button
                                     key={sub.id}
@@ -496,6 +498,10 @@ export const IntelligencePlatform: React.FC<IntelligencePlatformProps> = ({ lang
     <AdminLLMConfig lang={lang} />
   );
 
+  const renderLLMLogs = () => (
+    <AdminLLMLogs lang={lang} />
+  );
+
   const renderCorpusManagement = () => (
     <AdminCorpusManagement lang={lang} />
   );
@@ -533,6 +539,7 @@ export const IntelligencePlatform: React.FC<IntelligencePlatformProps> = ({ lang
          {activeModule === 'nerModelManagement' && renderNERModelManagement()}
          {activeModule === 'llmManagement' && renderLLMManagement()}
          {activeModule === 'llmConfig' && renderLLMConfig()}
+         {activeModule === 'llmLogs' && renderLLMLogs()}
          {activeModule === 'corpusManagement' && renderCorpusManagement()}
          {activeModule === 'trainingSetManagement' && renderTrainingSetManagement()}
       </div>
