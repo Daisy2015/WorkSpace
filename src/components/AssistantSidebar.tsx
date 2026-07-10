@@ -9,6 +9,7 @@ interface AssistantSidebarProps {
   agentName: string;
   agentStatus?: 'Running' | 'Idle' | 'Stopped' | 'Error';
   mode?: 'fixed' | 'absolute';
+  offsetTop?: string;
   onRefreshAgent?: () => void;
 }
 
@@ -19,6 +20,7 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
   agentName,
   agentStatus,
   mode = 'fixed',
+  offsetTop = 'top-16',
   onRefreshAgent
 }) => {
   const [chatInput, setChatInput] = useState('');
@@ -169,7 +171,7 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
           animate={{ x: 0 }}
           exit={{ x: 384 }}
           transition={{ type: 'tween', duration: 0.3, ease: 'easeInOut' }}
-          className={`${mode === 'fixed' ? 'fixed right-0 top-16 bottom-0' : 'absolute right-0 top-16 bottom-0'} w-96 bg-white border-l border-slate-200 shadow-[-10px_0_35px_rgba(0,0,0,0.03)] z-[40] flex flex-col`}
+          className={`${mode === 'fixed' ? `fixed right-0 ${offsetTop} bottom-0` : `absolute right-0 ${offsetTop} bottom-0`} w-96 bg-white border-l border-slate-200 shadow-[-10px_0_35px_rgba(0,0,0,0.03)] z-[40] flex flex-col`}
         >
           {/* Header */}
           <div className="p-6 flex items-center justify-between bg-white border-b border-slate-100">

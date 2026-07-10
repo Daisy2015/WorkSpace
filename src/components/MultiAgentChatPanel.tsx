@@ -21,6 +21,7 @@ interface MultiAgentChatPanelProps {
   workspaceVersion?: 'foundation' | 'professional' | 'enterprise';
   onSaveOutcome?: (name: string) => void;
   isMiniAssistant?: boolean;
+  onViewEvidence?: () => void;
 }
 
 export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
@@ -40,7 +41,8 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
   agents,
   workspaceVersion = 'foundation',
   onSaveOutcome,
-  isMiniAssistant = false
+  isMiniAssistant = false,
+  onViewEvidence
 }) => {
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -1105,7 +1107,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
               return <UserMessageCard key={group.messages[0].id} message={group.messages[0]} />;
             }
 
-            return <UnifiedResponseCard key={`group-${gIndex}`} messages={group.messages} agents={agents} version={workspaceVersion} onSaveOutcome={onSaveOutcome} />;
+            return <UnifiedResponseCard key={`group-${gIndex}`} messages={group.messages} agents={agents} version={workspaceVersion} onSaveOutcome={onSaveOutcome} onViewEvidence={onViewEvidence} />;
           })
         )}
         <div ref={messagesEndRef} />

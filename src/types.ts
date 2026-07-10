@@ -20,6 +20,7 @@ export interface Workspace {
   owner: string;
   description: string;
   objects?: any[];
+  defaultAgent?: string;
 }
 
 export type ResourceType = 'domain' | 'mbu' | 'artifact' | 'folder';
@@ -329,6 +330,7 @@ export interface WorkspaceTemplate {
   category: string;
   tags?: string[];
   icon?: string;
+  defaultAgent?: string;
 }
 
 export interface KnowledgeItem {

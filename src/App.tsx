@@ -30,6 +30,10 @@ import { EvidenceChainPanel } from './components/EvidenceChainPanel';
 import { AgentConfigWizard } from './components/enterprise/AgentConfigWizard';
 import { ResourceDetailModal } from './components/ResourceDetailModal';
 import { WorkspaceDetailTopBar } from './components/WorkspaceDetailTopBar';
+import { IntelligentQueryWorkspaceDetail } from './components/IntelligentQueryWorkspaceDetail';
+import { IntelligentChartWorkspaceDetail } from './components/IntelligentChartWorkspaceDetail';
+import { IntelligentReportWorkspaceDetail } from './components/IntelligentReportWorkspaceDetail';
+import { IntelligentDeclineWorkspaceDetail } from './components/IntelligentDeclineWorkspaceDetail';
 import { HarnessFileExplorer } from './components/HarnessFileExplorer';
 import { WellDeclineDiagnosis } from './components/WellDeclineDiagnosis';
 import { ReportGenerationAgent } from './components/ReportGenerationAgent';
@@ -463,7 +467,7 @@ const App: React.FC = () => {
       }
   };
 
-  const handleSelectWorkspace = (id: string, name?: string, description?: string, objects?: any[], autoOpenAddResource: boolean = false) => {
+  const handleSelectWorkspace = (id: string, name?: string, description?: string, objects?: any[], autoOpenAddResource: boolean = false, defaultAgent?: string) => {
     let finalId = id;
     
     if (id === 'new-demo') {
@@ -476,13 +480,14 @@ const App: React.FC = () => {
             mbuCount: 0,
             createdAt: new Date().toISOString().split('T')[0],
             status: WorkspaceStatus.DRAFT,
-            owner: '当前用户',
+            owner: '李明',
+            defaultAgent: defaultAgent || '报告生成Agent',
         };
         setWorkspaces(prev => [newWorkspace, ...prev]);
         finalId = newId;
     } else if (name && description) {
         // Update the workspace with name, description, objects if provided
-        setWorkspaces(prev => prev.map(w => w.id === id ? { ...w, name, description, objects: objects || [] } : w));
+        setWorkspaces(prev => prev.map(w => w.id === id ? { ...w, name, description, objects: objects || [], defaultAgent: defaultAgent || w.defaultAgent } : w));
     }
 
     setActiveWorkspaceId(finalId);
@@ -650,16 +655,17 @@ const App: React.FC = () => {
     }
   };
 
-  const handleCreateFromTemplate = (template: WorkspaceTemplate, name?: string, description?: string, objects?: any[]) => {
+  const handleCreateFromTemplate = (template: WorkspaceTemplate, name?: string, description?: string, objects?: any[], defaultAgent?: string) => {
     const newWorkspace: Workspace = {
       id: `ws-${Date.now()}`,
       name: name || `${template.name} (Copy)`,
-      mbuCount: template.mbuCount,
+      mbuCount: template.mbuCount || 0,
       createdAt: new Date().toISOString().split('T')[0],
       status: WorkspaceStatus.DRAFT,
       owner: '当前用户',
       description: description || template.description,
-      objects: objects || []
+      objects: objects || [],
+      defaultAgent: defaultAgent || template.defaultAgent
     };
 
     setWorkspaces(prev => [newWorkspace, ...prev]);
@@ -669,7 +675,7 @@ const App: React.FC = () => {
       t.id === template.id ? { ...t, usageCount: t.usageCount + 1 } : t
     ));
 
-    handleSelectWorkspace(newWorkspace.id, name, description, objects, true);
+    handleSelectWorkspace(newWorkspace.id, name, description, objects, true, defaultAgent || template.defaultAgent);
   };
 
   // Knowledge Base Integration Handler
@@ -1010,26 +1016,6 @@ const App: React.FC = () => {
                     <i className="fas fa-book text-lg min-w-[1.25rem] text-center"></i>
                     {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.kbTab}</span>}
                 </button>
-              <button 
-                onClick={() => {
-                  if (currentTab !== 'construction') {
-                    setIsStrategyConfirmationOpen(true);
-                  }
-                }}
-                className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'construction' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
-                title={isSidebarExpanded ? '' : t.intelligentConstruction}
-              >
-                  <i className="fas fa-magic text-lg min-w-[1.25rem] text-center"></i>
-                  {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.intelligentConstruction}</span>}
-              </button>
-              <button 
-                onClick={() => handleTabChange('construction-v2')}
-                className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'construction-v2' ? 'bg-indigo-50 text-indigo-600 shadow-sm ring-1 ring-indigo-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
-                title={isSidebarExpanded ? '' : t.intelligentConstructionV2}
-              >
-                  <i className="fas fa-microchip text-lg min-w-[1.25rem] text-center"></i>
-                  {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.intelligentConstructionV2}</span>}
-              </button>
           </div>
 
           {/* Bottom Actions */}
@@ -1286,8 +1272,104 @@ const App: React.FC = () => {
         {currentTab === 'workspaces' && (
             <>
                 {activeWorkspaceId ? (
-                    // Workspace Detail View (Editor Mode)
-                    <div className="h-full relative flex flex-col">
+                    activeWorkspaceData?.defaultAgent === '智能问数' ? (
+                        <>
+                            <IntelligentQueryWorkspaceDetail
+                                lang={lang}
+                                activeWorkspaceId={activeWorkspaceId}
+                                activeWorkspaceData={activeWorkspaceData}
+                                currentUser={CURRENT_USER}
+                                onBackToList={handleBackToList}
+                                onEditCurrentWorkspace={handleEditCurrentWorkspace}
+                                onOpenSettings={() => setIsHarnessExplorerOpen(true)}
+                                resourceTree={resourceTree}
+                                selectedResources={selectedResources}
+                                onToggleResource={handleToggleResource}
+                                onSelectResourceForDetail={(node) => {
+                                    setSelectedResourceForDetail(node);
+                                    setIsResourceDetailModalOpen(true);
+                                }}
+                                onAddResource={handleAddResource}
+                                onDeleteResources={handleDeleteResources}
+                                onTogglePublic={handleTogglePublic}
+                                onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
+                                isObjectScopeExpanded={isObjectScopeExpanded}
+                                setIsObjectScopeExpanded={setIsObjectScopeExpanded}
+                                groupedObjects={groupedObjects}
+                                multiAgentMessages={multiAgentMessages}
+                                setMultiAgentMessages={setMultiAgentMessages}
+                                onSelectMessage={setSelectedMessage}
+                                onUpdateWorkspaceName={(name) => activeWorkspaceId && handleUpdateWorkspace(activeWorkspaceId, { name })}
+                                onEditReport={handleEditReport}
+                                displayAgents={displayAgents}
+                                workspaceVersion={workspaceVersion}
+                                onSaveOutcome={handleOpenSaveOutcome}
+                                isResourcePanelOpen={isResourcePanelOpen}
+                                setIsResourcePanelOpen={setIsResourcePanelOpen}
+                            />
+                            {isAddResourcePageOpen && (
+                                <AddResourcePage 
+                                    onClose={() => setIsAddResourcePageOpen(false)} 
+                                    onConfirm={handleConfirmAddResource}
+                                    lang={lang}
+                                    initialTree={resourceTree}
+                                    workspaceId={activeWorkspaceId}
+                                />
+                            )}
+                        </>
+                    ) : activeWorkspaceData?.defaultAgent === '智能成图' ? (
+                        <IntelligentChartWorkspaceDetail
+                            lang={lang}
+                            activeWorkspaceId={activeWorkspaceId}
+                            activeWorkspaceData={activeWorkspaceData}
+                            currentUser={CURRENT_USER}
+                            onBackToList={handleBackToList}
+                            onEditCurrentWorkspace={handleEditCurrentWorkspace}
+                            onOpenSettings={() => setIsHarnessExplorerOpen(true)}
+                            multiAgentMessages={multiAgentMessages}
+                            setMessages={setMultiAgentMessages}
+                            onSelectMessage={setSelectedMessage}
+                            displayAgents={displayAgents}
+                            workspaceVersion={workspaceVersion}
+                            onSaveOutcome={handleOpenSaveOutcome}
+                            isResourcePanelOpen={isResourcePanelOpen}
+                            setIsResourcePanelOpen={setIsResourcePanelOpen}
+                        />
+                    ) : activeWorkspaceData?.defaultAgent === '智能报告' ? (
+                        <IntelligentReportWorkspaceDetail
+                            lang={lang}
+                            activeWorkspaceId={activeWorkspaceId}
+                            activeWorkspaceData={activeWorkspaceData}
+                            currentUser={CURRENT_USER}
+                            onBackToList={handleBackToList}
+                            onEditCurrentWorkspace={handleEditCurrentWorkspace}
+                            onOpenSettings={() => setIsHarnessExplorerOpen(true)}
+                            resourceTree={resourceTree}
+                            selectedResources={selectedResources}
+                            onToggleResource={handleToggleResource}
+                            onSelectResourceForDetail={setSelectedResourceForDetail}
+                            onAddResource={handleAddResource}
+                            onDeleteResources={handleDeleteResources}
+                            onTogglePublic={handleTogglePublic}
+                            onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
+                            isResourcePanelOpen={isResourcePanelOpen}
+                            setIsResourcePanelOpen={setIsResourcePanelOpen}
+                        />
+                    ) : activeWorkspaceData?.defaultAgent === '单井产量诊断' ? (
+                        <IntelligentDeclineWorkspaceDetail
+                            lang={lang}
+                            activeWorkspaceId={activeWorkspaceId}
+                            activeWorkspaceData={activeWorkspaceData}
+                            currentUser={CURRENT_USER}
+                            onBackToList={handleBackToList}
+                            onEditCurrentWorkspace={handleEditCurrentWorkspace}
+                            onOpenSettings={() => setIsHarnessExplorerOpen(true)}
+                            isResourcePanelOpen={isResourcePanelOpen}
+                            setIsResourcePanelOpen={setIsResourcePanelOpen}
+                        />
+                    ) : (
+                        // Workspace Detail View (Editor Mode)
+                        <div className="h-full relative flex flex-col">
                         {/* Top Bar for Workspace Detail */}
                         <WorkspaceDetailTopBar
                             lang={lang}
@@ -1349,7 +1431,7 @@ const App: React.FC = () => {
                                             <WellDeclineRequirementTree lang={lang} />
                                         ) : (
                                             <ResourceTree 
-                                            treeData={resourceTree}
+                                            treeData={resourceTree.filter(node => node.name !== '智能构建过程' && node.name !== '智能构建过程V2')}
                                             selectedResources={selectedResources} 
                                             onToggleResource={handleToggleResource} 
                                             onSelectNode={(node) => {
@@ -1653,6 +1735,7 @@ const App: React.FC = () => {
                             />
                         )}
                     </div>
+                    )
                 ) : (
                     // Workspace List View
                     <div className="h-full overflow-y-auto bg-gray-50">

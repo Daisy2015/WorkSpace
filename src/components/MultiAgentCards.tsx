@@ -447,7 +447,7 @@ export const ChartCard = ({ title, observation, data, type = 'line' }: { title: 
 };
 
 // --- UnifiedResponseCard ---
-export const UnifiedResponseCard = ({ messages, agents, version, onSaveOutcome }: { messages: Message[], agents: Agent[], version: string, onSaveOutcome?: (name: string) => void }) => {
+export const UnifiedResponseCard = ({ messages, agents, version, onSaveOutcome, onViewEvidence }: { messages: Message[], agents: Agent[], version: string, onSaveOutcome?: (name: string) => void, onViewEvidence?: () => void }) => {
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
   const [expandedSteps, setExpandedSteps] = useState<Record<string, Record<number, boolean>>>({});
   const [expandedScenarios, setExpandedScenarios] = useState<Record<string, Record<number, boolean>>>({});
@@ -887,6 +887,12 @@ export const UnifiedResponseCard = ({ messages, agents, version, onSaveOutcome }
                       className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-all shadow-sm"
                     >
                       <i className="fas fa-save"></i> 保存为成果
+                    </button>
+                    <button 
+                      onClick={onViewEvidence}
+                      className="flex items-center gap-2 px-3 py-1.5 text-slate-400 hover:text-slate-600 text-xs font-medium transition-all"
+                    >
+                      <i className="fas fa-search"></i> 查看证据
                     </button>
                     <div className="flex items-center gap-1">
                       <button className="p-2 text-gray-400 hover:text-indigo-600 transition-colors" title="重新生成"><i className="fas fa-redo-alt text-xs"></i></button>
