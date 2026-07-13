@@ -34,6 +34,7 @@ export const IntelligentDeclineWorkspaceDetail: React.FC<IntelligentDeclineWorks
   setIsResourcePanelOpen,
 }) => {
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <div className="h-full relative flex flex-col" id="intelligent-decline-workspace-detail">
@@ -82,7 +83,7 @@ export const IntelligentDeclineWorkspaceDetail: React.FC<IntelligentDeclineWorks
             {/* Center Area: Well Decline Diagnosis Agent */}
             <div className="flex-1 h-full relative p-3">
               <WellDeclineDiagnosis 
-                key={`decline-intelligent`}
+                key={`decline-intelligent-${refreshKey}`}
                 lang={lang}
                 onClose={() => {}}
                 onComplete={() => {}}
@@ -100,6 +101,7 @@ export const IntelligentDeclineWorkspaceDetail: React.FC<IntelligentDeclineWorks
           agentStatus="Idle"
           mode="absolute"
           offsetTop="top-0"
+          onRefreshAgent={() => setRefreshKey(prev => prev + 1)}
         />
       </div>
 

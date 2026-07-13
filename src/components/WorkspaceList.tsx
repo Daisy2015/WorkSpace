@@ -21,6 +21,8 @@ interface WorkspaceListProps {
   onCreateFromTemplate: (template: WorkspaceTemplate, name?: string, description?: string, objects?: any[], defaultAgent?: string) => void;
   onStartIntelligentConstruction?: (name: string, description: string, objects: any[]) => void;
   lang: Language;
+  initialLaunchAgentName?: string | null;
+  onClearInitialLaunchAgent?: () => void;
 }
 
 const CURRENT_USER = '李明';
@@ -232,6 +234,8 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
   onCreateFromTemplate,
   onStartIntelligentConstruction,
   lang,
+  initialLaunchAgentName,
+  onClearInitialLaunchAgent,
 }) => {
   // Classification Tabs: 'my' | 'shared' (Default is 'my')
   const [activeTab, setActiveTab] = useState<'my' | 'shared'>('my');
@@ -284,6 +288,32 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
       setChartActiveCategory(lang === 'zh' ? '单井柱状图' : 'Well Log');
     }
   }, [isDrawerOpen]);
+
+  React.useEffect(() => {
+    if (initialLaunchAgentName) {
+      setIsDrawerOpen(true);
+      setNewName(lang === 'zh' ? `${initialLaunchAgentName}工作空间` : `${initialLaunchAgentName} Workspace`);
+      
+      let targetAgent = '智能问数';
+      if (initialLaunchAgentName.includes('报告') || initialLaunchAgentName.includes('设计') || initialLaunchAgentName.includes('Report')) {
+        targetAgent = '智能报告';
+      } else if (initialLaunchAgentName.includes('成图') || initialLaunchAgentName.includes('图件') || initialLaunchAgentName.includes('Chart') || initialLaunchAgentName.includes('Mapping')) {
+        targetAgent = '智能成图';
+      } else if (initialLaunchAgentName.includes('产量') || initialLaunchAgentName.includes('单井') || initialLaunchAgentName.includes('诊断') || initialLaunchAgentName.includes('Decline')) {
+        targetAgent = '单井产量诊断';
+      }
+      
+      setNewAgent(targetAgent);
+      const configs = AGENT_CONFIGS[targetAgent] || [];
+      const initialConfig: Record<string, string> = {};
+      configs.forEach((field) => {
+        initialConfig[field.key] = field.defaultValue;
+      });
+      setAgentConfig(initialConfig);
+      
+      onClearInitialLaunchAgent?.();
+    }
+  }, [initialLaunchAgentName, lang, onClearInitialLaunchAgent]);
 
   // Translate active chart category when language toggles
   React.useEffect(() => {

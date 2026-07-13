@@ -6,7 +6,7 @@ interface EvidenceChainPanelProps {
   lang: Language;
 }
 
-type TabType = 'evidence' | 'dataSource' | 'toolCall' | 'runLog' | 'userConfirm' | 'auditRecord';
+type TabType = 'evidence' | 'dataSource' | 'toolCall' | 'runLog' | 'userConfirm' | 'auditRecord' | 'outputFiles';
 
 export const EvidenceChainPanel = React.forwardRef<any, EvidenceChainPanelProps>(({ lang }, ref) => {
   const [isExpanded, setIsExpanded] = useState(false);

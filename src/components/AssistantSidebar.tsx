@@ -44,24 +44,46 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
   
-  const recommendedQuestions = agentName === '单井产量下降诊断智能体' || agentName === 'Single Well Decline Diagnosis Agent'
-    ? [
-        "依据诊断结果，推荐当前最佳治理措施",
-        "对比相似井的治理效果与经验",
-        "生成单井诊断优化报告"
-      ]
-    : agentName === '专业成图智能体' || agentName === 'Pro Mapping Agent'
-    ? [
-        "一键美化图件样式",
-        "调整图层显示设置",
-        "删除不需要的图层"
-      ]
-    : [
-        "生成本周生产运行简报",
-        "优化当前钻井方案并补充针对性的技术措施",
-        "请检查当前报告中是否存在地质风险遗漏？",
-        "请总结一下关键地质认识和主要设计建议"
-      ];
+  const recommendedQuestions = (agentName.includes('产量') || agentName.includes('Decline') || agentName.includes('well_decline'))
+    ? (lang === 'zh' 
+        ? [
+            "依据诊断结果，推荐当前最佳治理措施",
+            "对比相似井的治理效果与经验",
+            "生成单井诊断优化报告"
+          ]
+        : [
+            "Recommend the best treatment based on diagnosis",
+            "Compare treatment results and experience of offset wells",
+            "Generate single well decline optimization report"
+          ]
+      )
+    : (agentName.includes('成图') || agentName.includes('Mapping'))
+    ? (lang === 'zh'
+        ? [
+            "一键美化图件样式",
+            "调整图层显示设置",
+            "删除不需要的图层"
+          ]
+        : [
+            "Beautify chart style with one click",
+            "Adjust layer display settings",
+            "Remove unnecessary layers"
+          ]
+      )
+    : (lang === 'zh'
+        ? [
+            "生成本周生产运行简报",
+            "优化当前钻井方案并补充针对性的技术措施",
+            "请检查当前报告中是否存在地质风险遗漏？",
+            "请总结一下关键地质认识和主要设计建议"
+          ]
+        : [
+            "Generate weekly production operation brief",
+            "Optimize drilling plan and add technical measures",
+            "Check for missing geological risks in current report",
+            "Summarize key geological insights and design suggestions"
+          ]
+      );
 
   const handleSend = () => {
     if (!chatInput.trim()) return;

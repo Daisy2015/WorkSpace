@@ -53,6 +53,7 @@ export const IntelligentReportWorkspaceDetail: React.FC<IntelligentReportWorkspa
   setIsResourcePanelOpen,
 }) => {
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const reportConfig = useMemo(() => ({
     isSmartReport: true,
@@ -129,7 +130,7 @@ export const IntelligentReportWorkspaceDetail: React.FC<IntelligentReportWorkspa
             {/* Center Area: Report Generation Agent */}
             <div className="flex-1 h-full relative p-3">
               <ReportGenerationAgent 
-                key={`report-intelligent`}
+                key={`report-intelligent-${refreshKey}`}
                 lang={lang}
                 config={reportConfig}
                 onCloseAgent={() => {}}
@@ -148,6 +149,7 @@ export const IntelligentReportWorkspaceDetail: React.FC<IntelligentReportWorkspa
           agentStatus="Idle"
           mode="absolute"
           offsetTop="top-0"
+          onRefreshAgent={() => setRefreshKey(prev => prev + 1)}
         />
       </div>
 

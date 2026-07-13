@@ -49,6 +49,7 @@ export const IntelligentChartWorkspaceDetail: React.FC<IntelligentChartWorkspace
   setIsResourcePanelOpen,
 }) => {
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <div className="h-full relative flex flex-col" id="intelligent-chart-workspace-detail">
@@ -97,7 +98,7 @@ export const IntelligentChartWorkspaceDetail: React.FC<IntelligentChartWorkspace
             {/* Center Area: Professional Chart Generation */}
             <div className="flex-1 h-full relative p-3">
               <ProChartGenerationAgent 
-                key={`pro-chart-intelligent`}
+                key={`pro-chart-intelligent-${refreshKey}`}
                 lang={lang}
                 onComplete={() => {}}
               />
@@ -114,6 +115,7 @@ export const IntelligentChartWorkspaceDetail: React.FC<IntelligentChartWorkspace
           agentStatus="Idle"
           mode="absolute"
           offsetTop="top-0"
+          onRefreshAgent={() => setRefreshKey(prev => prev + 1)}
         />
       </div>
       {/* Evidence Chain Panel */}

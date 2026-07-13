@@ -8,7 +8,63 @@ interface AdminSkillManagementProps {
   onCreateSceneSkill?: () => void;
 }
 
-const MOCK_SKILLS: SkillEntry[] = [
+interface FileNode {
+  name: string;
+  type: 'file' | 'folder';
+  children?: FileNode[];
+}
+
+const MOCK_SKILL_FILES: FileNode[] = [
+  {
+    name: 'skill-package',
+    type: 'folder',
+    children: [
+      { name: 'SKILL.md', type: 'file' },
+      { name: 'README.md', type: 'file' },
+      { 
+        name: 'src', 
+        type: 'folder',
+        children: [
+          { name: 'index.ts', type: 'file' },
+          { name: 'utils.ts', type: 'file' },
+          { name: 'schema.json', type: 'file' }
+        ]
+      },
+      {
+        name: 'assets',
+        type: 'folder',
+        children: [
+          { name: 'icon.png', type: 'file' }
+        ]
+      }
+    ]
+  }
+];
+
+const FileTreeNode: React.FC<{ node: FileNode; level?: number }> = ({ node, level = 0 }) => {
+  const [isOpen, setIsOpen] = useState(true);
+
+  return (
+    <div className="select-none">
+      <div 
+        className={`flex items-center gap-2 py-1.5 px-2 hover:bg-slate-200 rounded-lg cursor-pointer transition-colors ${level > 0 ? 'ml-2' : ''}`}
+        onClick={() => node.type === 'folder' && setIsOpen(!isOpen)}
+      >
+        <i className={`fas ${node.type === 'folder' ? (isOpen ? 'fa-folder-open text-indigo-400' : 'fa-folder text-indigo-400') : 'fa-file-alt text-slate-400'} w-4 text-center text-xs`}></i>
+        <span className="text-xs text-slate-700 font-medium">{node.name}</span>
+      </div>
+      {node.type === 'folder' && isOpen && node.children && (
+        <div className="border-l border-slate-300 ml-4 pl-2 mt-1 space-y-1">
+          {node.children.map((child, idx) => (
+            <FileTreeNode key={idx} node={child} level={level + 1} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const MOCK_SKILLS: SkillEntry[] = [
   {
     id: 'skill-4',
     name: '邻井发现 Skill',
@@ -152,7 +208,22 @@ const MOCK_SKILLS: SkillEntry[] = [
 ];
 
 export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang, onCreateSceneSkill }) => {
-  const [skills, setSkills] = useState<SkillEntry[]>(MOCK_SKILLS);
+  const [skills, setSkills] = useState<SkillEntry[]>(() => {
+    const stored = localStorage.getItem('mbu_skills');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return MOCK_SKILLS;
+  });
+
+  React.useEffect(() => {
+    localStorage.setItem('mbu_skills', JSON.stringify(skills));
+  }, [skills]);
+
   const [activeCategory, setActiveCategory] = useState<'All' | 'Business' | 'General'>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -365,6 +436,16 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
+                              handleOpenModal(skill);
+                            }}
+                            className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+                            title={lang === 'zh' ? '编辑' : 'Edit'}
+                          >
+                            <i className="fas fa-edit"></i>
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setDrawerSkill(skill);
                               setIsDrawerOpen(true);
                             }}
@@ -486,6 +567,17 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                       <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">{lang === 'zh' ? '最近更新' : 'Updated At'}</div>
                       <div className="text-sm font-bold text-slate-800">{drawerSkill.updatedAt}</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">{lang === 'zh' ? '技能包内容' : 'Package Contents'}</label>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 overflow-x-auto">
+                      <div className="min-w-max">
+                        {MOCK_SKILL_FILES.map((node, i) => (
+                          <FileTreeNode key={i} node={node} />
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>

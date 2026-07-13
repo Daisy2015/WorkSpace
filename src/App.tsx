@@ -16,6 +16,7 @@ import { AssistantSidebar } from './components/AssistantSidebar';
 import { KnowledgeBase } from './components/KnowledgeBase';
 import { DocumentEditor } from './components/DocumentEditor';
 import { WorkspaceTemplates } from './components/WorkspaceTemplates';
+import { AgentSquare } from './components/AgentSquare';
 import { MultiAgentChatPanel } from './components/MultiAgentChatPanel';
 import { AgentsPanel } from './components/AgentsPanel';
 import { IntelligentConstruction } from './components/IntelligentConstruction';
@@ -46,7 +47,7 @@ import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESO
 import { Message, ResourceNode, Language, Workspace, KnowledgeItem, WorkspaceStatus, WorkspaceTemplate, Agent } from './types';
 import { translations } from './i18n';
 
-type MainTab = 'dashboard' | 'workspaces' | 'admin' | 'intelligence' | 'knowledge' | 'templates' | 'construction' | 'construction-v2' | 'construction-completion' | 'profile';
+type MainTab = 'dashboard' | 'agent-square' | 'workspaces' | 'admin' | 'intelligence' | 'knowledge' | 'templates' | 'construction' | 'construction-v2' | 'construction-completion' | 'profile';
 
 const CURRENT_USER = '李明';
 
@@ -171,6 +172,7 @@ const App: React.FC = () => {
   const [originalObjectScope, setOriginalObjectScope] = useState<any[]>([]);
   const [agentRunStatus, setAgentRunStatus] = useState<'running' | 'completed'>('running');
   const [agentRefreshKey, setAgentRefreshKey] = useState(0);
+  const [initialLaunchAgentName, setInitialLaunchAgentName] = useState<string | null>(null);
 
   // Resource Detail Modal State
   const [selectedResourceForDetail, setSelectedResourceForDetail] = useState<ResourceNode | null>(null);
@@ -993,6 +995,14 @@ const App: React.FC = () => {
                     {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.dashboard}</span>}
                 </button>
                 <button 
+                  onClick={() => handleTabChange('agent-square')}
+                  className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'agent-square' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
+                  title={isSidebarExpanded ? '' : (lang === 'zh' ? '智能体广场' : 'Agent Square')}
+                >
+                    <i className="fas fa-robot text-lg min-w-[1.25rem] text-center"></i>
+                    {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{lang === 'zh' ? '智能体广场' : 'Agent Square'}</span>}
+                </button>
+                <button 
                   onClick={() => handleTabChange('templates')}
                   className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'templates' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
                   title={isSidebarExpanded ? '' : t.templates}
@@ -1122,6 +1132,16 @@ const App: React.FC = () => {
                 workspaces={workspaces} 
                 onNavigateToWorkspace={() => handleTabChange('workspaces')} 
                 lang={lang} 
+            />
+        )}
+
+        {currentTab === 'agent-square' && (
+            <AgentSquare 
+                lang={lang} 
+                onLaunchAgent={(agentName) => {
+                    setInitialLaunchAgentName(agentName);
+                    handleTabChange('workspaces');
+                }}
             />
         )}
 
@@ -1747,11 +1767,13 @@ const App: React.FC = () => {
                             onDeleteWorkspace={handleDeleteWorkspace}
                             onSaveAsTemplate={handleSaveAsTemplate}
                             onCreateFromTemplate={handleCreateFromTemplate}
-            onStartIntelligentConstruction={(name) => {
-                setConstructionWorkspaceName(name);
-                handleTabChange('construction');
-            }}
+                            onStartIntelligentConstruction={(name) => {
+                                setConstructionWorkspaceName(name);
+                                handleTabChange('construction');
+                            }}
                             lang={lang} 
+                            initialLaunchAgentName={initialLaunchAgentName}
+                            onClearInitialLaunchAgent={() => setInitialLaunchAgentName(null)}
                         />
                     </div>
                 )}
