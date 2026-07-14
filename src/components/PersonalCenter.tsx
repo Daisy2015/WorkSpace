@@ -245,10 +245,10 @@ export const PersonalCenter: React.FC<PersonalCenterProps> = ({ lang, onExit, on
 
       {/* Single Scrollable Panel Container */}
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-        <div className="max-w-4xl mx-auto space-y-6 pb-12">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 pb-12">
           
-          {/* ① PROFILE CARD */}
-          <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden transition-all hover:shadow-md">
+          {/* ① PROFILE CARD - Top Left */}
+          <section className="md:col-span-1 bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden transition-all hover:shadow-md h-fit">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-4 bg-blue-600 rounded-full" />
@@ -275,7 +275,7 @@ export const PersonalCenter: React.FC<PersonalCenterProps> = ({ lang, onExit, on
             </div>
 
             <div className="p-6">
-              <div className="flex flex-col md:flex-row gap-8 items-center md:items-start">
+              <div className="flex flex-col gap-6 items-center">
                 {/* Avatar area */}
                 <div className="flex flex-col items-center gap-2">
                   <div 
@@ -297,7 +297,7 @@ export const PersonalCenter: React.FC<PersonalCenterProps> = ({ lang, onExit, on
                 </div>
 
                 {/* Fields details */}
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-5 w-full">
+                <div className="flex-1 flex flex-col gap-4 w-full">
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1.5">{lang === 'zh' ? '姓名' : 'Full Name'}</label>
                     {isEditingProfile ? (
@@ -396,7 +396,7 @@ export const PersonalCenter: React.FC<PersonalCenterProps> = ({ lang, onExit, on
                     </div>
                   </div>
 
-                  <div className="border-t border-slate-100 pt-4 sm:col-span-2 grid grid-cols-2 gap-4 text-[11px] text-slate-400 font-medium">
+                  <div className="border-t border-slate-100 pt-4 grid grid-cols-2 gap-4 text-[11px] text-slate-400 font-medium">
                     <div>
                       <span>{lang === 'zh' ? '注册时间：' : 'Register Time: '}</span>
                       <span className="text-slate-600 font-mono">{registerTime}</span>
@@ -411,8 +411,8 @@ export const PersonalCenter: React.FC<PersonalCenterProps> = ({ lang, onExit, on
             </div>
           </section>
 
-          {/* ② PREFERENCES SECTION */}
-          <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden transition-all hover:shadow-md">
+          {/* ② PREFERENCES SECTION - To the right and bottom */}
+          <section className="md:col-span-2 bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden transition-all hover:shadow-md">
             <div className="p-5 border-b border-slate-100 bg-slate-50/50">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-4 bg-emerald-600 rounded-full" />
@@ -678,7 +678,7 @@ export const PersonalCenter: React.FC<PersonalCenterProps> = ({ lang, onExit, on
           </section>
 
           {/* PAGE FOOTER */}
-          <footer className="text-center py-4 text-slate-400 text-xs">
+          <footer className="md:col-span-3 text-center py-4 text-slate-400 text-xs">
             <div>JuraWorkSpace Client v2.8.4-build.20260701</div>
             <div className="text-[10px] mt-1 text-slate-300">© 2026 JuraData Inc. All Rights Reserved.</div>
           </footer>
