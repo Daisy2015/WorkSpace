@@ -19,6 +19,7 @@ interface IntelligentDeclineWorkspaceDetailProps {
   // Panel states
   isResourcePanelOpen: boolean;
   setIsResourcePanelOpen: (open: boolean) => void;
+  onOpenAddResourcePage?: () => void;
 }
 
 export const IntelligentDeclineWorkspaceDetail: React.FC<IntelligentDeclineWorkspaceDetailProps> = ({
@@ -32,6 +33,7 @@ export const IntelligentDeclineWorkspaceDetail: React.FC<IntelligentDeclineWorks
   
   isResourcePanelOpen,
   setIsResourcePanelOpen,
+  onOpenAddResourcePage,
 }) => {
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -58,7 +60,7 @@ export const IntelligentDeclineWorkspaceDetail: React.FC<IntelligentDeclineWorks
         <div className={`${isResourcePanelOpen ? 'w-96 border-r' : 'w-0 border-none'} h-full flex-shrink-0 z-20 shadow-lg bg-white border-slate-200 flex flex-col transition-all duration-300 ease-in-out overflow-hidden`}>
           <div className="w-96 flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-hidden relative">
-              <WellDeclineRequirementTree lang={lang} />
+              <WellDeclineRequirementTree lang={lang} onOpenAddResourcePage={onOpenAddResourcePage} />
             </div>
           </div>
         </div>

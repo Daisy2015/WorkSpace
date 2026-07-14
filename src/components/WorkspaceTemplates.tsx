@@ -81,7 +81,7 @@ export const WorkspaceTemplates: React.FC<WorkspaceTemplatesProps> = ({
         <div className="space-y-3.5 flex-1 flex flex-col justify-start">
           {/* Top Row: Title & "去创建" Button */}
           <div className="flex items-start justify-between gap-3">
-            <h3 className="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug flex-1 min-w-0" title={tpl.name}>
+            <h3 className="text-base font-bold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight flex-1 min-w-0" title={tpl.name}>
               {tpl.name}
             </h3>
             
@@ -92,7 +92,7 @@ export const WorkspaceTemplates: React.FC<WorkspaceTemplatesProps> = ({
           </div>
 
           {/* Description */}
-          <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed" title={tpl.description}>
+          <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed font-medium" title={tpl.description}>
             {tpl.description}
           </p>
 

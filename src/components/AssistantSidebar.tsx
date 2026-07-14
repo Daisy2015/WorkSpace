@@ -70,6 +70,19 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
             "Remove unnecessary layers"
           ]
       )
+    : (agentName.includes('勘探') || agentName.includes('Exploration'))
+    ? (lang === 'zh'
+        ? [
+            "分析目标区的油气成藏潜力",
+            "评估当前勘探目标的资源量",
+            "建议钻探部署顺序"
+          ]
+        : [
+            "Analyze oil and gas accumulation potential",
+            "Assess resource volume of exploration targets",
+            "Recommend drilling sequence"
+          ]
+      )
     : (lang === 'zh'
         ? [
             "生成本周生产运行简报",

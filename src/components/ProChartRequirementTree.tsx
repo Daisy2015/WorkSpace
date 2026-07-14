@@ -4,9 +4,10 @@ import { ResourceNode } from '../types';
 
 interface ProChartRequirementTreeProps {
     lang: 'zh' | 'en';
+    onOpenAddResourcePage?: () => void;
 }
 
-export const ProChartRequirementTree: React.FC<ProChartRequirementTreeProps> = ({ lang }) => {
+export const ProChartRequirementTree: React.FC<ProChartRequirementTreeProps> = ({ lang, onOpenAddResourcePage }) => {
     const [selectedResources] = useState<Set<string>>(new Set());
 
     const proChartResources: ResourceNode[] = [
@@ -167,7 +168,7 @@ export const ProChartRequirementTree: React.FC<ProChartRequirementTreeProps> = (
             onAddResource={() => {}}
             onDeleteResources={() => {}}
             onTogglePublic={() => {}}
-            onOpenAddResourcePage={() => {}}
+            onOpenAddResourcePage={onOpenAddResourcePage || (() => {})}
             lang={lang}
             hideCheckboxes={true}
             isSmartReport={true}

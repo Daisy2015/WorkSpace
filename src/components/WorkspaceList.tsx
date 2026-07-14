@@ -71,6 +71,7 @@ const AGENTS = [
   { id: '智能成图', name: '智能成图', desc: '支持自动生成专业版地质图表，包含连井剖面、小层平面及综合图表。' },
   { id: '智能报告', name: '智能报告', desc: '用于一键自动生成或在线辅助编辑标准完井及地质设计报告。' },
   { id: '单井产量诊断', name: '单井产量诊断', desc: '基于生产动态数据及工况参数，智能诊断单井产能发挥及递减主控因素。' },
+  { id: '勘探目标评价', name: '勘探目标评价', desc: '用于对单一勘探目标进行精细化的“地质-储量-经济-战略”多维度评价，并支持指标排队与优选池管理。' },
 ];
 
 const AGENT_CONFIGS: Record<string, {
@@ -176,6 +177,29 @@ const AGENT_CONFIGS: Record<string, {
         { value: 'monthly', label: '月频累计产液量数据' },
       ]
     }
+  ],
+  '勘探目标评价': [
+    {
+      key: 'eval_target',
+      label: '评价对象类型',
+      type: 'select',
+      defaultValue: 'trap',
+      options: [
+        { value: 'trap', label: '圈闭/砂体构造目标' },
+        { value: 'reservoir', label: '缝洞体/非常规油气藏' },
+      ]
+    },
+    {
+      key: 'model_selection',
+      label: '决策大模型',
+      type: 'select',
+      defaultValue: 'DeepSeek-R1',
+      options: [
+        { value: 'DeepSeek-R1', label: 'DeepSeek-R1 (推理大模型)' },
+        { value: 'Qwen-2.5', label: 'Qwen-2.5-72B-Instruct' },
+        { value: 'Gemini-2.0-Flash', label: 'Gemini 2.0 Flash' },
+      ]
+    }
   ]
 };
 
@@ -219,6 +243,8 @@ const getAgentDetailText = (id: string) => {
       return '智能生成标准钻井、地质设计和完井报告，支持一键生成、智能纠错及大纲结构化定制。';
     case '单井产量诊断':
       return '自动诊断单井产量递减及产能发挥的主控因素，智能甄别异常并生成诊断与治理建议。';
+    case '勘探目标评价':
+      return '用于对单一勘探目标进行精细化的“地质-储量-经济-战略”多维度评价，并支持指标排队与优选池管理。';
     default:
       return '用于自动处理专属业务，保存业务上下文并自动提供 AI 协助。';
   }
@@ -301,6 +327,8 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
         targetAgent = '智能成图';
       } else if (initialLaunchAgentName.includes('产量') || initialLaunchAgentName.includes('单井') || initialLaunchAgentName.includes('诊断') || initialLaunchAgentName.includes('Decline')) {
         targetAgent = '单井产量诊断';
+      } else if (initialLaunchAgentName.includes('勘探') || initialLaunchAgentName.includes('评价') || initialLaunchAgentName.includes('Target') || initialLaunchAgentName.includes('Evaluation')) {
+        targetAgent = '勘探目标评价';
       }
       
       setNewAgent(targetAgent);
@@ -377,6 +405,8 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
         return '✍️';
       case '单井产量诊断':
         return '📈';
+      case '勘探目标评价':
+        return '🔍';
       default:
         return '🤖';
     }
@@ -411,6 +441,13 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
           border: 'border-rose-100/80',
           text: 'text-rose-600',
           gradient: 'from-orange-500 to-rose-500'
+        };
+      case '勘探目标评价':
+        return {
+          bg: 'bg-cyan-50/50',
+          border: 'border-cyan-100/80',
+          text: 'text-cyan-600',
+          gradient: 'from-cyan-500 to-blue-500'
         };
       default:
         return {
@@ -1478,7 +1515,7 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                   <div className="flex items-start gap-3">
                     <span className="text-xl text-blue-500 mt-0.5">📁</span>
                     <h3
-                      className="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug"
+                      className="text-base font-bold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight"
                       title={ws.name}
                     >
                       {ws.name}
@@ -1487,11 +1524,11 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
 
                   {/* Workspace Description */}
                   {ws.description ? (
-                    <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed" title={ws.description}>
+                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed font-medium" title={ws.description}>
                       {ws.description}
                     </p>
                   ) : (
-                    <p className="text-xs text-gray-400 italic line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-slate-400 italic line-clamp-2 leading-relaxed font-medium">
                       {lang === 'zh' ? '暂无工作空间描述' : 'No workspace description available'}
                     </p>
                   )}
@@ -1743,7 +1780,9 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                     </button>
                     
                     {(() => {
-                      const hasConfigs = (AGENT_CONFIGS[newAgent] || []).length > 0;
+                      const hasConfigs = (AGENT_CONFIGS[newAgent] || []).length > 0 && 
+                                         newAgent !== '单井产量诊断' && 
+                                         newAgent !== '勘探目标评价';
                       return hasConfigs ? (
                         <button
                           type="button"

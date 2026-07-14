@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-interface WellDeclineRequirementTreeProps {
+interface ExplorationTargetRequirementTreeProps {
     lang: 'zh' | 'en';
     onOpenAddResourcePage?: () => void;
 }
@@ -26,9 +26,9 @@ const TreeNode: React.FC<{ name: string; children?: string[]; level: number; def
                     )}
                 </div>
                 <div className="mr-2.5" onClick={(e) => e.stopPropagation()}>
-                    <input type="checkbox" className="w-[14px] h-[14px] rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                    <input type="checkbox" className="w-[14px] h-[14px] rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" defaultChecked={true} />
                 </div>
-                <i className={`fas fa-map-marker-alt text-indigo-500 mr-2 text-[12px] flex-shrink-0`}></i>
+                <i className={`fas fa-map-marker-alt text-blue-500 mr-2 text-[12px] flex-shrink-0`}></i>
                 <span className="truncate">{name} {hasChildren ? `(${children.length})` : ''}</span>
             </div>
             {hasChildren && expanded && (
@@ -37,7 +37,7 @@ const TreeNode: React.FC<{ name: string; children?: string[]; level: number; def
                         <div key={i} className="group flex items-center py-2 hover:bg-slate-50 cursor-pointer pr-4 transition-colors text-slate-700" style={{ paddingLeft: `${(level + 1) * 24 + 16}px` }}>
                             <div className="w-5 flex-shrink-0 flex justify-center"></div>
                             <div className="mr-2.5" onClick={(e) => e.stopPropagation()}>
-                                <input type="checkbox" className="w-[14px] h-[14px] rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                                <input type="checkbox" className="w-[14px] h-[14px] rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" defaultChecked={true} />
                             </div>
                             <i className={`${getLeafIcon(i)} mr-2 text-[13px] flex-shrink-0`}></i>
                             <span className="truncate flex-1">{child}</span>
@@ -52,12 +52,38 @@ const TreeNode: React.FC<{ name: string; children?: string[]; level: number; def
     );
 };
 
-export const WellDeclineRequirementTree: React.FC<WellDeclineRequirementTreeProps> = ({ lang, onOpenAddResourcePage }) => {
+export const ExplorationTargetRequirementTree: React.FC<ExplorationTargetRequirementTreeProps> = ({ lang, onOpenAddResourcePage }) => {
     const data = [
-        { name: lang === 'zh' ? '生产动态数据' : 'Production Dynamic Data', children: [lang === 'zh' ? '日产液量历史 (数据)' : 'Daily Liquid Production History (Data)', lang === 'zh' ? '日产油量历史 (数据)' : 'Daily Oil Production History (Data)', lang === 'zh' ? '含水率历史 (数据)' : 'Water Cut History (Data)'] },
-        { name: lang === 'zh' ? '井史与措施' : 'Well History & Measures', children: [lang === 'zh' ? '修井记录 (文档)' : 'Workover Records (Document)', lang === 'zh' ? '酸化压裂历史 (数据)' : 'Acidizing/Fracturing History (Data)'] },
-        { name: lang === 'zh' ? '油藏数据' : 'Reservoir Data', children: [lang === 'zh' ? '地层压力变化 (图像)' : 'Formation Pressure Changes (Image)', lang === 'zh' ? '流体性质 (报告)' : 'Fluid Properties (Report)'] },
-        { name: lang === 'zh' ? '设备参数' : 'Equipment Parameters', children: [lang === 'zh' ? '泵效监测 (数据)' : 'Pump Efficiency Monitoring (Data)', lang === 'zh' ? '管柱状态 (文档)' : 'Tubing Status (Document)'] }
+        { 
+            name: lang === 'zh' ? '圈闭与地震解释' : 'Trap & Seismic Interpretation', 
+            children: [
+                lang === 'zh' ? '顶底构造图 (dwg格式)' : 'Top-Bottom Structure Map (dwg)', 
+                lang === 'zh' ? '三维地震数据体 (segy)' : '3D Seismic Data Volume (segy)', 
+                lang === 'zh' ? '构造断裂体系解释 (报告)' : 'Fault System Interpretation (Report)'
+            ] 
+        },
+        { 
+            name: lang === 'zh' ? '储层物性参数' : 'Reservoir Properties', 
+            children: [
+                lang === 'zh' ? '孔隙度与渗透率测试 (数据)' : 'Porosity & Permeability Logs (Data)', 
+                lang === 'zh' ? '含油气饱和度分析 (图表)' : 'Oil/Gas Saturation Analysis (Chart)',
+                lang === 'zh' ? '压汞分析及微观孔喉 (报告)' : 'Mercury Injection & Pore Throat (Report)'
+            ] 
+        },
+        { 
+            name: lang === 'zh' ? '储量估算与地质风险' : 'Reserves & Geological Risk', 
+            children: [
+                lang === 'zh' ? '地质成功率(Pg)概率评估 (模型)' : 'Geological Success Rate (Pg) Evaluation', 
+                lang === 'zh' ? '采收率预测模型 (数据)' : 'Recovery Factor Predictive Model'
+            ] 
+        },
+        { 
+            name: lang === 'zh' ? '开发部署与经济指标' : 'Development & Economics', 
+            children: [
+                lang === 'zh' ? '单井设计与投资概算 (表)' : 'Well Design & Investment Estimate (Sheet)', 
+                lang === 'zh' ? '油价敏感性财务评价 (模型)' : 'Oil Price Sensitivity Evaluation Model'
+            ] 
+        }
     ];
 
     return (
@@ -67,7 +93,7 @@ export const WellDeclineRequirementTree: React.FC<WellDeclineRequirementTreeProp
                     <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-[11px]"></i>
                     <input 
                         type="text" 
-                        placeholder={lang === 'zh' ? "搜索资源..." : "Search resources..."}
+                        placeholder={lang === 'zh' ? "搜索评价资源..." : "Search evaluation resources..."}
                         className="w-full pl-8 pr-3 py-2 text-[13px] bg-white border border-slate-200 rounded shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-slate-600 placeholder-slate-400"
                     />
                 </div>

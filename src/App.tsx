@@ -35,6 +35,7 @@ import { IntelligentQueryWorkspaceDetail } from './components/IntelligentQueryWo
 import { IntelligentChartWorkspaceDetail } from './components/IntelligentChartWorkspaceDetail';
 import { IntelligentReportWorkspaceDetail } from './components/IntelligentReportWorkspaceDetail';
 import { IntelligentDeclineWorkspaceDetail } from './components/IntelligentDeclineWorkspaceDetail';
+import { IntelligentTargetEvaluationWorkspaceDetail } from './components/IntelligentTargetEvaluationWorkspaceDetail';
 import { HarnessFileExplorer } from './components/HarnessFileExplorer';
 import { WellDeclineDiagnosis } from './components/WellDeclineDiagnosis';
 import { ReportGenerationAgent } from './components/ReportGenerationAgent';
@@ -677,7 +678,9 @@ const App: React.FC = () => {
       t.id === template.id ? { ...t, usageCount: t.usageCount + 1 } : t
     ));
 
-    handleSelectWorkspace(newWorkspace.id, name, description, objects, true, defaultAgent || template.defaultAgent);
+    const agent = defaultAgent || template.defaultAgent;
+    const shouldAutoOpen = agent !== '单井产量诊断' && agent !== '勘探目标评价';
+    handleSelectWorkspace(newWorkspace.id, name, description, objects, shouldAutoOpen, agent);
   };
 
   // Knowledge Base Integration Handler
@@ -1338,55 +1341,114 @@ const App: React.FC = () => {
                             )}
                         </>
                     ) : activeWorkspaceData?.defaultAgent === '智能成图' ? (
-                        <IntelligentChartWorkspaceDetail
-                            lang={lang}
-                            activeWorkspaceId={activeWorkspaceId}
-                            activeWorkspaceData={activeWorkspaceData}
-                            currentUser={CURRENT_USER}
-                            onBackToList={handleBackToList}
-                            onEditCurrentWorkspace={handleEditCurrentWorkspace}
-                            onOpenSettings={() => setIsHarnessExplorerOpen(true)}
-                            multiAgentMessages={multiAgentMessages}
-                            setMessages={setMultiAgentMessages}
-                            onSelectMessage={setSelectedMessage}
-                            displayAgents={displayAgents}
-                            workspaceVersion={workspaceVersion}
-                            onSaveOutcome={handleOpenSaveOutcome}
-                            isResourcePanelOpen={isResourcePanelOpen}
-                            setIsResourcePanelOpen={setIsResourcePanelOpen}
-                        />
+                        <>
+                            <IntelligentChartWorkspaceDetail
+                                lang={lang}
+                                activeWorkspaceId={activeWorkspaceId}
+                                activeWorkspaceData={activeWorkspaceData}
+                                currentUser={CURRENT_USER}
+                                onBackToList={handleBackToList}
+                                onEditCurrentWorkspace={handleEditCurrentWorkspace}
+                                onOpenSettings={() => setIsHarnessExplorerOpen(true)}
+                                multiAgentMessages={multiAgentMessages}
+                                setMessages={setMultiAgentMessages}
+                                onSelectMessage={setSelectedMessage}
+                                displayAgents={displayAgents}
+                                workspaceVersion={workspaceVersion}
+                                onSaveOutcome={handleOpenSaveOutcome}
+                                isResourcePanelOpen={isResourcePanelOpen}
+                                setIsResourcePanelOpen={setIsResourcePanelOpen}
+                                onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
+                            />
+                            {isAddResourcePageOpen && (
+                                <AddResourcePage 
+                                    onClose={() => setIsAddResourcePageOpen(false)} 
+                                    onConfirm={handleConfirmAddResource}
+                                    lang={lang}
+                                    initialTree={resourceTree}
+                                    workspaceId={activeWorkspaceId}
+                                />
+                            )}
+                        </>
                     ) : activeWorkspaceData?.defaultAgent === '智能报告' ? (
-                        <IntelligentReportWorkspaceDetail
-                            lang={lang}
-                            activeWorkspaceId={activeWorkspaceId}
-                            activeWorkspaceData={activeWorkspaceData}
-                            currentUser={CURRENT_USER}
-                            onBackToList={handleBackToList}
-                            onEditCurrentWorkspace={handleEditCurrentWorkspace}
-                            onOpenSettings={() => setIsHarnessExplorerOpen(true)}
-                            resourceTree={resourceTree}
-                            selectedResources={selectedResources}
-                            onToggleResource={handleToggleResource}
-                            onSelectResourceForDetail={setSelectedResourceForDetail}
-                            onAddResource={handleAddResource}
-                            onDeleteResources={handleDeleteResources}
-                            onTogglePublic={handleTogglePublic}
-                            onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
-                            isResourcePanelOpen={isResourcePanelOpen}
-                            setIsResourcePanelOpen={setIsResourcePanelOpen}
-                        />
+                        <>
+                            <IntelligentReportWorkspaceDetail
+                                lang={lang}
+                                activeWorkspaceId={activeWorkspaceId}
+                                activeWorkspaceData={activeWorkspaceData}
+                                currentUser={CURRENT_USER}
+                                onBackToList={handleBackToList}
+                                onEditCurrentWorkspace={handleEditCurrentWorkspace}
+                                onOpenSettings={() => setIsHarnessExplorerOpen(true)}
+                                resourceTree={resourceTree}
+                                selectedResources={selectedResources}
+                                onToggleResource={handleToggleResource}
+                                onSelectResourceForDetail={setSelectedResourceForDetail}
+                                onAddResource={handleAddResource}
+                                onDeleteResources={handleDeleteResources}
+                                onTogglePublic={handleTogglePublic}
+                                onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
+                                isResourcePanelOpen={isResourcePanelOpen}
+                                setIsResourcePanelOpen={setIsResourcePanelOpen}
+                            />
+                            {isAddResourcePageOpen && (
+                                <AddResourcePage 
+                                    onClose={() => setIsAddResourcePageOpen(false)} 
+                                    onConfirm={handleConfirmAddResource}
+                                    lang={lang}
+                                    initialTree={resourceTree}
+                                    workspaceId={activeWorkspaceId}
+                                />
+                            )}
+                        </>
                     ) : activeWorkspaceData?.defaultAgent === '单井产量诊断' ? (
-                        <IntelligentDeclineWorkspaceDetail
-                            lang={lang}
-                            activeWorkspaceId={activeWorkspaceId}
-                            activeWorkspaceData={activeWorkspaceData}
-                            currentUser={CURRENT_USER}
-                            onBackToList={handleBackToList}
-                            onEditCurrentWorkspace={handleEditCurrentWorkspace}
-                            onOpenSettings={() => setIsHarnessExplorerOpen(true)}
-                            isResourcePanelOpen={isResourcePanelOpen}
-                            setIsResourcePanelOpen={setIsResourcePanelOpen}
-                        />
+                        <>
+                            <IntelligentDeclineWorkspaceDetail
+                                lang={lang}
+                                activeWorkspaceId={activeWorkspaceId}
+                                activeWorkspaceData={activeWorkspaceData}
+                                currentUser={CURRENT_USER}
+                                onBackToList={handleBackToList}
+                                onEditCurrentWorkspace={handleEditCurrentWorkspace}
+                                onOpenSettings={() => setIsHarnessExplorerOpen(true)}
+                                isResourcePanelOpen={isResourcePanelOpen}
+                                setIsResourcePanelOpen={setIsResourcePanelOpen}
+                                onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
+                            />
+                            {isAddResourcePageOpen && (
+                                <AddResourcePage 
+                                    onClose={() => setIsAddResourcePageOpen(false)} 
+                                    onConfirm={handleConfirmAddResource}
+                                    lang={lang}
+                                    initialTree={resourceTree}
+                                    workspaceId={activeWorkspaceId}
+                                />
+                            )}
+                        </>
+                    ) : activeWorkspaceData?.defaultAgent === '勘探目标评价' ? (
+                        <>
+                            <IntelligentTargetEvaluationWorkspaceDetail
+                                lang={lang}
+                                activeWorkspaceId={activeWorkspaceId}
+                                activeWorkspaceData={activeWorkspaceData}
+                                currentUser={CURRENT_USER}
+                                onBackToList={handleBackToList}
+                                onEditCurrentWorkspace={handleEditCurrentWorkspace}
+                                onOpenSettings={() => setIsHarnessExplorerOpen(true)}
+                                isResourcePanelOpen={isResourcePanelOpen}
+                                setIsResourcePanelOpen={setIsResourcePanelOpen}
+                                onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
+                            />
+                            {isAddResourcePageOpen && (
+                                <AddResourcePage 
+                                    onClose={() => setIsAddResourcePageOpen(false)} 
+                                    onConfirm={handleConfirmAddResource}
+                                    lang={lang}
+                                    initialTree={resourceTree}
+                                    workspaceId={activeWorkspaceId}
+                                />
+                            )}
+                        </>
                     ) : (
                         // Workspace Detail View (Editor Mode)
                         <div className="h-full relative flex flex-col">
