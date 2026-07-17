@@ -239,6 +239,34 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
   const [formDescription, setFormDescription] = useState('');
   const [formInstructions, setFormInstructions] = useState('');
 
+  // Drawer Edit States
+  const [drawerName, setDrawerName] = useState('');
+  const [drawerCategory, setDrawerCategory] = useState('Business');
+  const [drawerDescription, setDrawerDescription] = useState('');
+  const [drawerInstructions, setDrawerInstructions] = useState('');
+
+  const handleOpenDrawer = (skill: SkillEntry) => {
+    setDrawerSkill(skill);
+    setDrawerName(skill.name);
+    setDrawerCategory(skill.category || 'Business');
+    setDrawerDescription(skill.description);
+    setDrawerInstructions(skill.instructions || '');
+    setIsDrawerOpen(true);
+  };
+
+  const handleSaveDrawer = () => {
+    if (!drawerSkill) return;
+    setSkills(prev => prev.map(s => s.id === drawerSkill.id ? {
+      ...s,
+      name: drawerName,
+      category: drawerCategory,
+      description: drawerDescription,
+      instructions: drawerInstructions,
+      updatedAt: new Date().toLocaleString()
+    } : s));
+    setIsDrawerOpen(false);
+  };
+
   const filteredSkills = useMemo(() => {
     return skills.filter(s => {
       const matchSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -349,13 +377,6 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
             />
           </div>
           <button 
-            onClick={() => onCreateSceneSkill?.()}
-            className="px-4 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl text-xs font-bold shadow-sm hover:bg-indigo-100 transition-all flex items-center gap-2"
-          >
-            <i className="fas fa-magic"></i>
-            {lang === 'zh' ? '创建场景技能' : 'Create Scene Skill'}
-          </button>
-          <button 
             onClick={() => handleOpenModal()}
             className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2"
           >
@@ -376,7 +397,7 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '技能名称' : 'Skill Name'}</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '描述' : 'Description'}</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '状态' : 'Status'}</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '修改人' : 'Modified By'}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '创建人' : 'Created By'}</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '最近更新' : 'Updated'}</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">{lang === 'zh' ? '操作' : 'Actions'}</th>
                   </tr>
@@ -436,23 +457,12 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleOpenModal(skill);
+                              handleOpenDrawer(skill);
                             }}
                             className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
                             title={lang === 'zh' ? '编辑' : 'Edit'}
                           >
                             <i className="fas fa-edit"></i>
-                          </button>
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDrawerSkill(skill);
-                              setIsDrawerOpen(true);
-                            }}
-                            className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
-                            title={lang === 'zh' ? '详情' : 'Details'}
-                          >
-                            <i className="fas fa-info-circle"></i>
                           </button>
                           <button 
                             onClick={(e) => {
@@ -472,54 +482,6 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
               </table>
             </div>
           </div>
-
-          {/* Bottom: Running Heatmap (Simplified) */}
-          <motion.div 
-            initial={false}
-            animate={{ height: isHeatmapOpen ? '200px' : '48px' }}
-            className="bg-white border-t border-slate-200 flex flex-col z-20 shadow-[0_-4px_15px_rgba(0,0,0,0.05)]"
-          >
-            <button 
-              onClick={() => setIsHeatmapOpen(!isHeatmapOpen)}
-              className="h-12 px-8 flex items-center justify-between hover:bg-slate-50 transition-all group"
-            >
-              <div className="flex items-center gap-6">
-                <span className="text-xs font-bold text-slate-800 flex items-center gap-2">
-                  <i className="fas fa-fire text-orange-500"></i>
-                  {lang === 'zh' ? '运行热度与资产效能' : 'Running Heatmap & Asset Efficiency'}
-                </span>
-              </div>
-              <i className={`fas fa-chevron-${isHeatmapOpen ? 'down' : 'up'} text-slate-400 group-hover:text-indigo-600 transition-all`}></i>
-            </button>
-            <div className="flex-1 p-6 grid grid-cols-4 gap-6 overflow-hidden">
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">{lang === 'zh' ? '调用热度趋势' : 'Call Trend'}</div>
-                <div className="h-16 flex items-end gap-1">
-                  {[40, 60, 45, 70, 90, 65, 80, 55, 75, 95].map((h, i) => (
-                    <div key={i} className="flex-1 bg-indigo-200 rounded-t-sm hover:bg-indigo-500 transition-all" style={{ height: `${h}%` }}></div>
-                  ))}
-                </div>
-              </div>
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">{lang === 'zh' ? 'Top 复用 Agent' : 'Top Reused Agents'}</div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-[10px]"><span className="text-slate-600">Leader Agent</span><span className="font-bold">42%</span></div>
-                  <div className="flex justify-between text-[10px]"><span className="text-slate-600">Prod Analyst</span><span className="font-bold">28%</span></div>
-                </div>
-              </div>
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">{lang === 'zh' ? 'Top 失败原因' : 'Top Failure Reasons'}</div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-[10px]"><span className="text-slate-600">Tool Timeout</span><span className="font-bold text-rose-500">54%</span></div>
-                  <div className="flex justify-between text-[10px]"><span className="text-slate-600">Schema Mismatch</span><span className="font-bold text-amber-500">22%</span></div>
-                </div>
-              </div>
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">ROI {lang === 'zh' ? '贡献' : 'Contribution'}</div>
-                <div className="text-2xl font-bold text-emerald-600">$12.4k</div>
-              </div>
-            </div>
-          </motion.div>
         </main>
 
         {/* Right: Skill Details Drawer */}
@@ -537,60 +499,114 @@ export const AdminSkillManagement: React.FC<AdminSkillManagementProps> = ({ lang
                   <i className="fas fa-times"></i>
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-                <div className="space-y-4">
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                {/* Skill Icon and Status */}
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xl shadow-lg shadow-indigo-200">
                       <i className="fas fa-toolbox"></i>
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-800 text-lg">{drawerSkill.name}</h4>
-                      <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[10px] font-bold uppercase">{drawerSkill.isEnabled ? 'Active' : 'Inactive'}</span>
+                      <h4 className="font-bold text-slate-800 text-sm leading-tight">{lang === 'zh' ? '编辑技能内容' : 'Edit Skill Content'}</h4>
+                      <span className="text-[10px] text-slate-400">ID: {drawerSkill.id}</span>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">{drawerSkill.description}</p>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${drawerSkill.isEnabled ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                    {drawerSkill.isEnabled ? (lang === 'zh' ? '已启用' : 'Active') : (lang === 'zh' ? '已禁用' : 'Inactive')}
+                  </span>
                 </div>
 
-                <div className="space-y-6">
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">{lang === 'zh' ? '技能指令' : 'Instructions'}</label>
-                    <div className="bg-slate-900 rounded-xl p-4 font-mono text-[10px] border border-slate-800 text-indigo-100 whitespace-pre-wrap">
-                      {drawerSkill.instructions}
-                    </div>
-                  </div>
+                {/* Name Input */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-400 flex items-center gap-1 uppercase tracking-widest">
+                    <span className="text-rose-500">*</span> {lang === 'zh' ? '技能名称' : 'Skill Name'}
+                  </label>
+                  <input 
+                    type="text" 
+                    value={drawerName}
+                    onChange={(e) => setDrawerName(e.target.value)}
+                    placeholder={lang === 'zh' ? '技能名称' : 'Skill Name'}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  />
+                </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">{lang === 'zh' ? '适用范围' : 'Scope'}</div>
-                      <div className="text-sm font-bold text-slate-800">{drawerSkill.scope}</div>
-                    </div>
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">{lang === 'zh' ? '最近更新' : 'Updated At'}</div>
-                      <div className="text-sm font-bold text-slate-800">{drawerSkill.updatedAt}</div>
-                    </div>
+                {/* Category Selection */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-400 flex items-center gap-1 uppercase tracking-widest">
+                    <span className="text-rose-500">*</span> {lang === 'zh' ? '分类' : 'Category'}
+                  </label>
+                  <div className="flex gap-3">
+                    {[
+                      { id: 'Business', zh: '业务', en: 'Business' },
+                      { id: 'General', zh: '通用', en: 'General' },
+                    ].map(cat => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setDrawerCategory(cat.id)}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
+                          drawerCategory === cat.id 
+                            ? 'bg-indigo-50 border-indigo-200 text-indigo-600' 
+                            : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                        }`}
+                      >
+                        {lang === 'zh' ? cat.zh : cat.en}
+                      </button>
+                    ))}
                   </div>
+                </div>
 
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">{lang === 'zh' ? '技能包内容' : 'Package Contents'}</label>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 overflow-x-auto">
-                      <div className="min-w-max">
-                        {MOCK_SKILL_FILES.map((node, i) => (
-                          <FileTreeNode key={i} node={node} />
-                        ))}
-                      </div>
+                {/* Description Textarea */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-400 flex items-center gap-1 uppercase tracking-widest">
+                    <span className="text-rose-500">*</span> {lang === 'zh' ? '描述' : 'Description'}
+                  </label>
+                  <textarea 
+                    value={drawerDescription}
+                    onChange={(e) => setDrawerDescription(e.target.value)}
+                    placeholder={lang === 'zh' ? '技能描述' : 'Skill description'}
+                    className="w-full h-20 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
+                  />
+                </div>
+
+                {/* Instructions Textarea */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-400 flex items-center gap-1 uppercase tracking-widest">
+                    <span className="text-rose-500">*</span> {lang === 'zh' ? '指令' : 'Instructions'}
+                  </label>
+                  <textarea 
+                    value={drawerInstructions}
+                    onChange={(e) => setDrawerInstructions(e.target.value)}
+                    placeholder={lang === 'zh' ? '技能指令' : 'Skill instructions'}
+                    className="w-full h-40 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-indigo-100 font-mono placeholder:text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
+                  />
+                </div>
+
+                {/* File package directory preview */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">{lang === 'zh' ? '技能包内容 (预览)' : 'Package Contents (Preview)'}</label>
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 overflow-x-auto">
+                    <div className="min-w-max">
+                      {MOCK_SKILL_FILES.map((node, i) => (
+                        <FileTreeNode key={i} node={node} />
+                      ))}
                     </div>
                   </div>
                 </div>
               </div>
               <div className="p-6 border-t border-slate-200 bg-slate-50/50 flex gap-3">
                 <button 
-                  onClick={() => {
-                    setIsDrawerOpen(false);
-                    handleOpenModal(drawerSkill);
-                  }}
-                  className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold text-xs transition-all"
                 >
-                  {lang === 'zh' ? '编辑技能' : 'Edit Skill'}
+                  {lang === 'zh' ? '取消' : 'Cancel'}
+                </button>
+                <button 
+                  onClick={handleSaveDrawer}
+                  disabled={!drawerName || !drawerDescription || !drawerInstructions}
+                  className="flex-1 py-2.5 bg-indigo-600 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-xl font-bold text-xs shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
+                >
+                  {lang === 'zh' ? '保存修改' : 'Save Changes'}
                 </button>
               </div>
             </motion.aside>

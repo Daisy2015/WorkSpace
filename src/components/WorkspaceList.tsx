@@ -263,8 +263,8 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
   initialLaunchAgentName,
   onClearInitialLaunchAgent,
 }) => {
-  // Classification Tabs: 'my' | 'shared' (Default is 'my')
-  const [activeTab, setActiveTab] = useState<'my' | 'shared'>('my');
+  // Classification Tabs: 'all' | 'my' | 'shared' (Default is 'all')
+  const [activeTab, setActiveTab] = useState<'all' | 'my' | 'shared'>('all');
 
   // Search query & Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -1214,7 +1214,12 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
   const filteredWorkspaces = useMemo(() => {
     let result = workspaces.filter((ws) => {
       // Classification Tab Filter
-      const matchesTab = activeTab === 'my' ? ws.owner === CURRENT_USER : ws.owner !== CURRENT_USER;
+      const matchesTab =
+        activeTab === 'all'
+          ? true
+          : activeTab === 'my'
+          ? ws.owner === CURRENT_USER
+          : ws.owner !== CURRENT_USER;
 
       // Fuzzy search by Name, Description, and Default Agent Name
       const searchLower = searchQuery.toLowerCase().trim();
@@ -1404,12 +1409,26 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
         {/* Division Tab Category */}
         <div className="border-b border-gray-100 flex items-center gap-8">
           <button
+            onClick={() => setActiveTab('all')}
+            className={`pb-3 text-sm font-bold transition-all relative ${
+              activeTab === 'all' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            {lang === 'zh' ? '全部' : 'All'}
+            {activeTab === 'all' && (
+              <motion.div
+                layoutId="activeTabUnderline"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+              />
+            )}
+          </button>
+          <button
             onClick={() => setActiveTab('my')}
             className={`pb-3 text-sm font-bold transition-all relative ${
               activeTab === 'my' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            {lang === 'zh' ? `我的（${myCount}）` : `My Workspaces (${myCount})`}
+            {lang === 'zh' ? '我的' : 'My Workspaces'}
             {activeTab === 'my' && (
               <motion.div
                 layoutId="activeTabUnderline"
@@ -1423,7 +1442,7 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
               activeTab === 'shared' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            {lang === 'zh' ? `分享给我的（${sharedCount}）` : `Shared with Me (${sharedCount})`}
+            {lang === 'zh' ? '分享给我的' : 'Shared with Me'}
             {activeTab === 'shared' && (
               <motion.div
                 layoutId="activeTabUnderline"

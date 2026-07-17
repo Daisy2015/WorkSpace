@@ -12,6 +12,7 @@ import { Dashboard } from './components/Dashboard';
 import { AdminPanel } from './components/AdminPanel';
 import { IntelligencePlatform } from './components/IntelligencePlatform';
 import { PersonalCenter } from './components/PersonalCenter';
+import { LoginPage } from './components/LoginPage';
 import { AssistantSidebar } from './components/AssistantSidebar';
 import { KnowledgeBase } from './components/KnowledgeBase';
 import { DocumentEditor } from './components/DocumentEditor';
@@ -136,6 +137,7 @@ const App: React.FC = () => {
 
   // User Profile States
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
 
   // Edit Workspace State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -966,6 +968,19 @@ const App: React.FC = () => {
     });
   };
 
+  if (!isLoggedIn) {
+    return (
+      <LoginPage
+        lang={lang}
+        onLogin={() => {
+          setIsLoggedIn(true);
+          setCurrentTab('dashboard');
+        }}
+        onLangChange={setLang}
+      />
+    );
+  }
+
   return (
     <div className="h-screen w-screen bg-slate-50 flex overflow-hidden text-slate-900 font-sans">
       
@@ -1120,6 +1135,16 @@ const App: React.FC = () => {
                   >
                       <i className="fas fa-shield-alt mr-2.5 text-slate-400 text-sm"></i>
                       {lang === 'zh' ? '后台管理' : 'Backend Admin'}
+                  </button>
+                  <button
+                      onClick={() => {
+                          setIsProfileDropdownOpen(false);
+                          setIsLoggedIn(false);
+                      }}
+                      className="w-full flex items-center px-3 py-2 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer text-left border-t border-slate-100 mt-1"
+                  >
+                      <i className="fas fa-sign-out-alt mr-2.5 text-rose-400 text-sm"></i>
+                      {lang === 'zh' ? '退出登录' : 'Logout'}
                   </button>
               </div>
           )}

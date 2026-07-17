@@ -20,7 +20,8 @@ export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onCl
     name: '',
     description: '',
     mcpAddress: '',
-    visualPageUrl: '',
+    initPageUrl: '', // New field
+    runPageUrl: '', // Renamed from visualPageUrl
     selectedSkills: [] as string[],
   });
 
@@ -121,74 +122,42 @@ export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onCl
                   </div>
                 </div>
 
-                {/* Visual Page URL Section */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-1 h-3 bg-indigo-600 rounded-full"></div>
-                      <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">{lang === 'zh' ? '智能体可视化页面地址配置' : 'Visual Page URL'}</h4>
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-400">{lang === 'zh' ? '非必填' : 'Optional'}</span>
+                {/* Page URLs Configuration Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1 h-3 bg-indigo-600 rounded-full"></div>
+                    <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">{lang === 'zh' ? '页面地址配置' : 'Page URLs Config'}</h4>
                   </div>
                   
-                  <div className="space-y-2">
+                  {/* Init Page URL */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black text-slate-500 ml-1">
+                      {lang === 'zh' ? '智能体初始化页面地址' : 'Agent Initialization Page URL'}
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="https://init.example.com/agent-init"
+                      className="w-full bg-slate-50/50 border border-slate-100 rounded-xl p-2.5 px-4 text-xs font-medium focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 bg-white outline-none transition-all"
+                      value={formData.initPageUrl}
+                      onChange={(e) => setFormData({ ...formData, initPageUrl: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Run Page URL */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black text-slate-500 ml-1">
+                      {lang === 'zh' ? '智能体运行页面地址' : 'Agent Running Page URL'}
+                    </label>
                     <div className="flex gap-2">
                       <input 
                         type="text" 
-                        placeholder="https://visual.example.com/agent-view"
+                        placeholder="https://run.example.com/agent-run"
                         className="flex-1 bg-slate-50/50 border border-slate-100 rounded-xl p-2.5 px-4 text-xs font-medium focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 bg-white outline-none transition-all"
-                        value={formData.visualPageUrl}
-                        onChange={(e) => setFormData({ ...formData, visualPageUrl: e.target.value })}
+                        value={formData.runPageUrl}
+                        onChange={(e) => setFormData({ ...formData, runPageUrl: e.target.value })}
                       />
-                      {formData.visualPageUrl && (
-                        <button 
-                          onClick={() => setShowVisualPreview(!showVisualPreview)}
-                          className={`px-4 rounded-xl text-xs font-bold transition-colors flex items-center gap-2 ${
-                            showVisualPreview 
-                              ? 'bg-purple-600 text-white shadow-sm' 
-                              : 'bg-purple-50 text-purple-600 hover:bg-purple-100'
-                          }`}
-                        >
-                          <i className="fas fa-desktop"></i>
-                          {lang === 'zh' ? '预览页面' : 'Preview'}
-                        </button>
-                      )}
                     </div>
-                    <p className="text-[9px] font-bold text-slate-400 ml-1">
-                      {lang === 'zh' ? '配置后可以在工作台等处直接预览该可视化页面' : 'Allows previewing the visualization page directly'}
-                    </p>
                   </div>
-                  
-                  {/* Visual Preview Area */}
-                  <AnimatePresence>
-                    {showVisualPreview && formData.visualPageUrl && (
-                      <motion.div 
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="bg-slate-800 border border-slate-700 rounded-xl p-2 mt-2 h-64 flex flex-col shadow-inner">
-                          <div className="flex items-center gap-2 mb-2 px-2">
-                            <div className="w-2.5 h-2.5 rounded-full bg-rose-500"></div>
-                            <div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
-                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
-                            <div className="ml-2 px-2 py-0.5 rounded bg-slate-700 text-[10px] text-slate-300 font-mono flex-1 truncate">
-                              {formData.visualPageUrl}
-                            </div>
-                          </div>
-                          <div className="flex-1 bg-white rounded-lg flex items-center justify-center relative overflow-hidden">
-                             {/* iframe placeholder */}
-                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 text-slate-400">
-                                <i className="fas fa-chart-network text-4xl mb-3 text-indigo-300"></i>
-                                <span className="text-xs font-bold">Visualization Preview Sandbox</span>
-                                <span className="text-[10px] mt-1 text-slate-400">Loading {formData.visualPageUrl}...</span>
-                             </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
 
                 {/* MCP Service Config Section */}

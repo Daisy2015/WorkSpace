@@ -20,10 +20,13 @@ interface ManagedAgent {
   isEnabled: boolean;
   updateTime: string;
   description: string;
-  prompt: string;
+  prompt?: string;
   roleConstraints?: string;
   roleAppointmentCount?: number;
   fewShotExamples?: string[];
+  initPageUrl?: string;
+  runPageUrl?: string;
+  mcpAddress?: string;
   ioSchema: string;
   reasoningMode: string;
   tags: string[];
@@ -36,36 +39,12 @@ interface ManagedAgent {
   selectedSkills?: string[];
   selectedTools?: string[];
   fallbackStrategy?: string;
-  selectedScenarioAgents?: string[];
   selectedGeneralAgents?: string[];
+  selectedScenarioAgents?: string[];
+  modifiedBy: string;
 }
 
 const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
-  {
-    id: 'agent-001',
-    name: 'Leader Agent',
-    type: 'General',
-    version: '企业版',
-    skillsCount: 12,
-    toolsCount: 8,
-    recentCalls: 12500,
-    currentVersion: 'v2.4.0',
-    isEnabled: true,
-    updateTime: '2024-05-20 10:00',
-    description: '负责理解用户意图，拆解任务并分发给对应的数字专家。',
-    prompt: '你是一个资深的石油行业专家，负责协调多个子智能体...',
-    roleConstraints: '1. 必须保持专业严谨的语气；2. 严禁泄露未授权的生产数据；3. 优先调用专业工具进行计算。',
-    roleAppointmentCount: 1250,
-    fewShotExamples: ['用户：查询A井产量 -> 助手：正在为您查询A井产量数据...'],
-    ioSchema: 'JSON Schema v7',
-    reasoningMode: 'Chain-of-Thought',
-    tags: ['Core', 'Routing'],
-    industry: 'Oil & Gas',
-    selectedTemplate: '通用调度模版',
-    selectedSkills: ['意图识别', '任务拆解'],
-    selectedTools: ['知识库检索', '计算器'],
-    fallbackStrategy: 'Escalate to Human'
-  },
   {
     id: 'agent-002',
     name: '邻井压裂参数优选 Agent',
@@ -87,7 +66,8 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     reasoningMode: 'Expert Logic',
     tags: ['Fracturing', 'Optimization'],
     industry: 'Oil & Gas',
-    selectedGeneralAgents: ['Leader Agent', '数据合规 Agent']
+    selectedGeneralAgents: ['数据合规 Agent'],
+    modifiedBy: '用户'
   },
   {
     id: 'agent-003',
@@ -109,7 +89,8 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     ioSchema: 'Analogy Well Report',
     reasoningMode: 'Pattern Matching',
     tags: ['Analogy', 'Exploration'],
-    industry: 'Oil & Gas'
+    industry: 'Oil & Gas',
+    modifiedBy: '用户'
   },
   {
     id: 'agent-004',
@@ -131,7 +112,8 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     ioSchema: 'Sweet Spot Map',
     reasoningMode: 'Geological Analysis',
     tags: ['Sweet Spot', 'Evaluation'],
-    industry: 'Oil & Gas'
+    industry: 'Oil & Gas',
+    modifiedBy: '用户'
   },
   {
     id: 'agent-005',
@@ -145,7 +127,7 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     isEnabled: true,
     updateTime: '2024-05-21 13:45',
     description: '基于邻井和甜点结果，优化每段长度、簇数及簇间距。',
-    prompt: '你是一名压裂工艺优化专家，请基于甜点评价和邻井参数，对目标井进行最优分段分簇设计。',
+    prompt: '你是一名压裂工艺优化专家，请基于甜点评价 and 邻井参数，对目标井进行最优分段分簇设计。',
     roleConstraints: '必须输出段长和簇数\n优先提升 SRV\n控制施工复杂度',
     selectedTemplate: '分段分簇模板',
     selectedSkills: ['段边界优化 Skill', '簇间距优化 Skill'],
@@ -153,7 +135,8 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     ioSchema: 'Stage & Cluster Design',
     reasoningMode: 'Geometric Optimization',
     tags: ['Stage Design', 'Optimization'],
-    industry: 'Oil & Gas'
+    industry: 'Oil & Gas',
+    modifiedBy: '用户'
   },
   {
     id: 'agent-006',
@@ -167,7 +150,7 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     isEnabled: true,
     updateTime: '2024-05-21 15:20',
     description: '优化液量、砂量、排量和支撑剂规模，实现成本收益最优。',
-    prompt: '你是一名压裂经济优化专家，请在满足产能目标前提下，优化液量、砂量和排量规模，实现投入产出最优。',
+    prompt: '你是一名压裂经济优化专家，请在满足产能目标前提下，优化液量、砂量 and 排量规模，实现投入产出最优。',
     roleConstraints: '优先经济收益\n控制单井预算\n支持多目标优化',
     selectedTemplate: '压裂规模模板',
     selectedSkills: ['参数寻优 Skill', '经济评价 Skill'],
@@ -175,7 +158,8 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     ioSchema: 'Scale Optimization Package',
     reasoningMode: 'Economic Modeling',
     tags: ['Scale', 'Economics'],
-    industry: 'Oil & Gas'
+    industry: 'Oil & Gas',
+    modifiedBy: '用户'
   },
   {
     id: 'agent-007',
@@ -189,7 +173,7 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     isEnabled: true,
     updateTime: '2024-05-21 16:10',
     description: '预测推荐参数下的日产、首年产量和 EUR。',
-    prompt: '你是一名压后产能预测专家，请结合地质属性、邻井表现和推荐压裂参数，预测目标井压后产量和 EUR。',
+    prompt: '你是一名压后产能预测专家，请结合地质属性、邻井表现 and 推荐压裂参数，预测目标井压后产量和 EUR。',
     roleConstraints: '输出日产 / 年产 / EUR\n必须附带置信区间',
     selectedTemplate: '产能预测模板',
     selectedSkills: ['递减分析 Skill', 'EUR 预测 Skill'],
@@ -197,7 +181,8 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     ioSchema: 'Production Forecast',
     reasoningMode: 'Predictive Analytics',
     tags: ['Prediction', 'EUR'],
-    industry: 'Oil & Gas'
+    industry: 'Oil & Gas',
+    modifiedBy: '用户'
   },
   {
     id: 'agent-008',
@@ -219,7 +204,8 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     ioSchema: 'Review & Correction Report',
     reasoningMode: 'Root Cause Analysis',
     tags: ['Review', 'Correction'],
-    industry: 'Oil & Gas'
+    industry: 'Oil & Gas',
+    modifiedBy: '用户'
   },
   {
     id: 'agent-009',
@@ -233,7 +219,7 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     isEnabled: true,
     updateTime: '2024-05-21 18:00',
     description: '面向平台井组优化井距、缝距和施工顺序。',
-    prompt: '你是一名平台井组协同优化专家，请从井距、缝距、施工顺序和井间干扰角度，优化平台井组整体压裂收益。',
+    prompt: '你是一名平台井组协同优化专家，请从井距、缝距、施工顺序 and 井间干扰角度，优化平台井组整体压裂收益。',
     roleConstraints: '优先整体平台收益\n控制井间干扰\n输出井组级施工方案',
     selectedTemplate: '平台井组模板',
     selectedSkills: ['井组干扰分析 Skill', '排程优化 Skill'],
@@ -241,7 +227,8 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     ioSchema: 'Platform Optimization Plan',
     reasoningMode: 'Collaborative Optimization',
     tags: ['Platform', 'Synergy'],
-    industry: 'Oil & Gas'
+    industry: 'Oil & Gas',
+    modifiedBy: '用户'
   },
   {
     id: 'agent-010',
@@ -262,7 +249,8 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     ioSchema: 'Query Result JSON',
     reasoningMode: 'NL2SQL',
     tags: ['Data', 'Query'],
-    industry: 'General'
+    industry: 'General',
+    modifiedBy: '系统'
   },
   {
     id: 'agent-011',
@@ -275,7 +263,7 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     currentVersion: 'v1.0.0',
     isEnabled: true,
     updateTime: '2024-05-22 10:00',
-    description: '基于给定的数据和分析结论，自动撰写专业的技术报告或周月报。',
+    description: '基于给定的数据 and 分析结论，自动撰写专业的技术报告或周月报。',
     prompt: '你是一个资深的技术文档专家，能够根据数据分析结果撰写结构严谨、逻辑清晰的专业报告。',
     roleConstraints: '遵循行业报告标准格式\n语言表达专业、客观\n自动提取关键结论',
     selectedSkills: ['文本生成', '逻辑编排', '结论提取'],
@@ -283,7 +271,8 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     ioSchema: 'Report Document',
     reasoningMode: 'Text Generation',
     tags: ['Report', 'Writing'],
-    industry: 'General'
+    industry: 'General',
+    modifiedBy: '用户'
   },
   {
     id: 'agent-012',
@@ -304,7 +293,8 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     ioSchema: 'PPTX File',
     reasoningMode: 'Structural Design',
     tags: ['PPT', 'Presentation'],
-    industry: 'General'
+    industry: 'General',
+    modifiedBy: '用户'
   },
   {
     id: 'agent-013',
@@ -325,7 +315,8 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     ioSchema: 'Chart Config JSON',
     reasoningMode: 'Visualization Logic',
     tags: ['Chart', 'Visualization'],
-    industry: 'General'
+    industry: 'General',
+    modifiedBy: '用户'
   },
   {
     id: 'agent-014',
@@ -339,14 +330,15 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     isEnabled: true,
     updateTime: '2024-05-22 14:00',
     description: '对长篇文档、会议纪要或实时对话进行核心摘要提取。',
-    prompt: '你是一个信息提炼专家，能够从海量文本中快速提取核心观点和关键信息。',
+    prompt: '你是一个信息提炼专家，能够从海量文本中快速提取核心观点 and 关键信息。',
     roleConstraints: '摘要内容必须客观准确\n支持不同长度的摘要生成\n保留关键的时间和人物信息',
     selectedSkills: ['文本摘要', '关键词提取'],
     selectedTools: ['NLP 引擎'],
     ioSchema: 'Summary Text',
     reasoningMode: 'Summarization',
     tags: ['Summary', 'NLP'],
-    industry: 'General'
+    industry: 'General',
+    modifiedBy: '用户'
   },
   {
     id: 'agent-015',
@@ -368,7 +360,8 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     reasoningMode: 'Operational Logic',
     tags: ['Production', 'Management'],
     industry: 'Oil & Gas',
-    selectedScenarioAgents: ['压后产能预测 Agent', '生产动态评价 Agent']
+    selectedScenarioAgents: ['压后产能预测 Agent', '生产动态评价 Agent'],
+    modifiedBy: '用户'
   },
   {
     id: 'agent-016',
@@ -390,7 +383,8 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     reasoningMode: 'Multi-Criteria Decision',
     tags: ['Exploration', 'Decision'],
     industry: 'Oil & Gas',
-    selectedScenarioAgents: ['类比井推荐 Agent', '地质风险评估 Agent']
+    selectedScenarioAgents: ['类比井推荐 Agent', '地质风险评估 Agent'],
+    modifiedBy: '用户'
   },
   {
     id: 'agent-017',
@@ -412,32 +406,55 @@ const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
     reasoningMode: 'Real-time Control',
     tags: ['Drilling', 'Execution'],
     industry: 'Oil & Gas',
-    selectedScenarioAgents: ['钻井工程预警 Agent', '施工参数优化 Agent']
-  },
+    selectedScenarioAgents: ['钻井工程预警 Agent', '施工参数优化 Agent'],
+    modifiedBy: '用户'
+  }
 ];
 
 export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang }) => {
+  const [agents, setAgents] = useState<ManagedAgent[]>(MOCK_MANAGED_AGENTS);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAgent, setSelectedAgent] = useState<ManagedAgent | null>(null);
   const [activeTab, setActiveTab] = useState<'basic' | 'capabilities'>('basic');
+  const [showInitPreview, setShowInitPreview] = useState(false);
+  const [showRunPreview, setShowRunPreview] = useState(false);
+  const [showMcpPreview, setShowMcpPreview] = useState(false);
   const [filterType, setFilterType] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+  const MOCK_MCP_SERVICES = [
+    { name: 'get_well_production', desc: '查询单井产量', path: '/api/v1/production/well' },
+    { name: 'get_frac_params', desc: '获取压裂参数', path: '/api/v1/frac/params' },
+    { name: 'generate_optimization_suggest', desc: '生成优化建议', path: '/api/v1/optimization/suggest' },
+  ];
+
   const handleUpdateAgent = (id: string, updates: Partial<ManagedAgent>) => {
+    setAgents(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
     if (selectedAgent && selectedAgent.id === id) {
       setSelectedAgent({ ...selectedAgent, ...updates });
     }
-    // In a real app, we'd update a global state or API
+  };
+
+  const handleDeleteAgent = (id: string) => {
+    const agent = agents.find(a => a.id === id);
+    if (agent?.modifiedBy === '系统' || agent?.name.includes('智能问数')) {
+      alert(lang === 'zh' ? '系统自带智能体，不支持删除' : 'System agent cannot be deleted');
+      return;
+    }
+    setAgents(prev => prev.filter(a => a.id !== id));
+    if (selectedAgent?.id === id) {
+      setSelectedAgent(null);
+    }
   };
 
   const filteredAgents = useMemo(() => {
-    return MOCK_MANAGED_AGENTS.filter(agent => {
+    return agents.filter(agent => {
       const matchesSearch = agent.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                             agent.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesType = !filterType || agent.type === filterType;
       return matchesSearch && matchesType;
     });
-  }, [searchQuery, filterType]);
+  }, [agents, searchQuery, filterType]);
 
   return (
     <div className="h-full flex flex-col bg-slate-50 overflow-hidden">
@@ -502,9 +519,10 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
                   <tr>
                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '智能体名称' : 'Agent Name'}</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '类型' : 'Type'}</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">{lang === 'zh' ? '技能/工具' : 'Skills/Tools'}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '智能体描述' : 'Description'}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '技能' : 'Skills'}</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '状态' : 'Status'}</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '修改人' : 'Modified By'}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '创建人' : 'Created By'}</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '最近更新' : 'Updated'}</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">{lang === 'zh' ? '操作' : 'Actions'}</th>
                   </tr>
@@ -530,7 +548,13 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
                           </div>
                           <div>
                             <div className="font-bold text-slate-800">{agent.name}</div>
-                            <div className="text-[10px] text-slate-400 font-mono">{agent.id}</div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-slate-400 font-mono">{agent.id}</span>
+                              <div className="flex gap-1">
+                                {agent.initPageUrl && <i className="fas fa-magic text-[9px] text-emerald-500" title={lang === 'zh' ? '已配置初始化页面' : 'Init Configured'}></i>}
+                                {agent.runPageUrl && <i className="fas fa-desktop text-[9px] text-purple-500" title={lang === 'zh' ? '已配置运行页面' : 'Run Configured'}></i>}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -541,16 +565,17 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
                            (lang === 'zh' ? '通用' : 'General')}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <span className="text-xs text-slate-600 flex items-center gap-1" title="Skills">
-                            <i className="fas fa-toolbox text-[10px] text-slate-400"></i>
-                            {agent.skillsCount}
-                          </span>
-                          <span className="text-xs text-slate-600 flex items-center gap-1" title="Tools">
-                            <i className="fas fa-tools text-[10px] text-slate-400"></i>
-                            {agent.toolsCount}
-                          </span>
+                      <td className="px-6 py-4">
+                        <div className="text-xs text-slate-600 truncate max-w-[200px]" title={agent.description}>{agent.description}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap gap-1">
+                          {(agent.selectedSkills || []).slice(0, 2).map(skill => (
+                              <span key={skill} className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[10px] font-bold">
+                                {skill}
+                              </span>
+                          ))}
+                          {(agent.selectedSkills?.length || 0) > 2 && <span className="text-[10px] text-slate-400">...</span>}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -572,10 +597,14 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
-                            A
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                            agent.modifiedBy === '系统' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {agent.modifiedBy === '系统' ? '系' : 'A'}
                           </div>
-                          <span className="text-xs text-slate-600">Admin</span>
+                          <span className="text-xs text-slate-600">
+                            {agent.modifiedBy || 'Admin'}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-500">{agent.updateTime}</td>
@@ -591,16 +620,26 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
                           >
                             <i className="fas fa-edit"></i>
                           </button>
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // Handle delete
-                            }}
-                            className="p-2 text-slate-400 hover:text-rose-600 transition-colors"
-                            title={lang === 'zh' ? '删除' : 'Delete'}
-                          >
-                            <i className="fas fa-trash-alt"></i>
-                          </button>
+                          {agent.modifiedBy === '系统' || agent.name.includes('智能问数') ? (
+                            <button 
+                              disabled
+                              className="p-2 text-slate-300 cursor-not-allowed opacity-50"
+                              title={lang === 'zh' ? '系统自带，不支持删除' : 'System agent, cannot be deleted'}
+                            >
+                              <i className="fas fa-ban"></i>
+                            </button>
+                          ) : (
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteAgent(agent.id);
+                              }}
+                              className="p-2 text-slate-400 hover:text-rose-600 transition-colors"
+                              title={lang === 'zh' ? '删除' : 'Delete'}
+                            >
+                              <i className="fas fa-trash-alt"></i>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -630,6 +669,7 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                 className="absolute right-0 top-0 bottom-0 w-[600px] bg-white shadow-2xl z-40 flex flex-col border-l border-slate-200"
               >
+                {/* Drawer Header */}
                 {/* Drawer Header */}
                 <div className="px-8 py-4 border-b border-slate-100 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10">
                   <div className="flex items-center gap-4">
@@ -685,214 +725,137 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
                         <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '描述' : 'Description'}</label>
                         <textarea defaultValue={selectedAgent.description} className="w-full h-20 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none" />
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '系统提示词' : 'System Prompt'}</label>
-                        <textarea defaultValue={selectedAgent.prompt} className="w-full h-32 bg-slate-900 text-indigo-100 font-mono text-xs rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none resize-none" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '角色与约束' : 'Role & Constraints'}</label>
-                        <textarea defaultValue={selectedAgent.roleConstraints} className="w-full h-32 bg-slate-900 text-indigo-100 font-mono text-xs rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none resize-none" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? 'Few-shot 示例' : 'Few-shot Examples'}</label>
-                        <div className="space-y-3">
-                          {(selectedAgent.fewShotExamples || []).map((ex, i) => (
-                            <div key={i} className="flex gap-2">
-                              <textarea defaultValue={ex} className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs focus:ring-2 focus:ring-indigo-500 outline-none resize-none" />
-                              <button className="p-2 text-slate-300 hover:text-rose-500"><i className="fas fa-minus-circle"></i></button>
-                            </div>
-                          ))}
-                          <button className="w-full py-2 border-2 border-dashed border-slate-200 rounded-xl text-xs text-slate-400 hover:border-indigo-300 hover:text-indigo-500 transition-all font-bold">
-                            + {lang === 'zh' ? '添加示例' : 'Add Example'}
-                          </button>
+
+                      {/* New Page URLs Fields */}
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '初始化页面地址' : 'Init Page URL'}</label>
+                          <div className="flex gap-2">
+                            <input type="text" value={selectedAgent.initPageUrl || ''} onChange={(e) => handleUpdateAgent(selectedAgent.id, { initPageUrl: e.target.value })} className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+                            {selectedAgent.initPageUrl && (
+                              <button onClick={() => setShowInitPreview(!showInitPreview)} className={`px-4 rounded-xl text-xs font-bold ${showInitPreview ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600'}`}>Preview</button>
+                            )}
+                          </div>
+                          <AnimatePresence>
+                            {showInitPreview && selectedAgent.initPageUrl && (
+                              <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
+                                <div className="border border-slate-200 rounded-xl p-2 mt-2 bg-slate-50"><iframe src={selectedAgent.initPageUrl} className="w-full h-48 rounded-lg" /></div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '运行页面地址' : 'Run Page URL'}</label>
+                          <div className="flex gap-2">
+                            <input type="text" value={selectedAgent.runPageUrl || ''} onChange={(e) => handleUpdateAgent(selectedAgent.id, { runPageUrl: e.target.value })} className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+                            {selectedAgent.runPageUrl && (
+                              <button onClick={() => setShowRunPreview(!showRunPreview)} className={`px-4 rounded-xl text-xs font-bold ${showRunPreview ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600'}`}>Preview</button>
+                            )}
+                          </div>
+                          <AnimatePresence>
+                            {showRunPreview && selectedAgent.runPageUrl && (
+                              <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
+                                <div className="border border-slate-200 rounded-xl p-2 mt-2 bg-slate-50"><iframe src={selectedAgent.runPageUrl} className="w-full h-48 rounded-lg" /></div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       </div>
                     </div>
                   )}
 
                   {activeTab === 'capabilities' && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                      {selectedAgent.type === 'Scenario' && (
-                        <div className="space-y-6">
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '模版选择' : 'Template Selection'}</label>
-                            <select className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-                              <option>{selectedAgent.selectedTemplate || (lang === 'zh' ? '请选择模版' : 'Select Template')}</option>
-                              <option>通用调度模版</option>
-                              <option>新井邻井压裂参数优选</option>
-                              <option>单井产量分析模版</option>
-                            </select>
+                      <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                        {/* MCP Address */}
+                        <div className="space-y-4">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? 'MCP服务地址配置' : 'MCP Config'}</label>
+                          <div className="flex gap-2">
+                            <input 
+                              type="text" 
+                              value={selectedAgent.mcpAddress || ''}
+                              onChange={(e) => handleUpdateAgent(selectedAgent.id, { mcpAddress: e.target.value })}
+                              placeholder="https://api.example.com/mcp/service"
+                              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" 
+                            />
+                            {selectedAgent.mcpAddress && (
+                              <button 
+                                onClick={() => setShowMcpPreview(!showMcpPreview)}
+                                className={`px-4 rounded-xl text-xs font-bold transition-colors flex items-center gap-2 ${
+                                  showMcpPreview 
+                                    ? 'bg-indigo-600 text-white shadow-sm' 
+                                    : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                                }`}
+                              >
+                                <i className="fas fa-eye"></i>
+                                {lang === 'zh' ? '预览服务' : 'Preview'}
+                              </button>
+                            )}
                           </div>
                           
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '绑定通用智能体 (多选)' : 'Bind General Agents (Multi-select)'}</label>
-                              <button 
-                                onClick={() => {
-                                  // Mocking adding a general agent
-                                  const options = ['数据解析', '知识百科', '创意写作', '代码助手'];
-                                  const current = selectedAgent.selectedGeneralAgents || [];
-                                  const next = options.find(o => !current.includes(o));
-                                  if (next) {
-                                    handleUpdateAgent(selectedAgent.id, { 
-                                      selectedGeneralAgents: [...current, next] 
-                                    });
-                                  }
-                                }}
-                                className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2 py-1 rounded"
+                          <AnimatePresence>
+                            {showMcpPreview && selectedAgent.mcpAddress && (
+                              <motion.div 
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="overflow-hidden"
                               >
-                                + {lang === 'zh' ? '选择智能体' : 'Select Agents'}
-                              </button>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {(selectedAgent.selectedGeneralAgents || []).map(ga => (
-                                <span key={ga} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold flex items-center gap-2 border border-blue-100 group">
-                                  {ga}
-                                  <i 
-                                    className="fas fa-times cursor-pointer text-blue-300 hover:text-blue-600"
-                                    onClick={() => {
-                                      handleUpdateAgent(selectedAgent.id, {
-                                        selectedGeneralAgents: (selectedAgent.selectedGeneralAgents || []).filter(item => item !== ga)
-                                      });
-                                    }}
-                                  ></i>
-                                </span>
-                              ))}
-                              {(selectedAgent.selectedGeneralAgents || []).length === 0 && (
-                                <div className="text-xs text-slate-400 italic py-2 bg-slate-50/50 w-full text-center border-2 border-dashed border-slate-100 rounded-xl">
-                                  {lang === 'zh' ? '尚未绑定通用智能体，请从模版下方选择' : 'No general agents bound'}
+                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-2">
+                                  <h5 className="text-[10px] font-bold text-slate-500 uppercase mb-3 flex items-center gap-2">
+                                    <i className="fas fa-list-ul text-slate-400"></i>
+                                    {lang === 'zh' ? '已发现服务列表' : 'Discovered Services'}
+                                  </h5>
+                                  <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+                                    {MOCK_MCP_SERVICES.map((srv, idx) => (
+                                      <div key={idx} className={`flex items-center px-4 py-3 ${idx !== MOCK_MCP_SERVICES.length - 1 ? 'border-b border-slate-100' : ''} hover:bg-slate-50 transition-colors`}>
+                                        <span className="w-1/3 text-xs font-bold text-slate-700 truncate pr-4">{srv.name}</span>
+                                        <span className="flex-1 text-xs text-slate-500 truncate" title={srv.desc}>{srv.desc}</span>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
-                              )}
-                            </div>
-                          </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
-                      )}
-
-                      {selectedAgent.type === 'Role' && (
+                        
+                        {/* Skill Binding */}
                         <div className="space-y-4">
                           <div className="flex items-center justify-between">
-                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '绑定场景智能体 (多选)' : 'Bind Scenario Agents (Multi-select)'}</label>
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '技能绑定 (多选)' : 'Skill Binding (Multi-select)'}</label>
                             <button 
                               onClick={() => {
-                                const options = ['生产动态分析', '圈闭评价', '钻井风险预警'];
-                                const current = selectedAgent.selectedScenarioAgents || [];
+                                const options = ['SQL生成', 'Python执行', '文档向量化', '图像识别'];
+                                const current = selectedAgent.selectedSkills || [];
                                 const next = options.find(o => !current.includes(o));
                                 if (next) {
                                   handleUpdateAgent(selectedAgent.id, { 
-                                    selectedScenarioAgents: [...current, next] 
+                                    selectedSkills: [...current, next] 
                                   });
                                 }
                               }}
                               className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2 py-1 rounded"
                             >
-                              + {lang === 'zh' ? '选择场景' : 'Select Scenarios'}
+                              + {lang === 'zh' ? '添加技能' : 'Add Skill'}
                             </button>
                           </div>
                           <div className="flex flex-wrap gap-2">
-                            {(selectedAgent.selectedScenarioAgents || []).map(sa => (
-                              <span key={sa} className="px-3 py-1.5 bg-purple-50 text-purple-600 rounded-lg text-xs font-bold flex items-center gap-2 border border-purple-100">
-                                {sa}
+                            {(selectedAgent.selectedSkills || []).map(skill => (
+                              <span key={skill} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex items-center gap-2 border border-indigo-100">
+                                {skill}
                                 <i 
-                                  className="fas fa-times cursor-pointer text-purple-300 hover:text-purple-600"
+                                  className="fas fa-times cursor-pointer text-indigo-300 hover:text-indigo-600"
                                   onClick={() => {
                                     handleUpdateAgent(selectedAgent.id, {
-                                      selectedScenarioAgents: (selectedAgent.selectedScenarioAgents || []).filter(item => item !== sa)
+                                      selectedSkills: (selectedAgent.selectedSkills || []).filter(item => item !== skill)
                                     });
                                   }}
                                 ></i>
                               </span>
                             ))}
-                            {(selectedAgent.selectedScenarioAgents || []).length === 0 && (
-                              <div className="text-xs text-slate-400 italic py-2 bg-slate-50/50 w-full text-center border-2 border-dashed border-slate-100 rounded-xl">
-                                {lang === 'zh' ? '尚未绑定场景智能体' : 'No scenario agents bound'}
-                              </div>
-                            )}
                           </div>
                         </div>
-                      )}
-
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '技能绑定 (多选)' : 'Skill Binding (Multi-select)'}</label>
-                          <button 
-                            onClick={() => {
-                              const options = ['SQL生成', 'Python执行', '文档向量化', '图像识别'];
-                              const current = selectedAgent.selectedSkills || [];
-                              const next = options.find(o => !current.includes(o));
-                              if (next) {
-                                handleUpdateAgent(selectedAgent.id, { 
-                                  selectedSkills: [...current, next] 
-                                });
-                              }
-                            }}
-                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2 py-1 rounded"
-                          >
-                            + {lang === 'zh' ? '添加技能' : 'Add Skill'}
-                          </button>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {(selectedAgent.selectedSkills || []).map(skill => (
-                            <span key={skill} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex items-center gap-2 border border-indigo-100">
-                              {skill}
-                              <i 
-                                className="fas fa-times cursor-pointer text-indigo-300 hover:text-indigo-600"
-                                onClick={() => {
-                                  handleUpdateAgent(selectedAgent.id, {
-                                    selectedSkills: (selectedAgent.selectedSkills || []).filter(item => item !== skill)
-                                  });
-                                }}
-                              ></i>
-                            </span>
-                          ))}
-                        </div>
                       </div>
-
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '工具绑定 (多选)' : 'Tool Binding (Multi-select)'}</label>
-                          <button 
-                            onClick={() => {
-                              const options = ['Google Search', 'Weather API', 'Code Interpreter', 'Calculator'];
-                              const current = selectedAgent.selectedTools || [];
-                              const next = options.find(o => !current.includes(o));
-                              if (next) {
-                                handleUpdateAgent(selectedAgent.id, { 
-                                  selectedTools: [...current, next] 
-                                });
-                              }
-                            }}
-                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2 py-1 rounded"
-                          >
-                            + {lang === 'zh' ? '添加工具' : 'Add Tool'}
-                          </button>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {(selectedAgent.selectedTools || []).map(tool => (
-                            <span key={tool} className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold flex items-center gap-2 border border-emerald-100">
-                              {tool}
-                              <i 
-                                className="fas fa-times cursor-pointer text-emerald-300 hover:text-emerald-600"
-                                onClick={() => {
-                                  handleUpdateAgent(selectedAgent.id, {
-                                    selectedTools: (selectedAgent.selectedTools || []).filter(item => item !== tool)
-                                  });
-                                }}
-                              ></i>
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="pt-4 border-t border-slate-100 space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '回退策略' : 'Fallback Strategy'}</label>
-                        <select className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-                          <option>{selectedAgent.fallbackStrategy || (lang === 'zh' ? '请选择策略' : 'Select Strategy')}</option>
-                          <option>{lang === 'zh' ? '重试通用智能体' : 'Retry with General Agent'}</option>
-                          <option>{lang === 'zh' ? '人工接管' : 'Escalate to Human'}</option>
-                          <option>{lang === 'zh' ? '返回默认响应' : 'Return Default Response'}</option>
-                        </select>
-                      </div>
-                    </div>
                   )}
                 </div>
 

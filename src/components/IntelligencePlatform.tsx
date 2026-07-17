@@ -13,7 +13,6 @@ import { AdminSkillManagement } from './AdminSkillManagement';
 import { AdminToolManagement } from './AdminToolManagement';
 import { AdminWorkflowManagement } from './AdminWorkflowManagement';
 import { AdminSemanticManagement } from './AdminSemanticManagement';
-import { SceneSkillWizard } from './SceneSkillWizard';
 import { AdminLLMLogs } from './AdminLLMLogs';
 
 interface IntelligencePlatformProps {
@@ -72,7 +71,7 @@ const MOCK_FEEDBACK: FeedbackEntry[] = [
     { id: 'fb-4', timestamp: '2024-05-17 14:00', user: '王建国', mbu: '地震解释', notebookName: '构造解释 NB-04', type: 'Error', status: 'Resolved', content: '层位追踪出现明显偏差。', processor: '管理员', result: '已修正知识库索引' },
 ];
 
-type AdminModule = 'audit' | 'feedback' | 'agentManagement' | 'toolManagement' | 'skillManagement' | 'workflowManagement' | 'semanticManagement' | 'nerModelManagement' | 'llmManagement' | 'llmConfig' | 'corpusManagement' | 'trainingSetManagement' | 'sceneSkillWizard' | 'llmLogs';
+type AdminModule = 'audit' | 'feedback' | 'agentManagement' | 'toolManagement' | 'skillManagement' | 'workflowManagement' | 'semanticManagement' | 'nerModelManagement' | 'llmManagement' | 'llmConfig' | 'corpusManagement' | 'trainingSetManagement' | 'llmLogs';
 
 export const IntelligencePlatform: React.FC<IntelligencePlatformProps> = ({ lang, onExit }) => {
   const t = translations[lang];
@@ -524,16 +523,9 @@ export const IntelligencePlatform: React.FC<IntelligencePlatformProps> = ({ lang
          {activeModule === 'skillManagement' && (
            <AdminSkillManagement 
              lang={lang} 
-             onCreateSceneSkill={() => setActiveModule('sceneSkillWizard')} 
            />
          )}
          {activeModule === 'toolManagement' && <AdminToolManagement lang={lang} />}
-         {activeModule === 'sceneSkillWizard' && (
-           <SceneSkillWizard 
-             lang={lang} 
-             onBack={() => setActiveModule('skillManagement')} 
-           />
-         )}
          {activeModule === 'workflowManagement' && <AdminWorkflowManagement lang={lang} />}
          {activeModule === 'semanticManagement' && renderSemanticManagement()}
          {activeModule === 'nerModelManagement' && renderNERModelManagement()}
