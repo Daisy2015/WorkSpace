@@ -695,6 +695,16 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
 
 export const MOCK_WORKSPACES: Workspace[] = [
   {
+    id: 'ws-risk-evaluation',
+    name: '顺北区块风险勘探目标评价空间',
+    mbuCount: 8,
+    createdAt: '2026-07-20',
+    status: WorkspaceStatus.DRAFT,
+    owner: '李明',
+    description: '面向地质专家的顺北区块风险勘探目标智能评价空间，绑定“风险勘探目标评价智能体”。',
+    defaultAgent: '勘探目标评价'
+  },
+  {
     id: 'ws-drilling-x1',
     name: 'X-1井钻井分析工作空间',
     mbuCount: 5,

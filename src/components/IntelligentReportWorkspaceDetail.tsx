@@ -57,15 +57,15 @@ export const IntelligentReportWorkspaceDetail: React.FC<IntelligentReportWorkspa
 
   const reportConfig = useMemo(() => ({
     isSmartReport: true,
-    projectName: lang === 'zh' ? '北海油田4区块综合评价报告' : 'North Sea Block 4 Comprehensive Evaluation Report',
-    outlineConfirmRequired: false,
+    projectName: activeWorkspaceData?.name || (lang === 'zh' ? '综合评价报告' : 'Comprehensive Evaluation Report'),
+    outlineConfirmRequired: activeWorkspaceData?.reportNeedOutline ?? false,
     outline: [
       { id: '1', title: lang === 'zh' ? '1. 前言与项目概况' : '1. Preface & Project Overview', level: 1, status: 'completed' },
       { id: '2', title: lang === 'zh' ? '2. 地质特征与储层分析' : '2. Geological & Reservoir analysis', level: 1, status: 'completed' },
       { id: '3', title: lang === 'zh' ? '3. 产量动态与递减规律分析' : '3. Production Dynamics & Decline analysis', level: 1, status: 'completed' },
       { id: '4', title: lang === 'zh' ? '4. 结论与下一步开发建议' : '4. Conclusion & Development suggestions', level: 1, status: 'completed' },
     ]
-  }), [lang]);
+  }), [lang, activeWorkspaceData]);
 
   return (
     <div className="h-full relative flex flex-col" id="intelligent-report-workspace-detail">

@@ -13,7 +13,8 @@ interface WorkspaceListProps {
     description?: string,
     objects?: any[],
     autoOpenAddResource?: boolean,
-    defaultAgent?: string
+    defaultAgent?: string,
+    extraFields?: Partial<Workspace>
   ) => void;
   onUpdateWorkspace: (id: string, data: Partial<Workspace>) => void;
   onDeleteWorkspace: (id: string) => void;
@@ -36,7 +37,7 @@ const WORKSPACE_OBJECT_TYPES = [
 
 const WORKSPACE_OBJECTS_REGISTRY: Record<string, string[]> = {
   well: [
-    '井-01', '井-02', '井-03', '井-04', '井-05',
+    'X-1井', 'X-2井', '井-01', '井-02', '井-03', '井-04', '井-05',
     '苏平-1井', '苏平-2井', '苏12-3井', '苏77-4井', '苏54-2井',
     '塔深-1井', '塔深-2井', '塔101井', '塔232井', '塔中-12井',
     '玛湖-1井', '玛平-4井', '玛33井',
@@ -250,6 +251,27 @@ const getAgentDetailText = (id: string) => {
   }
 };
 
+const getTemplateObjectType = (templateId: string): { type: string; label: string } => {
+  const map: Record<string, { type: string; label: string }> = {
+    A1: { type: 'well', label: '开发井' },
+    A2: { type: 'well', label: '开发井' },
+    A3: { type: 'well', label: '开发井' },
+    B1: { type: 'block', label: '开发区块' },
+    B2: { type: 'block', label: '开发区块' },
+    B3: { type: 'block', label: '开发区块' },
+    C1: { type: 'well', label: '开发井' },
+    C2: { type: 'well', label: '开发井' },
+    C3: { type: 'well', label: '开发井' },
+    D1: { type: 'reservoir', label: '地层' },
+    D2: { type: 'block', label: '开发区块' },
+    D3: { type: 'well', label: '开发井' },
+    E1: { type: 'block', label: '开发区块' },
+    E2: { type: 'block', label: '开发区块' },
+    E3: { type: 'block', label: '开发区块' },
+  };
+  return map[templateId] || { type: 'well', label: '开发井' };
+};
+
 export const WorkspaceList: React.FC<WorkspaceListProps> = ({
   workspaces,
   templates = [],
@@ -361,19 +383,65 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
   }, [lang]);
 
   // Special interactive configurations for different agents (Step 2)
+  const [customReportTemplates, setCustomReportTemplates] = useState<ReportTemplate[]>(reportTemplates);
   const [reportTopic, setReportTopic] = useState('');
   const [selectedReportTemplateId, setSelectedReportTemplateId] = useState('A1');
   const [reportActiveCategory, setReportActiveCategory] = useState(lang === 'zh' ? '钻井地质' : 'Drilling & Geology');
   const [reportNeedOutline, setReportNeedOutline] = useState(true);
 
+  const handleUploadLocalTemplate = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Create a new template with unique id
+    const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+    const newTplId = `custom-${Date.now()}`;
+    const newTpl: ReportTemplate = {
+      id: newTplId,
+      name: `${fileNameWithoutExt} (自定义模板)`,
+      nameEn: `${fileNameWithoutExt} (Custom)`,
+      category: reportActiveCategory,
+      categoryEn: reportActiveCategory,
+      pages: 35,
+      date: new Date().toISOString().substring(0, 7),
+      description: `从本地文件 "${file.name}" 上传导入的自定义报告模板。`,
+      descriptionEn: `Custom report template imported from local file "${file.name}".`,
+      defaultTopic: `${fileNameWithoutExt}`,
+      defaultTopicEn: `${fileNameWithoutExt}`,
+      defaultRequirements: lang === 'zh' ? '请按自定义模板的大纲及内容要求编写。' : 'Please follow the custom template structure.',
+      defaultRequirementsEn: 'Please follow the custom template structure.',
+      defaultCoreContent: '',
+      defaultCoreContentEn: ''
+    };
+
+    setCustomReportTemplates(prev => [newTpl, ...prev]);
+    setSelectedReportTemplateId(newTplId);
+    
+    // Clear input
+    e.target.value = '';
+  };
+
+  // Report agent specific states for object instance selection
+  const [reportObjectSearchQuery, setReportObjectSearchQuery] = useState('');
+  const [selectedReportObjectInstance, setSelectedReportObjectInstance] = useState('X-1井');
+  const [reportObjectDropdownOpen, setReportObjectDropdownOpen] = useState(false);
+
   React.useEffect(() => {
     if (newAgent === '智能报告' && selectedReportTemplateId) {
-      const t = reportTemplates.find(item => item.id === selectedReportTemplateId);
+      const t = customReportTemplates.find(item => item.id === selectedReportTemplateId);
       if (t) {
         setReportTopic(lang === 'zh' ? t.defaultTopic : t.defaultTopicEn);
+        const objInfo = getTemplateObjectType(t.id);
+        const defaults = WORKSPACE_OBJECTS_REGISTRY[objInfo.type] || [];
+        if (defaults.length > 0) {
+          const matchedDefault = defaults.find(name => t.defaultTopic.includes(name)) || defaults[0];
+          setSelectedReportObjectInstance(matchedDefault);
+        } else {
+          setSelectedReportObjectInstance('');
+        }
       }
     }
-  }, [selectedReportTemplateId, lang, newAgent]);
+  }, [selectedReportTemplateId, lang, newAgent, customReportTemplates]);
 
   const [reportOutline, setReportOutline] = useState<string[]>(['intro', 'structure', 'fluid', 'risk']);
   const [reportVibe, setReportVibe] = useState<string>('professional');
@@ -833,7 +901,7 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                 ? ['钻井地质', '开发方案', '工程设计', '动态分析', '储量评估']
                 : ['Drilling & Geology', 'Development Scheme', 'Engineering Design', 'Dynamic Analysis', 'Reserve Assessment'];
 
-              const filteredTemplates = reportTemplates.filter(t => {
+              const filteredTemplates = customReportTemplates.filter(t => {
                 if (lang === 'zh') {
                   return t.category === reportActiveCategory;
                 } else {
@@ -843,59 +911,58 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                 }
               });
 
+              // Selected template data
+              const activeTpl = customReportTemplates.find(t => t.id === selectedReportTemplateId) || customReportTemplates[0];
+              const objInfo = getTemplateObjectType(activeTpl.id);
+
               return (
                 <div className="space-y-6 animate-fadeIn">
-                  {/* TOP SECTION: Natural Language Inputs */}
-                  <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
-                    <div className="flex gap-3 items-center mb-4">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 flex-shrink-0">
-                        <i className="fas fa-file-invoice text-base"></i>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-800">
-                          {lang === 'zh' ? '智能报告：编写需求描述' : 'Report Requirements Description'}
-                        </h4>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          {lang === 'zh' ? '请描述您的编写需求，或在下方选择报告模板自动生成默认描述' : 'Describe your writing requirements or pick a template below'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <textarea 
-                      value={reportTopic}
-                      onChange={(e) => setReportTopic(e.target.value)}
-                      placeholder={lang === 'zh' ? '请描述您的编写需求，例如：生成X-101井浅海大位移水平井钻井地质设计，重点刻画靶区断裂带发育特征，并提供合理的井身结构与安全窗口范围...' : 'Describe what you want to write...'}
-                      className="w-full h-20 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none shadow-inner leading-relaxed text-slate-700 font-medium"
-                    />
-                  </div>
-
-                  {/* BOTTOM SECTION: Existing Templates */}
+                  {/* 1. REPORT TEMPLATE SELECTION (FIRST) */}
                   <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm space-y-4">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div>
                         <h4 className="text-sm font-bold text-slate-800">
-                          {lang === 'zh' ? '已有报告模板' : 'Existing Report Templates'}
+                          {lang === 'zh' ? '选择报告模板' : 'Select Report Template'}
                         </h4>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          {lang === 'zh' ? '选择一个基础模板开始您的报告生成定制' : 'Select a starting template for your custom report'}
-                        </p>
                       </div>
                     </div>
                     
-                    {/* Tabs */}
-                    <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl w-fit">
-                      {reportCategories.map(cat => (
+                    {/* Tabs & Upload Button Container */}
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                      {/* Tabs */}
+                      <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl w-fit">
+                        {reportCategories.map(cat => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setReportActiveCategory(cat)}
+                            className={`px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                              reportActiveCategory === cat ? 'bg-white text-indigo-600 shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-600'
+                            }`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Upload local template */}
+                      <div>
+                        <input
+                          type="file"
+                          id="local-template-upload"
+                          className="hidden"
+                          onChange={handleUploadLocalTemplate}
+                          accept=".doc,.docx,.pdf,.txt,.json"
+                        />
                         <button
-                          key={cat}
                           type="button"
-                          onClick={() => setReportActiveCategory(cat)}
-                          className={`px-4 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
-                            reportActiveCategory === cat ? 'bg-white text-indigo-600 shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-600'
-                          }`}
+                          onClick={() => document.getElementById('local-template-upload')?.click()}
+                          className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-indigo-600 border border-indigo-200 hover:bg-indigo-50 transition-colors flex items-center gap-1 cursor-pointer"
                         >
-                          {cat}
+                          <i className="fas fa-upload text-[10px]"></i>
+                          <span>{lang === 'zh' ? '上传本地模板' : 'Upload Template'}</span>
                         </button>
-                      ))}
+                      </div>
                     </div>
 
                     {/* Templates Grid (Bento Style) */}
@@ -907,7 +974,6 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                             key={t.id}
                             onClick={() => {
                               setSelectedReportTemplateId(t.id);
-                              setReportTopic(lang === 'zh' ? t.defaultTopic : t.defaultTopicEn);
                             }}
                             className={`group relative flex flex-col justify-between p-4 rounded-xl bg-white border-2 transition-all cursor-pointer ${
                               isSelected 
@@ -962,7 +1028,121 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                     </div>
                   </div>
 
-                  {/* OUTLINE SETTING */}
+                  {/* 2. OBJECT TYPE DISPLAY & INSTANCE SELECTION (SECOND) */}
+                  <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm space-y-4">
+                    <div className="flex gap-3 items-center">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
+                        <i className="fas fa-cube text-base"></i>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800">
+                          {lang === 'zh' ? '选择对象' : 'Select Object'}
+                        </h4>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3 items-center pt-2">
+                      {/* Object Type label */}
+                      <div className="px-4 py-2.5 bg-slate-50 border border-slate-200/60 rounded-xl text-xs text-slate-700 font-bold flex items-center gap-2 w-full sm:w-auto flex-shrink-0">
+                        <i className="fas fa-tag text-blue-500"></i>
+                        <span>{lang === 'zh' ? '对象类型' : 'Object Type'}: </span>
+                        <span className="text-blue-600">{objInfo.label}</span>
+                      </div>
+
+                      {/* Dropdown / Search Input */}
+                      <div className="relative flex-1 w-full">
+                        <div className="relative">
+                          <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                          <input
+                            type="text"
+                            value={reportObjectSearchQuery}
+                            onChange={(e) => {
+                              setReportObjectSearchQuery(e.target.value);
+                              setReportObjectDropdownOpen(true);
+                            }}
+                            onFocus={() => setReportObjectDropdownOpen(true)}
+                            placeholder={lang === 'zh' ? `搜索并选择 ${objInfo.label} (例如: X-1井, X-2井)...` : `Search and select ${objInfo.label}...`}
+                            className="w-full pl-9 pr-24 py-2.5 bg-slate-50 border border-slate-200/60 rounded-xl text-xs outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100/30 transition-all text-slate-800 font-semibold placeholder:text-slate-400"
+                          />
+                          {selectedReportObjectInstance && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-indigo-50 border border-indigo-150 rounded-lg px-2 py-0.5 text-[10px] font-black text-indigo-600">
+                              <span>{selectedReportObjectInstance}</span>
+                              <i className="fas fa-check text-[8px]"></i>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Suggestions List */}
+                        {reportObjectDropdownOpen && (
+                          <>
+                            <div 
+                              className="fixed inset-0 z-30" 
+                              onClick={() => setReportObjectDropdownOpen(false)} 
+                            />
+                            
+                            <div className="absolute left-0 right-0 mt-1.5 max-h-48 overflow-y-auto bg-white border border-slate-200/80 rounded-xl shadow-lg z-40 custom-scrollbar py-1 divide-y divide-slate-50">
+                              {(() => {
+                                const availableList = WORKSPACE_OBJECTS_REGISTRY[objInfo.type] || [];
+                                const query = reportObjectSearchQuery.trim().toLowerCase();
+                                
+                                const filtered = availableList.filter((name) =>
+                                  name.toLowerCase().includes(query)
+                                );
+
+                                return (
+                                  <>
+                                    {filtered.map((name) => {
+                                      const isSelected = selectedReportObjectInstance === name;
+                                      return (
+                                        <button
+                                          key={name}
+                                          type="button"
+                                          onClick={() => {
+                                            setSelectedReportObjectInstance(name);
+                                            setReportObjectSearchQuery('');
+                                            setReportObjectDropdownOpen(false);
+                                          }}
+                                          className={`w-full text-left px-4 py-2 text-xs font-semibold hover:bg-slate-50 transition-colors flex items-center justify-between ${
+                                            isSelected ? 'text-indigo-600 bg-indigo-50/20' : 'text-slate-700'
+                                          }`}
+                                        >
+                                          <span>{name}</span>
+                                          {isSelected && <i className="fas fa-check text-[10px] text-indigo-600"></i>}
+                                        </button>
+                                      );
+                                    })}
+                                    
+                                    {query && !availableList.some(name => name.toLowerCase() === query) && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedReportObjectInstance(reportObjectSearchQuery.trim());
+                                          setReportObjectSearchQuery('');
+                                          setReportObjectDropdownOpen(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50/50 transition-colors flex items-center gap-1.5"
+                                      >
+                                        <i className="fas fa-plus text-[10px]"></i>
+                                        <span>{lang === 'zh' ? `添加并选择自定义 "${reportObjectSearchQuery.trim()}"` : `Add & select custom "${reportObjectSearchQuery.trim()}"`}</span>
+                                      </button>
+                                    )}
+
+                                    {filtered.length === 0 && !query && (
+                                      <div className="px-4 py-3 text-center text-slate-400 text-[11px] font-medium">
+                                        {lang === 'zh' ? '暂无可选择的对象' : 'No options available'}
+                                      </div>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 4. OUTLINE SETTING (FOURTH) */}
                   <div className="flex items-center justify-between p-4 bg-white border border-slate-200/60 rounded-xl">
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${reportNeedOutline ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-slate-100 text-slate-400 border border-slate-200/50'}`}>
@@ -1266,7 +1446,13 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
   };
 
   const handleCreateWorkspace = () => {
-    const formattedObjects = selectedWorkspaceObjects.map((obj, index) => {
+    let finalObjects = [...selectedWorkspaceObjects];
+    if (newAgent === '智能报告' && selectedReportObjectInstance) {
+      const objInfo = getTemplateObjectType(selectedReportTemplateId);
+      finalObjects = [{ type: objInfo.type, name: selectedReportObjectInstance }];
+    }
+
+    const formattedObjects = finalObjects.map((obj, index) => {
       let categoryName = '';
       if (obj.type === 'oilfield') {
         categoryName = lang === 'zh' ? '油气田' : 'Oil Field';
@@ -1319,7 +1505,14 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
     }
 
     // Create success: enter workspace directly (calls App.tsx handler)
-    onSelectWorkspace('new-demo', newName.trim(), newDesc.trim(), formattedObjects, false, newAgent);
+    const extraFields: Partial<Workspace> = {};
+    if (newAgent === '智能报告') {
+      extraFields.reportNeedOutline = reportNeedOutline;
+      extraFields.selectedReportTemplateId = selectedReportTemplateId;
+      extraFields.selectedReportObjectInstance = selectedReportObjectInstance;
+    }
+
+    onSelectWorkspace('new-demo', newName.trim(), newDesc.trim(), formattedObjects, false, newAgent, extraFields);
 
     // Reset fields & close
     setNewName('');

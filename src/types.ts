@@ -21,6 +21,9 @@ export interface Workspace {
   description: string;
   objects?: any[];
   defaultAgent?: string;
+  reportNeedOutline?: boolean;
+  selectedReportTemplateId?: string;
+  selectedReportObjectInstance?: string;
 }
 
 export type ResourceType = 'domain' | 'mbu' | 'artifact' | 'folder';

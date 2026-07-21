@@ -1,6 +1,53 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
+// Utility helpers for default sample and instruction content
+const getDefaultSampleContent = (nodeId: string, nodeTitle: string, objectName: string, lang: 'zh' | 'en'): string => {
+  if (lang === 'zh') {
+    if (nodeTitle.includes('前言') || nodeTitle.includes('概况') || nodeId === '1') {
+      return `针对 ${objectName} 开展了系统、全面的地质与工程综合评价。${objectName} 主要目的层为低渗、超低渗致密砂岩，储层非均质性极强。本报告将主要围绕地质构造、精细储层和开发动态展开多维解剖。`;
+    }
+    if (nodeTitle.includes('地质') || nodeTitle.includes('储层') || nodeId === '2') {
+      return `目的层主要发育三角洲前缘砂体。根据测井与岩心物理分析，平均孔隙度在 11.2% - 13.5% 之间，平均空气渗透率 0.85 - 1.5 mD。微观孔隙结构以小孔-细喉为主，喉道半径中位数为 0.12 μm，含水饱和度平均 58.6%。`;
+    }
+    if (nodeTitle.includes('产量') || nodeTitle.includes('递减') || nodeId === '3') {
+      return `该井投产首月原油日产达 15.6 吨，含水率 5%。连续开采 6 个月后进入典型稳定递减阶段。拟合 Arps 递减曲线显示，初期递减常数为 0.45，双曲递减指数 n 为 0.32。预计未来三年内递减将逐渐平缓，累积产油量预测可达 1.85 万吨。`;
+    }
+    if (nodeTitle.includes('结论') || nodeTitle.includes('建议') || nodeId === '4') {
+      return `1. ${objectName} 储层主体物性较差，但局部发育裂缝性高产微相，具有一定的加密和提产潜力。\n2. 建议对该井后续实施大排量分段缝网压裂，改造体积预测应大于 1.5 万立方米以提高单井动用率。`;
+    }
+    return `这里是 ${nodeTitle} 章节的高质量编写范本。AI将严格参考此处的结构排版、句式长短和地质学术语风格进行报告生成。`;
+  } else {
+    if (nodeTitle.includes('Preface') || nodeTitle.includes('Overview') || nodeId === '1') {
+      return `This report presents a comprehensive geological and engineering evaluation for ${objectName}. Drilled in 2025, ${objectName} targeted tight sandstone layers. This assessment covers structure, reservoir quality, and dynamic evaluation.`;
+    }
+    return `This is the high-quality writing sample template for ${nodeTitle}. The AI agent will follow this layout, tone, and formatting strictly during generation.`;
+  }
+};
+
+const getDefaultInstructionContent = (nodeId: string, nodeTitle: string, lang: 'zh' | 'en'): string => {
+  if (lang === 'zh') {
+    if (nodeTitle.includes('前言') || nodeTitle.includes('概况') || nodeId === '1') {
+      return `1. 概括基本井史，字数在400-500字左右。\n2. 重点突出钻探目的、基本位置坐标以及简化的完井数据。`;
+    }
+    if (nodeTitle.includes('地质') || nodeTitle.includes('储层') || nodeId === '2') {
+      return `1. 采用专业学术风格，详细论述孔隙度、渗透率、喉道结构及饱和度等核心参数。\n2. 需插入储层物性级别评价对比标准，并得出准确结论。`;
+    }
+    if (nodeTitle.includes('产量') || nodeTitle.includes('递减') || nodeId === '3') {
+      return `1. 结合生产数据进行Arps双曲递减曲线拟合分析，给出具体递减常数和油量预测。\n2. 用工程和经济视角对合理产量界限进行计算和推演。`;
+    }
+    if (nodeTitle.includes('结论') || nodeTitle.includes('建议') || nodeId === '4') {
+      return `1. 分条理列出主要地质和工程评价结论。\n2. 明确给出具体的增产、防砂或压裂开采建议，要有具体的可操性参数指导。`;
+    }
+    return `请为 ${nodeTitle} 章节撰写详细的AI提示语：例如要求输出风格（精简/详细）、需要引用的专业参数指标、必须讨论的核心工程问题等。`;
+  } else {
+    if (nodeTitle.includes('Preface') || nodeTitle.includes('Overview') || nodeId === '1') {
+      return `1. Outline basic drilling parameters and objectives.\n2. Keep length around 300 words with formal engineering style.`;
+    }
+    return `Provide prompt guidelines for AI report drafting for ${nodeTitle}. Specify terminology to include and sections to elaborate.`;
+  }
+};
+
 interface ReportGenerationAgentProps {
   lang: 'zh' | 'en';
   config: any;
@@ -192,7 +239,7 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
     }
   };
 
-  const objectName = config.well?.name || config.projectName || (lang === 'zh' ? '未命名工区' : 'Unnamed Block');
+  const objectName = config.selectedReportObjectInstance || config.well?.name || config.projectName || (lang === 'zh' ? 'X-1井' : 'X-1 Well');
 
   // Initialize Chapters
   useEffect(() => {
@@ -211,7 +258,7 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
             : 'Overall production across the district saw steady growth this week, with the daily target execution exceeding plans by 2.5%. District average daily oil production reached 12.5 thousand tons, with cumulative production of 87.5 thousand tons.'
         },
         {
-          id: '2', title: lang === 'zh' ? '第二章 重点井与异常井分析' : 'Chapter 2: Key & Abnormal Wells Analysis', level: 1, content: '', status: 'pending',
+          id: '2', title: lang === 'zh' ? '第二章 重点井与异常井 analysis' : 'Chapter 2: Key & Abnormal Wells Analysis', level: 1, content: '', status: 'pending',
           fullContentText: lang === 'zh'
             ? '本周针对异常下降和突发减产井启动了智能诊断巡检。其中，A1井由于地面输油管线短时故障维护，日产量曾短时下降；经在4月14日进行抢修后，已完全恢复满产，目前生产状况优良。B5井目前压力微幅波动，整体平稳。'
             : 'Intelligent anomaly inspection was triggered this week. Well A1 experienced a brief drop in daily production due to surface pipeline maintenance. Following repairs on April 14, full capacity has been restored, and its current status is excellent. Well B5 remains steady with minor pressure fluctuations.'
@@ -231,16 +278,18 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
         
         let fullContentText = node.fullContentText || '';
         if (!fullContentText) {
+          const sample = node.sampleContent || getDefaultSampleContent(node.id, node.title, objectName, lang);
+          const instructions = node.instructionContent || getDefaultInstructionContent(node.id, node.title, lang);
           if (lang === 'zh') {
-            fullContentText = `${node.title}相关的业务要素已经准备妥当。经过对工区地质和环境参数的仔细校核，本次分析地质对象涵盖了：[${
+            fullContentText = `${node.title}相关的地质要素已准备就绪。编写已严格遵循您指定的【指令要求】：\n${instructions}\n\n【生成章节内容】：\n${sample}\n\n该章节涉及的关联地质对象涵盖：[${
               targetWells.length > 0 ? targetWells.join(', ') : objectName
-            }]。在编写过程中，系统深度关联并校对了数字化成果MBU：[${
-              mbus.length > 0 ? mbus.join(', ') : '系统标准知识库'
+            }]。编写过程中系统深度分析关联了数字化成果MBU：[${
+              mbus.length > 0 ? mbus.join(', ') : '系统标准地层构造数据库'
             }]，所得出的各项压力指数与井身参数完全符合国家级和企业级勘探安全技术规程。数据质量满足后续工程建设及安全施工要求。`;
           } else {
-            fullContentText = `We have verified all operational factors for ${node.title}. Focused exploration targets ${
+            fullContentText = `We have verified all operational factors for ${node.title}. Writing followed your specified prompts:\n${instructions}\n\n[Generated Section Content]:\n${sample}\n\nThis chapter focuses on geological target: [${
               targetWells.length > 0 ? targetWells.join(', ') : objectName
-            } were thoroughly modeled using standard workflows and MBU artifacts: [${
+            }]. Fully synced with MBU nodes: [${
               mbus.length > 0 ? mbus.join(', ') : 'standard knowledge base'
             }]. The precision meets safety and enterprise design requirements.`;
           }
@@ -459,12 +508,13 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
             </div>
           </div>
           
-          <button 
-            onClick={onCloseAgent}
-            className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-all"
-          >
-            <i className="fas fa-times"></i>
-          </button>
+          {/* Close/Cancel not supported on preparation page per user request */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-100 px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 shadow-sm">
+              <i className="fas fa-lock text-[9px]"></i>
+              {lang === 'zh' ? '编制确认流程中' : 'Preparation process locked'}
+            </span>
+          </div>
         </div>
 
         {/* Content Workspace */}
@@ -518,15 +568,19 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
                       <i className="fas fa-bars text-[10px]"></i>
                     </div>
                     <span className="text-[10px] font-mono opacity-40 font-bold w-4">{index + 1}</span>
-                    <input 
-                      type="text"
-                      value={node.title}
-                      onClick={e => e.stopPropagation()}
-                      onChange={(e) => {
-                        setOutlineNodes(prev => prev.map(n => n.id === node.id ? { ...n, title: e.target.value } : n));
-                      }}
-                      className="flex-1 bg-transparent border-none outline-none text-xs font-bold text-inherit focus:ring-0 p-0"
-                    />
+                    <div className="flex-1 flex items-center gap-1 min-w-0" title={lang === 'zh' ? '直接修改文本可重命名' : 'Edit to rename'}>
+                      <input 
+                        type="text"
+                        value={node.title}
+                        onClick={e => e.stopPropagation()}
+                        onChange={(e) => {
+                          setOutlineNodes(prev => prev.map(n => n.id === node.id ? { ...n, title: e.target.value } : n));
+                        }}
+                        className="flex-1 bg-transparent border-none outline-none text-xs font-bold text-inherit focus:ring-1 focus:ring-indigo-300 focus:bg-white/80 rounded px-1.5 py-0.5 min-w-0 transition-all"
+                        placeholder={lang === 'zh' ? '输入章节名称...' : 'Chapter Title...'}
+                      />
+                      <i className="fas fa-edit text-[9px] text-slate-300 group-hover:text-slate-400 opacity-30 group-hover:opacity-100 transition-opacity flex-shrink-0"></i>
+                    </div>
 
                     {/* Quick controls on hover */}
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
@@ -588,29 +642,102 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
               <div className="space-y-3">
                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   <i className="fas fa-bullseye text-slate-300"></i>
-                  {lang === 'zh' ? '本章关联地质对象' : 'Related Geological Objects'}
+                  {lang === 'zh' ? '本章关联地质对象与对象范围' : 'Related Geological Objects'}
                 </h3>
-                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex flex-wrap gap-2">
-                  {[
-                    ...(activeNode.objectScope?.wells?.length > 0 ? activeNode.objectScope.wells : [objectName]).map((w: string) => ({ type: lang === 'zh' ? '井' : 'Well', name: w.replace(/^井：/, '') })),
-                    ...(activeNode.objectScope?.blocks || []).map((b: string) => ({ type: lang === 'zh' ? '区块' : 'Block', name: b })),
-                    ...(activeNode.objectScope?.structures || []).map((s: string) => ({ type: lang === 'zh' ? '构造' : 'Structure', name: s })),
-                    ...(activeNode.objectScope?.horizons || []).map((h: string) => ({ type: lang === 'zh' ? '层位' : 'Horizon', name: h })),
-                    ...(activeNode.objectScope?.reservoirUnits || []).map((r: string) => ({ type: lang === 'zh' ? '单元' : 'Unit', name: r }))
-                  ].map((obj, idx) => (
-                    <div 
-                      key={`${obj.name}-${idx}`}
-                      className="px-2.5 py-1 bg-white border border-slate-200/60 rounded-lg text-[10px] font-bold text-slate-700 flex items-center gap-1.5 shadow-sm"
-                    >
-                      <span className="px-1 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[8px] font-black uppercase">{obj.type}</span>
-                      {obj.name}
+                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex flex-wrap items-center gap-2">
+                  {/* Core chosen object (always visible & highlighted) */}
+                  <div className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg text-[10px] font-bold flex items-center gap-1.5 shadow-sm">
+                    <span className="px-1 py-0.5 bg-indigo-600 text-white rounded text-[8px] font-black uppercase">
+                      {lang === 'zh' ? '核心对象' : 'Core Object'}
+                    </span>
+                    {objectName}
+                  </div>
+
+                  {/* Customizable sub-wells */}
+                  {(activeNode.objectScope?.wells || []).filter((w: string) => w !== objectName).map((w: string, idx: number) => (
+                    <div key={`well-${idx}`} className="px-2.5 py-1 bg-white border border-slate-200/60 rounded-lg text-[10px] font-bold text-slate-700 flex items-center gap-1.5 shadow-sm">
+                      <span className="px-1 py-0.5 bg-slate-100 text-slate-500 rounded text-[8px] font-black uppercase">{lang === 'zh' ? '井' : 'Well'}</span>
+                      {w}
+                      <button 
+                        onClick={() => {
+                          setOutlineNodes(prev => prev.map(n => {
+                            if (n.id === activeNode.id) {
+                              return {
+                                ...n,
+                                objectScope: {
+                                  ...n.objectScope,
+                                  wells: (n.objectScope?.wells || []).filter((item: string) => item !== w)
+                                }
+                              };
+                            }
+                            return n;
+                          }));
+                        }}
+                        className="text-slate-300 hover:text-red-500 text-[8px] ml-1 transition-colors"
+                      >
+                        <i className="fas fa-times"></i>
+                      </button>
                     </div>
                   ))}
-                  {/* Default Geological Items */}
-                  <div className="px-2.5 py-1 bg-white/60 border border-dashed border-slate-300 rounded-lg text-[10px] text-slate-400 font-bold flex items-center gap-1 cursor-pointer hover:border-indigo-400 hover:text-indigo-600 transition-colors">
+
+                  {/* Other scopes */}
+                  {['blocks', 'structures', 'horizons', 'reservoirUnits'].map(key => {
+                    const label = key === 'blocks' ? (lang === 'zh' ? '区块' : 'Block') :
+                                  key === 'structures' ? (lang === 'zh' ? '构造' : 'Structure') :
+                                  key === 'horizons' ? (lang === 'zh' ? '层位' : 'Horizon') : (lang === 'zh' ? '单元' : 'Unit');
+                    return (activeNode.objectScope?.[key] || []).map((val: string, idx: number) => (
+                      <div key={`${key}-${idx}`} className="px-2.5 py-1 bg-white border border-slate-200/60 rounded-lg text-[10px] font-bold text-slate-700 flex items-center gap-1.5 shadow-sm">
+                        <span className="px-1 py-0.5 bg-slate-100 text-slate-500 rounded text-[8px] font-black uppercase">{label}</span>
+                        {val}
+                        <button 
+                          onClick={() => {
+                            setOutlineNodes(prev => prev.map(n => {
+                              if (n.id === activeNode.id) {
+                                return {
+                                  ...n,
+                                  objectScope: {
+                                    ...n.objectScope,
+                                    [key]: (n.objectScope?.[key] || []).filter((item: string) => item !== val)
+                                  }
+                                };
+                              }
+                              return n;
+                            }));
+                          }}
+                          className="text-slate-300 hover:text-red-500 text-[8px] ml-1 transition-colors"
+                        >
+                          <i className="fas fa-times"></i>
+                        </button>
+                      </div>
+                    ));
+                  })}
+
+                  {/* Add Custom Scope Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const additionalName = prompt(lang === 'zh' ? '输入该章节关联的其他范围名称(例如：储层段名、邻区或区块):' : 'Enter additional range/target name:');
+                      if (additionalName && additionalName.trim()) {
+                        setOutlineNodes(prev => prev.map(n => {
+                          if (n.id === activeNode.id) {
+                            const currentBlocks = n.objectScope?.blocks || [];
+                            return {
+                              ...n,
+                              objectScope: {
+                                ...(n.objectScope || {}),
+                                blocks: [...currentBlocks, additionalName.trim()]
+                              }
+                            };
+                          }
+                          return n;
+                        }));
+                      }
+                    }}
+                    className="px-2.5 py-1 bg-white/60 border border-dashed border-slate-300 rounded-lg text-[10px] text-slate-400 font-bold flex items-center gap-1 cursor-pointer hover:border-indigo-400 hover:text-indigo-600 transition-colors"
+                  >
                     <i className="fas fa-plus text-[8px]"></i>
-                    {lang === 'zh' ? '关联对象' : 'Add Object'}
-                  </div>
+                    {lang === 'zh' ? '关联其他地质对象/范围' : 'Add Geological Target'}
+                  </button>
                 </div>
               </div>
 
@@ -769,6 +896,77 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
                   )}
                 </div>
               </div>
+
+              {/* Write Guides: Sample & Instructions */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 border-t border-slate-100">
+                {/* 示例内容 */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <i className="fas fa-file-alt text-indigo-400"></i>
+                      {lang === 'zh' ? '章节写作示例内容 (风格范本)' : 'Chapter Sample Content (Style guide)'}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const defaultVal = getDefaultSampleContent(activeNode.id, activeNode.title, objectName, lang);
+                        setOutlineNodes(prev => prev.map(n => n.id === activeNode.id ? { ...n, sampleContent: defaultVal } : n));
+                      }}
+                      className="text-[9px] text-indigo-500 hover:text-indigo-700 font-bold bg-indigo-50/50 hover:bg-indigo-50 px-2 py-0.5 rounded transition-all"
+                      title={lang === 'zh' ? '重置为系统行业推荐范本' : 'Reset to system default template'}
+                    >
+                      {lang === 'zh' ? '使用行业范本' : 'Load Standard'}
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <textarea 
+                      value={activeNode.sampleContent !== undefined ? activeNode.sampleContent : getDefaultSampleContent(activeNode.id, activeNode.title, objectName, lang)}
+                      onChange={(e) => {
+                        setOutlineNodes(prev => prev.map(n => n.id === activeNode.id ? { ...n, sampleContent: e.target.value } : n));
+                      }}
+                      placeholder={lang === 'zh' ? '请输入该章节编写的高质量示例或样例内容，AI将严格参考此处的结构、语气、格式排版以及学术用语规范进行拟真化生成...' : 'Enter sample text or template example here...'}
+                      className="w-full h-44 p-3.5 bg-slate-50/50 border border-slate-200/80 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all resize-none shadow-inner leading-relaxed text-slate-700 font-medium custom-scrollbar"
+                    />
+                    <div className="absolute right-2 bottom-2 text-[9px] text-slate-300 font-bold select-none bg-white px-1.5 py-0.5 rounded border border-slate-100 shadow-sm">
+                      {lang === 'zh' ? '格式约束器' : 'Format Guide'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 指令内容 */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <i className="fas fa-magic text-emerald-400"></i>
+                      {lang === 'zh' ? '章节 AI 写作指令 (控制Prompt)' : 'Chapter Prompt Instructions'}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const defaultVal = getDefaultInstructionContent(activeNode.id, activeNode.title, lang);
+                        setOutlineNodes(prev => prev.map(n => n.id === activeNode.id ? { ...n, instructionContent: defaultVal } : n));
+                      }}
+                      className="text-[9px] text-emerald-600 hover:text-emerald-800 font-bold bg-emerald-50 hover:bg-emerald-100/80 px-2 py-0.5 rounded transition-all"
+                      title={lang === 'zh' ? '重置为系统专业指令' : 'Reset to system standard instructions'}
+                    >
+                      {lang === 'zh' ? '使用专业指令' : 'Load Prompt'}
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <textarea 
+                      value={activeNode.instructionContent !== undefined ? activeNode.instructionContent : getDefaultInstructionContent(activeNode.id, activeNode.title, lang)}
+                      onChange={(e) => {
+                        setOutlineNodes(prev => prev.map(n => n.id === activeNode.id ? { ...n, instructionContent: e.target.value } : n));
+                      }}
+                      placeholder={lang === 'zh' ? '请输入该章节的核心写作诉求：例如字数在500-800字、多采用对比表、避免口语化词汇等...' : 'Enter prompt requirements for report generator...'}
+                      className="w-full h-44 p-3.5 bg-slate-50/50 border border-slate-200/80 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all resize-none shadow-inner leading-relaxed text-slate-700 font-medium custom-scrollbar"
+                    />
+                    <div className="absolute right-2 bottom-2 text-[9px] text-slate-300 font-bold select-none bg-white px-1.5 py-0.5 rounded border border-slate-100 shadow-sm">
+                      {lang === 'zh' ? '深度控制阀' : 'Detail Controller'}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Bottom Tip bar */}
@@ -841,12 +1039,6 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
 
           <div className="flex gap-3">
             <button
-              onClick={onCloseAgent}
-              className="px-5 py-2 border border-slate-200 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all"
-            >
-              {lang === 'zh' ? '取消返回' : 'Cancel'}
-            </button>
-            <button
               onClick={() => {
                 setCurrentPhase('writing');
               }}
@@ -884,6 +1076,16 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
           </div>
           
           <div className="flex items-center gap-1.5">
+            {!config?.isWeeklyBrief && (
+              <button
+                onClick={() => setCurrentPhase('confirm_outline')}
+                className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-all flex items-center gap-1.5 mr-2"
+                title={lang === 'zh' ? '返回大纲与写作指令配置页面' : 'Return to Outline and Prompts Configuration'}
+              >
+                <i className="fas fa-arrow-left text-[9px]"></i>
+                <span>{lang === 'zh' ? '返回大纲编辑' : 'Back to Outline'}</span>
+              </button>
+            )}
             <button className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 transition-all" title={lang === 'zh' ? '下载' : 'Download'}>
               <i className="fas fa-download"></i>
             </button>
@@ -909,8 +1111,18 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
               exit={{ x: -280, opacity: 0 }}
               className="w-72 h-full max-h-full flex flex-col bg-white border-r border-slate-200 shadow-sm z-20 shrink-0 overflow-hidden"
             >
-              <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '文档大纲' : 'OUTLINE'}</span>
+                {!config?.isWeeklyBrief && (
+                  <button
+                    onClick={() => setCurrentPhase('confirm_outline')}
+                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-white border border-slate-200 hover:border-indigo-200 px-2 py-1 rounded-lg transition-all shadow-sm"
+                    title={lang === 'zh' ? '返回编辑大纲与提示词' : 'Edit Outline & Prompts'}
+                  >
+                    <i className="fas fa-edit text-[9px]"></i>
+                    <span>{lang === 'zh' ? '大纲配置' : 'Edit Outline'}</span>
+                  </button>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar">
@@ -1021,26 +1233,7 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
             </div>
           </div>
 
-          {/* Persistent Completion Status Bar */}
-          <AnimatePresence>
-              {isCompleted && (
-                  <motion.div 
-                      initial={{ y: 80 }} animate={{ y: 0 }}
-                      className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 flex items-center gap-6 px-10 py-5 bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl"
-                  >
-                      <div className="w-12 h-12 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center text-xl">
-                          <i className="fas fa-file-circle-check"></i>
-                      </div>
-                      <div>
-                          <h4 className="text-sm font-black text-slate-900 leading-none mb-1.5">{lang === 'zh' ? '报告编制全面完成' : 'Generation Complete'}</h4>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '文档已自动校对并归档至资源树' : 'Auto-audited & Archived'}</p>
-                      </div>
-                      <button onClick={onCloseAgent} className="bg-slate-900 text-white px-8 py-3 rounded-2xl text-[11px] font-black hover:bg-black transition-all">
-                          {lang === 'zh' ? '退出协作空间' : 'Finish Session'}
-                      </button>
-                  </motion.div>
-              )}
-          </AnimatePresence>
+          {/* Persistent Completion Status Bar removed per user request */}
 
           {/* AI Rewriting Popup */}
           <AnimatePresence>

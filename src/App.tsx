@@ -472,7 +472,7 @@ const App: React.FC = () => {
       }
   };
 
-  const handleSelectWorkspace = (id: string, name?: string, description?: string, objects?: any[], autoOpenAddResource: boolean = false, defaultAgent?: string) => {
+  const handleSelectWorkspace = (id: string, name?: string, description?: string, objects?: any[], autoOpenAddResource: boolean = false, defaultAgent?: string, extraFields?: Partial<Workspace>) => {
     let finalId = id;
     
     if (id === 'new-demo') {
@@ -487,12 +487,13 @@ const App: React.FC = () => {
             status: WorkspaceStatus.DRAFT,
             owner: '李明',
             defaultAgent: defaultAgent || '报告生成Agent',
+            ...extraFields,
         };
         setWorkspaces(prev => [newWorkspace, ...prev]);
         finalId = newId;
     } else if (name && description) {
         // Update the workspace with name, description, objects if provided
-        setWorkspaces(prev => prev.map(w => w.id === id ? { ...w, name, description, objects: objects || [], defaultAgent: defaultAgent || w.defaultAgent } : w));
+        setWorkspaces(prev => prev.map(w => w.id === id ? { ...w, name, description, objects: objects || [], defaultAgent: defaultAgent || w.defaultAgent, ...extraFields } : w));
     }
 
     setActiveWorkspaceId(finalId);

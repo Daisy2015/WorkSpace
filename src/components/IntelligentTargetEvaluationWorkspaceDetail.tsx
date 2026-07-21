@@ -1,32 +1,28 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Compass, 
   Sliders, 
-  TrendingUp, 
   Brain, 
   RefreshCw, 
   Download, 
-  CheckCircle, 
-  Trash2, 
-  Layers, 
-  MapPin, 
-  ChevronRight, 
+  CheckCircle2, 
   Plus, 
-  Save, 
-  Send, 
-  DollarSign, 
   AlertTriangle,
-  HelpCircle,
-  FileSpreadsheet,
   Award,
-  Maximize2
+  FileText,
+  Clock,
+  Check,
+  X,
+  Sparkles,
+  FileUp,
+  GitBranch,
+  Info
 } from 'lucide-react';
 import { Workspace } from '../types';
-import { AssistantSidebar } from './AssistantSidebar';
 import { IntelligentTargetEvaluationTopBar } from './IntelligentTargetEvaluationTopBar';
 import { ExplorationTargetRequirementTree } from './ExplorationTargetRequirementTree';
-import { EvidenceChainPanel } from './EvidenceChainPanel';
+import { AssistantSidebar } from './AssistantSidebar';
 
 interface IntelligentTargetEvaluationWorkspaceDetailProps {
   lang: 'zh' | 'en';
@@ -41,184 +37,169 @@ interface IntelligentTargetEvaluationWorkspaceDetailProps {
   onOpenAddResourcePage?: () => void;
 }
 
-// MOCK DATA FOR THE TARGETS
-interface ExplorationTarget {
+// Mock evaluation targets
+interface EvaluationTarget {
   id: string;
   name: string;
+  region: string;
+  stage: string;
   type: string;
-  formation: string;
-  // Geologic characteristics
-  area: number;          // km²
-  closureHeight: number;  // m
-  porosity: number;       // %
-  permeability: number;   // mD
-  geologicPg: number;     // %
-  riskLevel: '低风险' | '中风险' | '高风险' | 'Low' | 'Medium' | 'High';
-  // Resource characteristics
-  estimatedResources: number; // 万吨 (10k tons)
-  p90: number;               // 万吨
-  potentialGrade: '特大型' | '大型' | '中型' | '小型' | 'Super Large' | 'Large' | 'Medium' | 'Small';
-  recoveryFactor: number;     // %
-  // Economic characteristics
-  drillingInvestment: number; // 亿元 (100M CNY)
-  expectedAnnualProd: number; // 万吨/年
-  baseIrr: number;            // % at $70
-  npv70: number;              // 亿元 at $70
-  // Strategic characteristics
-  offsetFittedRate: number;   // %
-  layerProvedLevel: '高' | '中' | '低' | 'High' | 'Medium' | 'Low';
-  demonstrationEffect: '强' | '中' | '弱' | 'Strong' | 'Medium' | 'Weak';
-  // Category origin
-  origin: '构造圈闭' | '岩性圈闭' | '断块圈闭' | '断控缝洞型' | 'Structural' | 'Lithologic' | 'Fault-blocked' | 'Fault-controlled';
-  resourceType: '常规油' | '致密气' | '页岩油' | '致密油' | '常规气' | 'Conventional Oil' | 'Tight Gas' | 'Shale Oil' | 'Tight Oil' | 'Conventional Gas';
-  maturity: '已探明' | '已控制' | '潜在' | 'Proved' | 'Controlled' | 'Potential';
-  oilfield: string;
+  status: string;
+  recommendationStars: number;
+  riskText: string;
+  riskColor: string;
+  geoScore: number;
+  feasibility: string;
+  feasibilityColor: string;
+  subScores: {
+    source: number;
+    reservoir: number;
+    caprock: number;
+    trap: number;
+    preservation: number;
+  };
+  engineeringRisks: string[];
+  riskLevels: {
+    geology: '高' | '中' | '低' | 'High' | 'Medium' | 'Low';
+    engineering: '高' | '中' | '低' | 'High' | 'Medium' | 'Low';
+    hse: '高' | '中' | '低' | 'High' | 'Medium' | 'Low';
+    economy: '高' | '中' | '低' | 'High' | 'Medium' | 'Low';
+  };
+  pros: string[];
+  cons: string[];
+  suggestions: string[];
 }
 
-const INITIAL_TARGETS: ExplorationTarget[] = [
-  {
+const MOCK_TARGETS: Record<string, EvaluationTarget> = {
+  'target-1': {
     id: 'target-1',
-    name: '顺北5号缝洞体',
-    type: '断控缝洞型',
-    formation: '奥陶系',
-    area: 32.4,
-    closureHeight: 280,
-    porosity: 12.5,
-    permeability: 4.8,
-    geologicPg: 34.6,
-    riskLevel: '中风险',
-    estimatedResources: 3800,
-    p90: 1200,
-    potentialGrade: '大型',
-    recoveryFactor: 24.5,
-    drillingInvestment: 1.85,
-    expectedAnnualProd: 35,
-    baseIrr: 14.8,
-    npv70: 2.45,
-    offsetFittedRate: 94,
-    layerProvedLevel: '高',
-    demonstrationEffect: '强',
-    origin: '断控缝洞型',
-    resourceType: '常规油',
-    maturity: '已探明',
-    oilfield: '吉林油田'
+    name: '顺北5号圈闭目标',
+    region: '顺北区块',
+    stage: '风险勘探',
+    type: '构造目标',
+    status: '综合评价中',
+    recommendationStars: 3,
+    riskText: '中高风险',
+    riskColor: 'amber',
+    geoScore: 75,
+    feasibility: '中',
+    feasibilityColor: 'amber',
+    subScores: {
+      source: 4,
+      reservoir: 3,
+      caprock: 4,
+      trap: 2,
+      preservation: 3
+    },
+    engineeringRisks: [
+      '深层钻井风险（超深、超高温、易逸散漏失）',
+      '储层改造难度大（断裂带非均质性强，应力复杂）',
+      '工程成本预算偏高'
+    ],
+    riskLevels: {
+      geology: '高',
+      engineering: '中',
+      hse: '低',
+      economy: '中'
+    },
+    pros: [
+      '成藏条件优越，紧邻沙雅深部生油凹陷，供烃充足。',
+      '储量潜力可观，断控缝洞体发育规模大，地震储层反射特征明显。'
+    ],
+    cons: [
+      '圈闭落实程度不足，断裂错综复杂，分支断层错动对圈闭封闭性造成一定隐患。',
+      '储层非均质性强，深部超临界流体物性预测存在不确定性。'
+    ],
+    suggestions: [
+      '补充三维地震大功率电磁测深资料，精细刻画分支断裂。',
+      '开展新一轮压力预测与目标相控反演，优选第一口评价井井位。'
+    ]
   },
-  {
+  'target-2': {
     id: 'target-2',
-    name: '哈得6号砂岩',
-    type: '砂岩透镜体',
-    formation: '石炭系',
-    area: 18.5,
-    closureHeight: 120,
-    porosity: 18.2,
-    permeability: 12.4,
-    geologicPg: 45.0,
-    riskLevel: '低风险',
-    estimatedResources: 2400,
-    p90: 850,
-    potentialGrade: '中型',
-    recoveryFactor: 28.0,
-    drillingInvestment: 1.20,
-    expectedAnnualProd: 22,
-    baseIrr: 16.5,
-    npv70: 1.95,
-    offsetFittedRate: 88,
-    layerProvedLevel: '高',
-    demonstrationEffect: '中',
-    origin: '岩性圈闭',
-    resourceType: '致密气',
-    maturity: '已探明',
-    oilfield: '吉林油田'
+    name: '顺北2号圈闭目标',
+    region: '顺北区块',
+    stage: '风险勘探',
+    type: '岩性目标',
+    status: '已完成评价',
+    recommendationStars: 4,
+    riskText: '中低风险',
+    riskColor: 'emerald',
+    geoScore: 85,
+    feasibility: '高',
+    feasibilityColor: 'emerald',
+    subScores: {
+      source: 5,
+      reservoir: 4,
+      caprock: 4,
+      trap: 3,
+      preservation: 4
+    },
+    engineeringRisks: [
+      '地层研磨性高，钻头磨损较快',
+      '层间压力过渡带窄'
+    ],
+    riskLevels: {
+      geology: '中',
+      engineering: '低',
+      hse: '低',
+      economy: '低'
+    },
+    pros: [
+      '圈闭落实程度高，三维解释完全闭合。',
+      '临近实钻丰产井，断裂连通性及疏导能力已被证实。'
+    ],
+    cons: [
+      '目的层埋藏极深（>8200米），机械钻速面临巨大挑战。'
+    ],
+    suggestions: [
+      '引入个性化提速工具，强化超深地层快速钻进。'
+    ]
   },
-  {
+  'target-3': {
     id: 'target-3',
-    name: '高石102井深层气',
-    type: '背斜构造',
-    formation: '震旦系',
-    area: 45.2,
-    closureHeight: 310,
-    porosity: 6.8, // Critical Porosity < 10%
-    permeability: 0.45, // Critical Permeability < 1mD
-    geologicPg: 28.5,
-    riskLevel: '高风险',
-    estimatedResources: 4200,
-    p90: 1500,
-    potentialGrade: '大型',
-    recoveryFactor: 18.5,
-    drillingInvestment: 2.40,
-    expectedAnnualProd: 40,
-    baseIrr: 11.2,
-    npv70: 1.10,
-    offsetFittedRate: 75,
-    layerProvedLevel: '中',
-    demonstrationEffect: '强',
-    origin: '构造圈闭',
-    resourceType: '常规气',
-    maturity: '已控制',
-    oilfield: '吉林油田'
-  },
-  {
-    id: 'target-4',
-    name: '吉木11号致密油',
-    type: '页岩层系',
-    formation: '二叠系',
-    area: 55.0,
-    closureHeight: 80,
-    porosity: 9.2, // Critical Porosity < 10%
-    permeability: 0.12, // Critical Permeability < 1mD
-    geologicPg: 55.0,
-    riskLevel: '中风险',
-    estimatedResources: 6200,
-    p90: 2100,
-    potentialGrade: '特大型',
-    recoveryFactor: 12.0,
-    drillingInvestment: 3.10,
-    expectedAnnualProd: 48,
-    baseIrr: 10.4,
-    npv70: 0.95,
-    offsetFittedRate: 82,
-    layerProvedLevel: '高',
-    demonstrationEffect: '强',
-    origin: '岩性圈闭',
-    resourceType: '页岩油',
-    maturity: '潜在',
-    oilfield: '吉林油田'
-  },
-  {
-    id: 'target-5',
-    name: '英台503缝洞体',
-    type: '火山岩缝洞',
-    formation: '白垩系',
-    area: 12.8,
-    closureHeight: 150,
-    porosity: 11.0,
-    permeability: 1.5,
-    geologicPg: 22.4,
-    riskLevel: '高风险',
-    estimatedResources: 1500,
-    p90: 420,
-    potentialGrade: '小型',
-    recoveryFactor: 15.0,
-    drillingInvestment: 1.50,
-    expectedAnnualProd: 12,
-    baseIrr: 8.2,
-    npv70: 0.25,
-    offsetFittedRate: 68,
-    layerProvedLevel: '低',
-    demonstrationEffect: '弱',
-    origin: '断块圈闭',
-    resourceType: '页岩油',
-    maturity: '潜在',
-    oilfield: '吉林油田'
-  },
-];
+    name: '顺裂1号圈闭目标',
+    region: '顺北区块',
+    stage: '风险勘探',
+    type: '断块目标',
+    status: '暂缓实施',
+    recommendationStars: 2,
+    riskText: '高风险',
+    riskColor: 'rose',
+    geoScore: 58,
+    feasibility: '低',
+    feasibilityColor: 'rose',
+    subScores: {
+      source: 3,
+      reservoir: 2,
+      caprock: 3,
+      trap: 1,
+      preservation: 2
+    },
+    engineeringRisks: [
+      '超高压漏失层段众多',
+      '硫化氢酸性腐蚀风险极高'
+    ],
+    riskLevels: {
+      geology: '高',
+      engineering: '高',
+      hse: '中',
+      economy: '高'
+    },
+    pros: [
+      '局部构造高点清晰，具备一定的油气聚集空间。'
+    ],
+    cons: [
+      '断层向上穿透主力盖层，存在严重的纵向逸散，油气保存完整性极低。',
+      '井控储量规模不确定。'
+    ],
+    suggestions: [
+      '暂缓实钻，等待区域盖层发育连通性专题研究成果出炉。'
+    ]
+  }
+};
 
-const OILFIELDS = [
-  { name: '大庆油田', count: 2 },
-  { name: '吉林油田', count: 4 },
-  { name: '辽河油田', count: 0 },
-  { name: '新疆油田', count: 2 },
-];
+type EvidenceTabType = 'evidence' | 'logs' | 'versions';
 
 export const IntelligentTargetEvaluationWorkspaceDetail: React.FC<IntelligentTargetEvaluationWorkspaceDetailProps> = ({
   lang,
@@ -232,269 +213,156 @@ export const IntelligentTargetEvaluationWorkspaceDetail: React.FC<IntelligentTar
   setIsResourcePanelOpen,
   onOpenAddResourcePage,
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'evaluation' | 'optimization' | 'pool'>('evaluation');
+  const [selectedTargetKey, setSelectedTargetKey] = useState<string>('target-1');
+  const target = useMemo(() => MOCK_TARGETS[selectedTargetKey] || MOCK_TARGETS['target-1'], [selectedTargetKey]);
+
+  // Six-Stage business evaluation loop active step (0 means panorama/all)
+  const [activeStep, setActiveStep] = useState<number>(0);
+
+  // Versioning state
+  const [activeVersion, setActiveVersion] = useState<'V1' | 'V2' | 'V3'>('V3');
+
+  const targetVersionData = useMemo(() => {
+    const base = { ...target };
+    if (activeVersion === 'V1') {
+      base.recommendationStars = Math.max(1, base.recommendationStars - 1);
+      base.riskText = lang === 'zh' ? '高风险' : 'High Risk';
+      base.riskColor = 'rose';
+      base.geoScore = Math.max(40, base.geoScore - 15);
+      base.subScores = { ...base.subScores, trap: 1, reservoir: 2 };
+    } else if (activeVersion === 'V2') {
+      base.riskText = lang === 'zh' ? '中高风险' : 'Medium-High Risk';
+      base.riskColor = 'amber';
+      base.geoScore = Math.min(95, base.geoScore - 5);
+      base.subScores = { ...base.subScores, trap: 2, reservoir: 3 };
+    }
+    return base;
+  }, [target, activeVersion, lang]);
+
+  // Sidebar Assistant controls
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
-  // Targets State
-  const [targets, setTargets] = useState<ExplorationTarget[]>(INITIAL_TARGETS);
-  
-  // Tab 1: Selected Exploration Target
-  const [selectedTargetId, setSelectedTargetId] = useState<string>('target-1');
-  const currentTarget = useMemo(() => {
-    return targets.find(t => t.id === selectedTargetId) || targets[0];
-  }, [targets, selectedTargetId]);
+  // Bottom evidence panel controls
+  const [isEvidenceExpanded, setIsEvidenceExpanded] = useState(false);
+  const [activeEvidenceTab, setActiveEvidenceTab] = useState<EvidenceTabType>('evidence');
 
-  // Parameters Card Tab State (地质 / 资源 / 经济 / 战略匹配)
-  const [paramTab, setParamTab] = useState<'geology' | 'resource' | 'economics' | 'strategy'>('geology');
+  // Modals / Overlays
+  const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [reEvaluating, setReEvaluating] = useState(false);
+  const [evaluationSuccessToast, setEvaluationSuccessToast] = useState('');
 
-  // Interactive Oil Price Slider & Micro sensitivity engine
-  const [oilPrice, setOilPrice] = useState<number>(70); // Base $70
-  
-  // Real-time recalculated financial metrics
-  const financialMetrics = useMemo(() => {
-    const baseIrr = currentTarget.baseIrr;
-    const baseNpv = currentTarget.npv70;
-    
-    // Sensitivity formula: 
-    // Oil price change factor: (Price - 70) / 70
-    // Every $10 increase/decrease changes IRR by ~2.2% and NPV by ~0.4 Billion CNY
-    const priceDiff = oilPrice - 70;
-    const irrChange = priceDiff * 0.22;
-    const npvChange = priceDiff * 0.04;
-    
-    const calculatedIrr = Math.max(1.5, parseFloat((baseIrr + irrChange).toFixed(1)));
-    const calculatedNpv = Math.max(-0.5, parseFloat((baseNpv + npvChange).toFixed(2)));
-    const breakEvenBuffer = parseFloat((oilPrice - (70 - baseIrr / 0.22)).toFixed(1));
+  // Rules states
+  const [ruleFaultSealing, setRuleFaultSealing] = useState<number>(70);
+  const [ruleReservoirFactor, setRuleReservoirFactor] = useState<number>(85);
+  const [ruleCaprockThickness, setRuleCaprockThickness] = useState<number>(120);
 
-    return {
-      irr: calculatedIrr,
-      npv: calculatedNpv,
-      buffer: breakEvenBuffer > 0 ? `+$${breakEvenBuffer}/bbl` : `-$${Math.abs(breakEvenBuffer)}/bbl`
-    };
-  }, [oilPrice, currentTarget]);
-
-  // AI Model Selector
-  const [selectedModel, setSelectedModel] = useState<string>('DeepSeek-R1');
-  const [aiTimestamp, setAiTimestamp] = useState<string>('12:30');
-  const [isAiRefreshing, setIsAiRefreshing] = useState<boolean>(false);
-
-  // Generated AI insights
-  const aiInsights = useMemo(() => {
-    if (selectedModel === 'DeepSeek-R1') {
-      return {
-        conclusion: `${currentTarget.name}的地质成功率(Pg)为${currentTarget.geologicPg}%，奥陶系缝洞体构造发育完整，断控裂缝带规模宏大。虽然在低油价情景（例如$55以下）下，其内部收益率(IRR)可能逼近经济红线，但目前在基准油价下展现出突出的财务抗风险能力。由于邻井符合度高达${currentTarget.offsetFittedRate}%，地质确定性强。`,
-        suggestion: `首口评价井建议部署在该缝洞体发育的断裂破碎带中段，靶点优选深部压力通道交汇区。建议采用多段酸压联作工艺以实现对深层天然储集空间的主动沟通，降低早期出水及压力急剧衰减的开发风险。`
-      };
-    } else if (selectedModel === 'Qwen-2.5') {
-      return {
-        conclusion: `评级结论：【优先优选储备】。${currentTarget.name}潜力等级为【${currentTarget.potentialGrade}】，预测资源量达到${currentTarget.estimatedResources}万吨。财务效益极其稳定。高密度的裂缝缝洞网保障了可采系数（当前设定${currentTarget.recoveryFactor}%）。战略示范意义极其强烈，契合油田分公司深层滚动勘探总体部署。`,
-        suggestion: `建议第一轮部署方案中锁定该目标的两个核心块，引入三维大功率电磁测深及相控反演定位。评价井钻遇后应立即开展长周期试油试采，获取第一手温压及渗流参数。`
-      };
-    } else {
-      return {
-        conclusion: `【Gemini 评价】Pg 处于行业中高水平，断裂空间刻画清晰。当油价滑移至$${oilPrice}/桶时，IRR为${financialMetrics.irr}%，表现出极佳的盈利安全边界。整体风控评级为中，主要地质风险来源于深层缝洞充填程度的不确定性。`,
-        suggestion: `下一步实钻应在缝洞核部边缘布置斜井以扩大单井泄油面积。同时，必须对邻近火山岩和碳酸盐接触界面进行岩心加密提取，以验证地质边界的密封性。`
-      };
-    }
-  }, [currentTarget, selectedModel, oilPrice, financialMetrics]);
-
-  const handleRefreshAi = () => {
-    setIsAiRefreshing(true);
+  const triggerToast = (msg: string) => {
+    setEvaluationSuccessToast(msg);
     setTimeout(() => {
-      const now = new Date();
-      setAiTimestamp(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
-      setIsAiRefreshing(false);
-    }, 800);
+      setEvaluationSuccessToast('');
+    }, 3000);
   };
 
-  // --- TAB 2: TARGET OPTIMIZATION ---
-  const [optTab, setOptTab] = useState<'weight' | 'boston' | 'radar' | 'frontier'>('weight');
-  
-  // Weights state: must sum to 100%
-  const [weights, setWeights] = useState({
-    geology: 35,
-    resource: 30,
-    economics: 20,
-    strategy: 15
-  });
-
-  const handleWeightChange = (key: 'geology' | 'resource' | 'economics' | 'strategy', value: number) => {
-    setWeights(prev => ({
-      ...prev,
-      [key]: value
-    }));
+  const handleReEvaluate = () => {
+    setReEvaluating(true);
+    setTimeout(() => {
+      setReEvaluating(false);
+      setActiveVersion('V3');
+      triggerToast(lang === 'zh' ? '✅ 重新评价完成！AI智能体已载入最新资料并重新评分。' : '✅ Re-evaluation complete! AI agent has loaded the latest data.');
+    }, 1500);
   };
 
-  // Presets
-  const applyPreset = (type: 'geology' | 'resource') => {
-    if (type === 'geology') {
-      setWeights({
-        geology: 50,
-        resource: 20,
-        economics: 15,
-        strategy: 15
-      });
-    } else {
-      setWeights({
-        geology: 20,
-        resource: 50,
-        economics: 15,
-        strategy: 15
-      });
-    }
-  };
+  // Bottom Evidence Chain tabs rendering
+  const renderEvidenceTab = () => (
+    <div className="flex items-center justify-between gap-3 p-2 bg-slate-50 rounded-2xl border border-slate-100 overflow-x-auto custom-scrollbar h-full min-h-[160px]">
+      {[
+        { label: lang === 'zh' ? '结果 (Result)' : 'Result', val: lang === 'zh' ? '圈闭风险 高' : 'High Trap Risk', desc: lang === 'zh' ? '圈闭评分仅为2星' : 'Low 2-star score', color: 'text-rose-600 bg-rose-50 border-rose-100' },
+        { label: lang === 'zh' ? '逻辑 (Logic)' : 'Logic', val: lang === 'zh' ? '圈闭闭合面积不足' : 'Closure Restricted', desc: lang === 'zh' ? '分支断裂存在连通逸散' : 'Fault sealing issues', color: 'text-amber-600 bg-amber-50 border-amber-100' },
+        { label: lang === 'zh' ? '规则 (Rule)' : 'Rule', val: lang === 'zh' ? '风险评价标准V2.0' : 'Std Evaluation v2.0', desc: lang === 'zh' ? '断距小于20米折减权重' : 'Weight penalty applied', color: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
+        { label: lang === 'zh' ? '资料 (Document)' : 'Document', val: lang === 'zh' ? '三维地震解释成果' : '3D Seismic Inversion', desc: lang === 'zh' ? '地震频段35-42Hz' : 'Frequency ranges', color: 'text-slate-600 bg-slate-100 border-slate-200' },
+        { label: lang === 'zh' ? '证据 (Evidence)' : 'Evidence', val: lang === 'zh' ? '解释图件 第12页' : 'Interpretation Page 12', desc: lang === 'zh' ? '图3-2：奥陶系走向剖面' : 'Fault sealing profiles', color: 'text-emerald-600 bg-emerald-50 border-emerald-100' }
+      ].map((node, idx) => (
+        <React.Fragment key={idx}>
+          <div className={`p-3.5 rounded-xl border flex flex-col justify-between text-left min-w-[150px] h-28 flex-1 shadow-xs transition-all hover:scale-[1.02] ${node.color}`}>
+            <span className="text-[9px] font-black uppercase tracking-wider opacity-70">{node.label}</span>
+            <div>
+              <div className="text-xs font-black truncate mt-1">{node.val}</div>
+              <div className="text-[10px] opacity-80 mt-0.5 truncate">{node.desc}</div>
+            </div>
+          </div>
+          {idx < 4 && (
+            <span className="text-slate-300 font-extrabold text-sm px-0.5 flex-shrink-0">→</span>
+          )}
+        </React.Fragment>
+      ))}
+    </div>
+  );
 
-  // Weight Balancer (Normalize to 100%)
-  const balanceWeights = () => {
-    const total = weights.geology + weights.resource + weights.economics + weights.strategy;
-    if (total === 0) {
-      setWeights({ geology: 25, resource: 25, economics: 25, strategy: 25 });
-      return;
-    }
-    const factor = 100 / total;
-    setWeights({
-      geology: Math.round(weights.geology * factor),
-      resource: Math.round(weights.resource * factor),
-      economics: Math.round(weights.economics * factor),
-      strategy: 100 - Math.round(weights.geology * factor) - Math.round(weights.resource * factor) - Math.round(weights.economics * factor)
-    });
-  };
+  const renderLogsTab = () => (
+    <div className="bg-slate-900 rounded-2xl p-4 h-full font-mono text-[11px] text-slate-300 overflow-y-auto space-y-1.5 text-left min-h-[160px]">
+      <p className="text-slate-500">[{new Date().toISOString()}] <span className="text-indigo-400">INFO</span> Loading evaluation target model...</p>
+      <p className="text-slate-500">[{new Date().toISOString()}] <span className="text-indigo-400">INFO</span> Successfully fetched geological & geophysical datasets for {targetVersionData.name}.</p>
+      <p className="text-slate-500">[{new Date().toISOString()}] <span className="text-emerald-400">SUCCESS</span> 100% matched reservoir layers and trap boundaries.</p>
+      <p className="text-slate-500">[{new Date().toISOString()}] <span className="text-indigo-400">INFO</span> Model active evaluation version: {activeVersion}. Score recalculation complete.</p>
+      <p className="text-slate-500">[{new Date().toISOString()}] <span className="text-amber-400">WARN</span> Sealing boundary warning threshold set to {ruleCaprockThickness}m. Fault Sealing weight factor: {ruleFaultSealing}%.</p>
+      <div className="w-1.5 h-3.5 bg-indigo-500 animate-pulse inline-block"></div>
+    </div>
+  );
 
-  // Active metrics in table, recalculating dynamic composite score
-  const sortedTargets = useMemo(() => {
-    const scored = targets.map(t => {
-      // Norm scores 0 - 100
-      // Geology Score: Pg * 2 + 15
-      const geologyScore = Math.min(100, Math.round(t.geologicPg * 2.2 + 10));
-      // Resource Score: Estimated Resource normalized (max ~ 8000)
-      const resourceScore = Math.min(100, Math.round((t.estimatedResources / 6500) * 80 + 20));
-      // Economics Score: IRR normalized (max ~ 20)
-      const economicsScore = Math.min(100, Math.round((t.baseIrr / 18) * 85 + 15));
-      // Strategy Score: Based on demonstration, offset fitted rate
-      const strategyScore = Math.min(100, Math.round(t.offsetFittedRate * 0.9 + 10));
-
-      const composite = parseFloat((
-        (geologyScore * weights.geology +
-         resourceScore * weights.resource +
-         economicsScore * weights.economics +
-         strategyScore * weights.strategy) / 100
-      ).toFixed(1));
-
-      // Recommendation Grade
-      let grade: 'A类优先' | 'B类跟进' | 'C类暂缓' = 'B类跟进';
-      if (composite >= 80) grade = 'A类优先';
-      else if (composite < 65) grade = 'C类暂缓';
-
-      // Decision Ref
-      let decisionRef = '资源规模大';
-      if (geologyScore > 85) decisionRef = '低风险、成功率极高';
-      else if (economicsScore > 85) decisionRef = '财务效益表现优异';
-      else if (strategyScore > 85) decisionRef = '战略示范效应显著';
-
-      return {
-        ...t,
-        geologyScore,
-        resourceScore,
-        economicsScore,
-        strategyScore,
-        compositeScore: composite,
-        grade,
-        decisionRef
-      };
-    });
-
-    return scored.sort((a, b) => b.compositeScore - a.compositeScore);
-  }, [targets, weights]);
-
-  // Selected checkboxes for batch actions / Preferred Pool
-  const [selectedTargetIds, setSelectedTargetIds] = useState<Record<string, boolean>>({
-    'target-1': true,
-    'target-2': true,
-    'target-4': true,
-  });
-
-  const toggleSelectTarget = (id: string) => {
-    setSelectedTargetIds(prev => ({
-      ...prev,
-      [id]: !prev[id]
-    }));
-  };
-
-  const toggleSelectAll = () => {
-    const allSelected = targets.every(t => selectedTargetIds[t.id]);
-    const next: Record<string, boolean> = {};
-    targets.forEach(t => {
-      next[t.id] = !allSelected;
-    });
-    setSelectedTargetIds(next);
-  };
-
-  // Knapsack algorithm budget allocation upper limit (3.5 Billion CNY)
-  const [budgetLimit, setBudgetLimit] = useState<number>(3.5); // 3.5 亿元
-
-  // Auto solve recommendation pool under 3.5 Billion Budget
-  const handleKnapsackSolve = () => {
-    // Greedy solver: sort by dynamic value-to-cost ratio (Resource / Budget)
-    const sortedByRatio = [...sortedTargets].sort((a, b) => {
-      const ratioA = a.estimatedResources / a.drillingInvestment;
-      const ratioB = b.estimatedResources / b.drillingInvestment;
-      return ratioB - ratioA;
-    });
-
-    let currentBudget = 0;
-    const solvedIds: Record<string, boolean> = {};
-    sortedByRatio.forEach(t => {
-      if (currentBudget + t.drillingInvestment <= budgetLimit) {
-        solvedIds[t.id] = true;
-        currentBudget += t.drillingInvestment;
-      } else {
-        solvedIds[t.id] = false;
-      }
-    });
-
-    setSelectedTargetIds(solvedIds);
-  };
-
-  // --- TAB 3: PREFERRED POOL MANAGEMENT ---
-  const [selectedOilfield, setSelectedOilfield] = useState<string>('吉林油田');
-  const [selectedScheme, setSelectedScheme] = useState<string>('滚动');
-  const [newSchemeName, setNewSchemeName] = useState<string>('');
-
-  // Items currently inside Preferred Pool (only checked targets from list)
-  const poolTargets = useMemo(() => {
-    return sortedTargets.filter(t => selectedTargetIds[t.id]);
-  }, [sortedTargets, selectedTargetIds]);
-
-  // Summary Metrics of Pool Items
-  const poolSummary = useMemo(() => {
-    let totalGeologyReserve = 0;
-    let estimatedTotal = 0;
-    let totalInvestment = 0;
-
-    poolTargets.forEach(t => {
-      totalGeologyReserve += t.estimatedResources * 2.5; // Estimated total reserves
-      estimatedTotal += t.estimatedResources;
-      totalInvestment += t.drillingInvestment;
-    });
-
-    return {
-      geology: Math.round(totalGeologyReserve),
-      resources: Math.round(estimatedTotal),
-      ratio: poolTargets.length > 0 ? '31.4%' : '0%',
-      budget: parseFloat(totalInvestment.toFixed(2))
-    };
-  }, [poolTargets]);
-
-  const handleRevokeFromPool = (id: string) => {
-    setSelectedTargetIds(prev => ({
-      ...prev,
-      [id]: false
-    }));
-  };
+  const renderVersionsTab = () => (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-1 items-center min-h-[160px]">
+      {[
+        { ver: 'V1', label: lang === 'zh' ? '地质基础原始资料评价' : 'Base Geological assessment', author: '王工', date: '2026-07-15' },
+        { ver: 'V2', label: lang === 'zh' ? '引入三维地震相控反演' : 'Superimposed 3D Inversion', author: 'AI智能体', date: '2026-07-18' },
+        { ver: 'V3', label: lang === 'zh' ? '专家微调充填折减因子' : 'Expert fine-tuned rules', author: '李明', date: '2026-07-20' }
+      ].map((v) => (
+        <button
+          key={v.ver}
+          onClick={() => setActiveVersion(v.ver as any)}
+          className={`px-4 py-3 rounded-2xl text-left border flex items-center justify-between transition-all cursor-pointer shadow-xs hover:shadow-sm ${
+            activeVersion === v.ver 
+              ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-100' 
+              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+          }`}
+        >
+          <div>
+            <div className="flex items-center gap-2">
+              <span className={`px-1.5 py-0.5 text-[9px] font-black rounded ${activeVersion === v.ver ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>{v.ver}</span>
+              <span className="font-bold text-xs truncate max-w-[140px]">{v.label}</span>
+            </div>
+            <div className={`text-[10px] mt-1.5 ${activeVersion === v.ver ? 'text-indigo-100' : 'text-slate-400'}`}>
+              {v.author} • {v.date}
+            </div>
+          </div>
+          {activeVersion === v.ver && (
+            <Check className="w-4 h-4 text-white flex-shrink-0" />
+          )}
+        </button>
+      ))}
+    </div>
+  );
 
   return (
-    <div className="h-full relative flex flex-col" id="intelligent-target-eval-workspace-detail">
-      {/* Custom Top Bar */}
+    <div className="h-full relative flex flex-col bg-slate-100/40 text-slate-800 font-sans select-none overflow-hidden" id="intelligent-target-evaluation-workspace-detail">
+      
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {evaluationSuccessToast && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-[999] bg-indigo-600 border border-indigo-400 text-white font-bold text-xs px-5 py-3 rounded-xl shadow-xl flex items-center gap-2"
+          >
+            <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+            <span>{evaluationSuccessToast}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 1. TOP BAR */}
       <IntelligentTargetEvaluationTopBar
         lang={lang}
         activeWorkspaceData={activeWorkspaceData}
@@ -506,14 +374,15 @@ export const IntelligentTargetEvaluationWorkspaceDetail: React.FC<IntelligentTar
         onOpenSettings={onOpenSettings}
         isAssistantOpen={isAssistantOpen}
         onToggleAssistant={() => setIsAssistantOpen(!isAssistantOpen)}
-        targets={targets}
-        selectedTargetId={selectedTargetId}
-        onSelectTargetId={(id) => setSelectedTargetId(id)}
+        targets={Object.values(MOCK_TARGETS).map(t => ({ id: t.id, name: t.name }))}
+        selectedTargetId={selectedTargetKey}
+        onSelectTargetId={setSelectedTargetKey}
       />
-      
-      {/* CONTENT CONTAINER */}
+
+      {/* 2. CONTENT CONTAINER */}
       <div className="flex-1 flex flex-row overflow-hidden relative">
-        {/* Left Panel: Facts & Resources */}
+        
+        {/* Left Panel: collapsible ExplorationTargetRequirementTree */}
         <div className={`${isResourcePanelOpen ? 'w-96 border-r' : 'w-0 border-none'} h-full flex-shrink-0 z-20 shadow-lg bg-white border-slate-200 flex flex-col transition-all duration-300 ease-in-out overflow-hidden`}>
           <div className="w-96 flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-hidden relative">
@@ -525,1196 +394,1275 @@ export const IntelligentTargetEvaluationWorkspaceDetail: React.FC<IntelligentTar
         {/* Toggle button on Left Panel boundary */}
         <button 
           onClick={() => setIsResourcePanelOpen(!isResourcePanelOpen)}
-          className={`absolute top-1/2 -translate-y-1/2 w-5 h-12 bg-white border border-slate-200 shadow-md rounded-r-md flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-slate-50 transition-all z-30 cursor-pointer ${isResourcePanelOpen ? 'left-[384px]' : 'left-0'}`}
+          className={`absolute top-1/2 -translate-y-1/2 w-5 h-12 bg-white border border-slate-200 shadow-md rounded-r-md flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-slate-50 transition-all z-30 cursor-pointer ${isResourcePanelOpen ? 'left-[384px]' : 'left-0'}`}
           title={isResourcePanelOpen ? (lang === 'zh' ? '收起资源面板' : 'Collapse Resources') : (lang === 'zh' ? '展开资源面板' : 'Expand Resources')}
           style={{ transition: 'left 300ms ease-in-out' }}
         >
           <i className={`fas ${isResourcePanelOpen ? 'fa-chevron-left' : 'fa-chevron-right'} text-[10px]`}></i>
         </button>
 
-        {/* Center / Right Section */}
+        {/* Center Section: Core Business Results Display */}
         <motion.div 
           className="flex-1 min-w-0 z-0 bg-slate-50 flex flex-col overflow-hidden"
           animate={{ marginRight: isAssistantOpen ? 384 : 0 }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
         >
-          {/* Sub-tab Selector inside target evaluation area */}
-          <div className="flex-shrink-0 flex items-center justify-center border-b border-slate-200 bg-white px-6 py-3 select-none">
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
-              <button
-                onClick={() => setActiveSubTab('evaluation')}
-                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${
-                  activeSubTab === 'evaluation' 
-                    ? 'bg-white text-blue-600 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <Compass className="w-3.5 h-3.5" />
-                {lang === 'zh' ? '目标精细评价' : 'Target Fine Evaluation'}
-              </button>
-              <button
-                onClick={() => setActiveSubTab('optimization')}
-                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${
-                  activeSubTab === 'optimization' 
-                    ? 'bg-white text-blue-600 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <Sliders className="w-3.5 h-3.5" />
-                {lang === 'zh' ? '目标优选与组合' : 'Target Selection & Portfolio'}
-              </button>
-              <button
-                onClick={() => setActiveSubTab('pool')}
-                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2 relative ${
-                  activeSubTab === 'pool' 
-                    ? 'bg-white text-blue-600 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <Layers className="w-3.5 h-3.5" />
-                {lang === 'zh' ? '优选池管理' : 'Preferred Pool'}
-                {poolTargets.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center animate-pulse">
-                    {poolTargets.length}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
-            <AnimatePresence mode="wait">
+          <div className="flex-1 relative flex flex-col overflow-y-auto p-4 space-y-4 custom-scrollbar">
             
-            {/* SUB-VIEW 1: TARGET EVALUATION */}
-            {activeSubTab === 'evaluation' && (
-              <motion.div
-                key="evaluation-view"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start"
-              >
-                {/* Full Width: Parameters and Compass/Stress Testing (Cols 12) */}
-                <div className="xl:col-span-12 space-y-6">
-                  
-                  {/* WORKSTATION CARD PANEL HEADER */}
-                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
-                        <MapPin className="w-5 h-5" />
+            {/* Center Toolbar / Action Panel */}
+            <div className="bg-white border border-slate-100 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-2 pl-1">
+                <div className="w-2.5 h-2.5 bg-indigo-600 rounded-full animate-pulse"></div>
+                <span className="text-xs font-bold text-slate-700">
+                  {lang === 'zh' ? '智能体评价工作台 / 控制中心' : 'Agent Workspace / Evaluation Control Center'}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button 
+                  onClick={handleReEvaluate}
+                  disabled={reEvaluating}
+                  className="h-8 px-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${reEvaluating ? 'animate-spin' : ''}`} />
+                  <span>{lang === 'zh' ? '重新评价' : 'Re-evaluate'}</span>
+                </button>
+                <button 
+                  onClick={() => setIsUploadModalOpen(true)}
+                  className="h-8 px-3.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-lg flex items-center gap-1.5 transition-all cursor-pointer border border-slate-200 shadow-2xs"
+                >
+                  <Plus className="w-3.5 h-3.5 text-slate-500" />
+                  <span>{lang === 'zh' ? '补充资料' : 'Add Materials'}</span>
+                </button>
+                <button 
+                  onClick={() => setIsRulesModalOpen(true)}
+                  className="h-8 px-3.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-lg flex items-center gap-1.5 transition-all cursor-pointer border border-slate-200 shadow-2xs"
+                >
+                  <Sliders className="w-3.5 h-3.5 text-slate-500" />
+                  <span>{lang === 'zh' ? '调整评价规则' : 'Rules Panel'}</span>
+                </button>
+                <button 
+                  onClick={() => setIsReportModalOpen(true)}
+                  className="h-8 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>{lang === 'zh' ? '生成评价报告' : 'Report Output'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Interactive Six-Stage Workflow Stepper */}
+            <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm text-left">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3.5 mb-3.5 border-b border-slate-100 gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                    <GitBranch className="w-4 h-4 animate-pulse" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-extrabold text-slate-900">{lang === 'zh' ? '通用业务评价闭环流程' : 'Universal Evaluation closed-loop Pipeline'}</h4>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{lang === 'zh' ? '以业务流程为主线、智能体全链路驱动的决策工作台' : 'Process-oriented, agent-driven expert decision workbench'}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setActiveStep(0)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${activeStep === 0 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-100'}`}
+                >
+                  {lang === 'zh' ? '全景视图' : 'Panorama View'}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                {[
+                  { step: 1, label: lang === 'zh' ? '① 目标建立' : '1. Target Def', icon: Award, desc: lang === 'zh' ? '定义评价任务' : 'Task Scope' },
+                  { step: 2, label: lang === 'zh' ? '② 资料准备' : '2. Resource Prep', icon: FileUp, desc: lang === 'zh' ? '构建上下文' : 'Context' },
+                  { step: 3, label: lang === 'zh' ? '③ 业务评价' : '3. Business Eval', icon: Compass, desc: lang === 'zh' ? '多维专业评价' : 'Multi-Eval' },
+                  { step: 4, label: lang === 'zh' ? '④ 风险分析' : '4. Risk Assess', icon: AlertTriangle, desc: lang === 'zh' ? '不确定性识别' : 'Risk Map' },
+                  { step: 5, label: lang === 'zh' ? '⑤ 综合判断' : '5. Comprehensive', icon: CheckCircle2, desc: lang === 'zh' ? '形成决策部署' : 'Decision' },
+                  { step: 6, label: lang === 'zh' ? '⑥ 结果优化' : '6. Feedback Opt', icon: Sliders, desc: lang === 'zh' ? '灵敏度迭代' : 'Feedback' },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeStep === item.step;
+                  return (
+                    <button
+                      key={item.step}
+                      onClick={() => setActiveStep(item.step)}
+                      className={`p-2.5 rounded-xl border flex flex-col items-start text-left transition-all cursor-pointer select-none group ${
+                        isActive 
+                          ? 'bg-indigo-50/40 border-indigo-500 text-indigo-800 shadow-2xs font-extrabold ring-1 ring-indigo-500/10' 
+                          : 'bg-slate-50/40 border-slate-100 text-slate-500 hover:bg-slate-50 hover:text-slate-800 hover:border-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 w-full">
+                        <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-indigo-600 scale-110' : 'text-slate-400 group-hover:text-indigo-500'} transition-all`} />
+                        <span className="text-[11px] font-bold truncate">{item.label}</span>
                       </div>
-                      <div>
-                        <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest">
-                          [目标评价工作台]
+                      <span className="text-[9px] text-slate-400 font-normal mt-1 leading-none">{item.desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* STAGE-SPECIFIC DYNAMIC RENDERING */}
+
+            {/* PANORAMA ALL-IN-ONE VIEW */}
+            {activeStep === 0 && (
+              <>
+                {/* Target Profile Card */}
+                <div className="bg-gradient-to-br from-indigo-50/50 via-white to-blue-50/30 border border-indigo-100/50 rounded-2xl p-5 shadow-sm relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-[45px] pointer-events-none group-hover:scale-125 transition-transform" />
+                  
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+                    <div className="text-left">
+                      <div className="text-[10px] text-indigo-600 font-black tracking-widest uppercase mb-1 flex items-center gap-1">
+                        <Award className="w-3.5 h-3.5" />
+                        <span>{lang === 'zh' ? '① 目标综合画像评估' : '1. Target Comprehensive Profile'}</span>
+                      </div>
+                      <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                        {targetVersionData.name} {lang === 'zh' ? '评价结论' : 'Evaluation Profile'}
+                        <span className="text-xs font-normal text-slate-400">({lang === 'zh' ? '版本' : 'Ver'} {activeVersion})</span>
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
+                        {lang === 'zh' 
+                          ? '本智能画像整合了地质、物探、钻井工程可行性以及区域经济边际效益，由 AI 核心推理链结合实钻井规则生成。'
+                          : 'This smart profile is generated via structural AI reasoning chains integrating geology, geophysics, drilling, and NPV parameters.'}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white/80 p-3.5 rounded-xl border border-slate-100 shadow-2xs self-stretch lg:self-auto items-center justify-items-stretch">
+                      <div className="text-center px-2 border-r border-slate-100">
+                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{lang === 'zh' ? '推荐评级' : 'Recommend Grade'}</div>
+                        <div className="flex items-center justify-center gap-0.5 mt-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span 
+                              key={star} 
+                              className={`text-xs ${star <= targetVersionData.recommendationStars ? 'text-amber-400' : 'text-slate-200'}`}
+                            >
+                              ★
+                            </span>
+                          ))}
                         </div>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-lg font-black text-slate-800">
-                            当前对象: {currentTarget.name}{lang === 'zh' ? '评价工区' : ' Eval Area'}
-                          </span>
-                          <span className="px-2 py-0.5 rounded bg-slate-100 text-xs font-bold text-slate-600 border border-slate-200">
-                            {currentTarget.type} | {currentTarget.formation}
-                          </span>
+                      </div>
+                      <div className="text-center px-2 border-r border-slate-100">
+                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{lang === 'zh' ? '综合风险' : 'Integrated Risk'}</div>
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-black mt-1 ${
+                          targetVersionData.riskColor === 'rose' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                          targetVersionData.riskColor === 'amber' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                          'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                        }`}>
+                          {targetVersionData.riskText}
+                        </span>
+                      </div>
+                      <div className="text-center px-2 border-r border-slate-100">
+                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{lang === 'zh' ? '地质成功率 Pg' : 'Geologic Success Pg'}</div>
+                        <div className="text-xs font-black text-slate-800 mt-1.5">
+                          {targetVersionData.geoScore - 40}%
+                        </div>
+                      </div>
+                      <div className="text-center px-2">
+                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{lang === 'zh' ? '经济NPV(70美金)' : 'NPV @$70'}</div>
+                        <div className="text-xs font-black text-emerald-600 mt-1.5">
+                          {(targetVersionData.geoScore * 0.05 - 1.2).toFixed(2)} {lang === 'zh' ? '亿元' : 'B CNY'}
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
 
-                    {/* Quick Switch Dropdown */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-400">{lang === 'zh' ? '切换评价工区:' : 'Switch Area:'}</span>
-                      <select 
-                        value={selectedTargetId}
-                        onChange={(e) => setSelectedTargetId(e.target.value)}
-                        className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-black text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
-                      >
-                        {targets.map(t => (
-                          <option key={t.id} value={t.id}>{t.name}{lang === 'zh' ? '评价工区' : ' Eval Area'}</option>
-                        ))}
-                      </select>
+                {/* Professional Evaluation Grid */}
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                  
+                  {/* Geological Evaluation Card */}
+                  <div className="bg-white border border-slate-100 rounded-2xl p-4.5 flex flex-col shadow-xs hover:border-indigo-100 transition-colors">
+                    <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                          <Compass className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-bold text-slate-800">{lang === 'zh' ? '③ 地质与业务多维评价' : '3. Geological Evaluation'}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-slate-400 font-bold">{lang === 'zh' ? '评分：' : 'Score:'}</span>
+                        <span className="text-sm font-black text-indigo-600">{targetVersionData.geoScore}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3.5 space-y-2.5 flex-1 text-left">
+                      {[
+                        { name: lang === 'zh' ? '烃源条件' : 'Source Rock', stars: targetVersionData.subScores.source, desc: lang === 'zh' ? '深生烃源充沛，进入晚期成熟' : 'Abundant mature source rock' },
+                        { name: lang === 'zh' ? '储层条件' : 'Reservoir Quality', stars: targetVersionData.subScores.reservoir, desc: lang === 'zh' ? '埋深超深致密，受裂缝缝洞网控制' : 'Fracture/vug system in ultra depth' },
+                        { name: lang === 'zh' ? '盖层条件' : 'Seal Integrity', stars: targetVersionData.subScores.caprock, desc: lang === 'zh' ? '上泥质盖层封闭强，无微渗隐患' : 'Thick shale seals with no gas shows' },
+                        { name: lang === 'zh' ? '圈闭条件' : 'Trap Closure', stars: targetVersionData.subScores.trap, desc: lang === 'zh' ? '复杂走滑断裂，边界及溢漏点待敲定' : 'Intricate strike-slip fault branches' },
+                        { name: lang === 'zh' ? '保存条件' : 'Preservation', stars: targetVersionData.subScores.preservation, desc: lang === 'zh' ? '垂向断层导通遮挡具有明显局限性' : 'Vertical faults cause transport leaks' }
+                      ].map((item, i) => (
+                        <div key={i} className="bg-slate-50 p-2 rounded-xl border border-slate-100 flex flex-col gap-0.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-700">{item.name}</span>
+                            <div className="flex text-[9px] text-amber-400">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <span key={s} className={s <= item.stars ? 'text-amber-400' : 'text-slate-200'}>★</span>
+                              ))}
+                            </div>
+                          </div>
+                          <span className="text-[10px] text-slate-400 truncate">{item.desc}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-3.5 pt-3 border-t border-slate-100 text-left">
+                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <Info className="w-3.5 h-3.5 text-indigo-500" />
+                        <span>{lang === 'zh' ? '分析逻辑及依据证据' : 'AI Reasoning Chain'}</span>
+                      </div>
+                      <div className="text-[11px] text-slate-600 leading-relaxed bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <p><strong>{lang === 'zh' ? '过程：' : 'Process: '}</strong>{lang === 'zh' ? '深度缝洞相控反演，对比走滑断裂错动阻隔。' : 'Acoustic impedance inversion and fault seal factors.'}</p>
+                        <p className="mt-1"><strong>{lang === 'zh' ? '依据：' : 'Basis: '}</strong>{lang === 'zh' ? '分支缝倾角大，易发生垂向导通，老版本扣减圈闭分。' : 'Steep faults prompt top leakage concerns in older versions.'}</p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* A) PARAMETERS CARD GROUP with Tab Selection */}
-                  <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
-                    <div className="flex border-b border-slate-100 bg-slate-50/50 p-2 justify-between items-center">
-                      <div className="flex gap-1.5">
-                        <button
-                          onClick={() => setParamTab('geology')}
-                          className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${
-                            paramTab === 'geology' 
-                              ? 'bg-white text-slate-800 shadow-xs border border-slate-100' 
-                              : 'text-slate-500 hover:text-slate-800'
-                          }`}
-                        >
-                          地质特征
-                        </button>
-                        <button
-                          onClick={() => setParamTab('resource')}
-                          className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${
-                            paramTab === 'resource' 
-                              ? 'bg-white text-slate-800 shadow-xs border border-slate-100' 
-                              : 'text-slate-500 hover:text-slate-800'
-                          }`}
-                        >
-                          资源规模
-                        </button>
-                        <button
-                          onClick={() => setParamTab('economics')}
-                          className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${
-                            paramTab === 'economics' 
-                              ? 'bg-white text-slate-800 shadow-xs border border-slate-100' 
-                              : 'text-slate-500 hover:text-slate-800'
-                          }`}
-                        >
-                          经济评估
-                        </button>
-                        <button
-                          onClick={() => setParamTab('strategy')}
-                          className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${
-                            paramTab === 'strategy' 
-                              ? 'bg-white text-slate-800 shadow-xs border border-slate-100' 
-                              : 'text-slate-500 hover:text-slate-800'
-                          }`}
-                        >
-                          战略匹配
-                        </button>
+                  {/* Engineering Feasibility Card */}
+                  <div className="bg-white border border-slate-100 rounded-2xl p-4.5 flex flex-col shadow-xs hover:border-indigo-100 transition-colors">
+                    <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                          <Sliders className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-bold text-slate-800">{lang === 'zh' ? '③ 工程可行性评价' : '3. Engineering Feasibility'}</span>
                       </div>
-                      <span className="text-[10px] text-slate-400 font-bold mr-3 uppercase tracking-widest">
-                        四性参数校验
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-slate-400 font-bold">{lang === 'zh' ? '可行性：' : 'Feasibility:'}</span>
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                          targetVersionData.feasibilityColor === 'rose' ? 'bg-rose-50 text-rose-600' :
+                          targetVersionData.feasibilityColor === 'amber' ? 'bg-amber-50 text-amber-600' :
+                          'bg-emerald-50 text-emerald-600'
+                        }`}>
+                          {targetVersionData.feasibility}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3.5 flex-1 space-y-3 text-left">
+                      <div className="bg-indigo-50/40 p-2.5 rounded-xl border border-indigo-100/30 text-[11px] text-slate-600 leading-relaxed">
+                        <div className="font-bold text-indigo-600 mb-0.5">{lang === 'zh' ? '主要施工阻碍项' : 'Drilling Impedance Items'}</div>
+                        {lang === 'zh' ? '超深井（>8200米）高温、高压，对套管抗拉强度与钻井液抗温提出挑战。' : 'Deep well (>8200m) demands heavy drill strings & specialized fluids.'}
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{lang === 'zh' ? '三大核心技术风险' : 'Top 3 Engineering Risks'}</div>
+                        {targetVersionData.engineeringRisks.map((risk, idx) => (
+                          <div key={idx} className="flex gap-2.5 items-start bg-slate-50 p-2 rounded-xl border border-slate-100">
+                            <span className="w-4 h-4 rounded-full bg-rose-50 text-rose-600 font-black text-[10px] flex items-center justify-center flex-shrink-0 mt-0.5">
+                              {idx + 1}
+                            </span>
+                            <span className="text-xs text-slate-600 leading-normal">{risk}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-3.5 pt-3 border-t border-slate-100 text-left text-[11px] space-y-1 text-slate-500">
+                      <div className="flex justify-between">
+                        <span>{lang === 'zh' ? '机械钻速 ROP' : 'Avg Drilling ROP'}</span>
+                        <span className="font-bold text-slate-700">2.4 m/h</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>{lang === 'zh' ? '复杂地表干扰指数' : 'Surfacing Factor'}</span>
+                        <span className="font-bold text-slate-700">High / 85%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>{lang === 'zh' ? '邻区实钻借鉴井' : 'Offset Wells Reference'}</span>
+                        <span className="font-bold text-slate-700">SB-501, SB-503D</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Risk Evaluation Card */}
+                  <div className="bg-white border border-slate-100 rounded-2xl p-4.5 flex flex-col shadow-xs hover:border-indigo-100 transition-colors">
+                    <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                          <AlertTriangle className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-bold text-slate-800">{lang === 'zh' ? '④ 综合风险细分评估' : '4. Integrated Risk Breakdown'}</span>
+                      </div>
+                      <span className="px-1.5 py-0.5 rounded text-[9px] bg-slate-100 font-black text-slate-500">
+                        {lang === 'zh' ? '多维度' : 'Multi-factor'}
                       </span>
                     </div>
 
-                    <div className="p-6">
-                      <AnimatePresence mode="wait">
-                        {paramTab === 'geology' && (
-                          <motion.div 
-                            key="geology-tab"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="grid grid-cols-1 md:grid-cols-4 gap-6"
-                          >
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex flex-col justify-between">
-                              <span className="text-xs text-slate-400 font-bold">圈闭面积</span>
-                              <span className="text-2xl font-black text-slate-800 font-mono mt-2">{currentTarget.area} <span className="text-xs font-medium text-slate-400">km²</span></span>
-                            </div>
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex flex-col justify-between">
-                              <span className="text-xs text-slate-400 font-bold">闭合高度</span>
-                              <span className="text-2xl font-black text-slate-800 font-mono mt-2">{currentTarget.closureHeight} <span className="text-xs font-medium text-slate-400">m</span></span>
-                            </div>
-                            
-                            {/* Critical limits triggers visual warning */}
-                            <div className={`border rounded-xl p-4 flex flex-col justify-between transition-all ${
-                              currentTarget.porosity < 10 
-                                ? 'bg-red-50 border-red-200 text-red-900 shadow-sm shadow-red-100 animate-pulse' 
-                                : 'bg-slate-50 border-slate-100 text-slate-800'
-                            }`}>
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-slate-400">平均孔隙度</span>
-                                {currentTarget.porosity < 10 && <AlertTriangle className="w-4.5 h-4.5 text-red-500" />}
-                              </div>
-                              <div className="mt-2">
-                                <span className="text-2xl font-black font-mono">{currentTarget.porosity}%</span>
-                                {currentTarget.porosity < 10 && (
-                                  <span className="block text-[9px] font-bold text-red-500 mt-1">
-                                    [红牌警告] 临界极低孔隙
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className={`border rounded-xl p-4 flex flex-col justify-between transition-all ${
-                              currentTarget.permeability < 1 
-                                ? 'bg-amber-50 border-amber-200 text-amber-900 shadow-sm shadow-amber-100' 
-                                : 'bg-slate-50 border-slate-100 text-slate-800'
-                            }`}>
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-slate-400">平均渗透率</span>
-                                {currentTarget.permeability < 1 && <AlertTriangle className="w-4.5 h-4.5 text-amber-500 animate-bounce" />}
-                              </div>
-                              <div className="mt-2">
-                                <span className="text-2xl font-black font-mono">{currentTarget.permeability} mD</span>
-                                {currentTarget.permeability < 1 && (
-                                  <span className="block text-[9px] font-bold text-amber-600 mt-1">
-                                    [黄牌预警] 特低渗透储层
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-
-                        {paramTab === 'resource' && (
-                          <motion.div 
-                            key="resource-tab"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="grid grid-cols-1 md:grid-cols-4 gap-6"
-                          >
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                              <span className="text-xs text-slate-400 font-bold block">预测资源量</span>
-                              <span className="text-2xl font-black text-emerald-600 font-mono mt-2 block">{currentTarget.estimatedResources} <span className="text-xs font-medium text-slate-400">万吨</span></span>
-                            </div>
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                              <span className="text-xs text-slate-400 font-bold block">地质成功率 Pg</span>
-                              <span className="text-2xl font-black text-blue-600 font-mono mt-2 block">{currentTarget.geologicPg}%</span>
-                            </div>
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                              <span className="text-xs text-slate-400 font-bold block">潜力等级</span>
-                              <span className="text-2xl font-black text-slate-800 mt-2 block">{currentTarget.potentialGrade}</span>
-                            </div>
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                              <span className="text-xs text-slate-400 font-bold block">可采系数</span>
-                              <span className="text-2xl font-black text-slate-800 font-mono mt-2 block">{currentTarget.recoveryFactor}%</span>
-                            </div>
-                          </motion.div>
-                        )}
-
-                        {paramTab === 'economics' && (
-                          <motion.div 
-                            key="economics-tab"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="grid grid-cols-1 md:grid-cols-4 gap-6"
-                          >
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                              <span className="text-xs text-slate-400 font-bold block">基本钻井投资</span>
-                              <span className="text-2xl font-black text-slate-800 font-mono mt-2 block">{currentTarget.drillingInvestment} <span className="text-xs font-medium text-slate-400">亿元</span></span>
-                            </div>
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                              <span className="text-xs text-slate-400 font-bold block">预期年产量</span>
-                              <span className="text-2xl font-black text-slate-800 font-mono mt-2 block">{currentTarget.expectedAnnualProd} <span className="text-xs font-medium text-slate-400">万吨</span></span>
-                            </div>
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                              <span className="text-xs text-slate-400 font-bold block">IRR (油价$70)</span>
-                              <span className="text-2xl font-black text-blue-600 font-mono mt-2 block">{currentTarget.baseIrr}%</span>
-                            </div>
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                              <span className="text-xs text-slate-400 font-bold block">期望净现值 NPV</span>
-                              <span className="text-2xl font-black text-emerald-600 font-mono mt-2 block">{currentTarget.npv70} <span className="text-xs font-medium text-slate-400">亿元</span></span>
-                            </div>
-                          </motion.div>
-                        )}
-
-                        {paramTab === 'strategy' && (
-                          <motion.div 
-                            key="strategy-tab"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="grid grid-cols-1 md:grid-cols-4 gap-6"
-                          >
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                              <span className="text-xs text-slate-400 font-bold block">邻井符合度</span>
-                              <span className="text-2xl font-black text-slate-800 font-mono mt-2 block">{currentTarget.offsetFittedRate}%</span>
-                            </div>
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                              <span className="text-xs text-slate-400 font-bold block">层系探明度</span>
-                              <span className="text-2xl font-black text-slate-800 mt-2 block">{currentTarget.layerProvedLevel}</span>
-                            </div>
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                              <span className="text-xs text-slate-400 font-bold block">突破示范效应</span>
-                              <span className="text-2xl font-black text-emerald-600 mt-2 block">{currentTarget.demonstrationEffect}</span>
-                            </div>
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                              <span className="text-xs text-slate-400 font-bold block">风险总评估</span>
-                              <span className="text-2xl font-black text-amber-600 mt-2 block">{currentTarget.riskLevel}</span>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-
-                  {/* B) RADAR AND STRESS TESTING GRID */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    
-                    {/* B-1: extreme polar attributes radar */}
-                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-xs font-black text-slate-800 tracking-wider uppercase">
-                            极坐标四维属性罗盘 (Radar Chart)
-                          </h4>
-                          <span className="px-2 py-0.5 rounded-full bg-blue-50 border border-blue-100 text-[10px] text-blue-600 font-bold">
-                            基准阈值: 75
+                    <div className="mt-3.5 flex-1 flex flex-col justify-around gap-2 text-left">
+                      {[
+                        { name: lang === 'zh' ? '1. 地质风险 (Geology)' : '1. Geology Risk', level: targetVersionData.riskLevels.geology, color: targetVersionData.riskLevels.geology === '高' ? 'rose' : 'amber' },
+                        { name: lang === 'zh' ? '2. 工程技术风险 (Engineering)' : '2. Engineering Risk', level: targetVersionData.riskLevels.engineering, color: 'amber' },
+                        { name: lang === 'zh' ? '3. 安全环保风险 (HSE)' : '3. Safety & HSE Risk', level: targetVersionData.riskLevels.hse, color: 'emerald' },
+                        { name: lang === 'zh' ? '4. 财务效益风险 (Economy)' : '4. Economic Risk', level: targetVersionData.riskLevels.economy, color: 'amber' }
+                      ].map((item, idx) => (
+                        <div key={idx} className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-600">{item.name}</span>
+                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
+                            item.color === 'rose' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                            item.color === 'amber' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                            'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                          }`}>
+                            {item.level}
                           </span>
                         </div>
-                        <p className="text-[10px] text-slate-400 mt-1 font-medium">
-                          虚线为75分标准值。若落入虚线内部，即代表该圈闭存在对应维度的“木桶短板”。
-                        </p>
-                      </div>
-
-                      {/* SVG Radar Compass Graph */}
-                      <div className="flex justify-center my-6 relative">
-                        <svg className="w-56 h-56 overflow-visible" viewBox="0 0 200 200">
-                          {/* Radial background grids */}
-                          <circle cx="100" cy="100" r="75" fill="none" stroke="#e2e8f0" strokeDasharray="4" strokeWidth="1" />
-                          <circle cx="100" cy="100" r="50" fill="none" stroke="#f1f5f9" strokeWidth="1" />
-                          <circle cx="100" cy="100" r="25" fill="none" stroke="#f1f5f9" strokeWidth="1" />
-                          
-                          {/* Cross axes */}
-                          <line x1="100" y1="20" x2="100" y2="180" stroke="#f1f5f9" strokeWidth="1.5" />
-                          <line x1="20" y1="100" x2="180" y2="100" stroke="#f1f5f9" strokeWidth="1.5" />
-
-                          {/* Reference threshold 75 points boundary circle (dotted) */}
-                          <circle cx="100" cy="100" r="60" fill="none" stroke="#ef4444" strokeDasharray="3" strokeWidth="1.2" opacity="0.4" />
-                          
-                          {/* Radar points mapping */}
-                          {/* Top: 吸引力 (Estimated Resources Score)
-                              Right: 可靠性 (Pg Score)
-                              Bottom: 经济性 (IRR Score)
-                              Left: 战略性 (Demonstration & Fit) */}
-                          {(() => {
-                            // Let's compute actual mapping points
-                            // Scale 0 - 100 mapping to 0 - 80px radius
-                            const attScore = Math.min(100, Math.round((currentTarget.estimatedResources / 6500) * 80 + 20));
-                            const relScore = Math.min(100, Math.round(currentTarget.geologicPg * 2.2 + 10));
-                            const ecoScore = Math.min(100, Math.round((currentTarget.baseIrr / 18) * 85 + 15));
-                            const strScore = Math.min(100, Math.round(currentTarget.offsetFittedRate * 0.9 + 10));
-
-                            const pTop = { x: 100, y: 100 - (attScore * 0.8) };
-                            const pRight = { x: 100 + (relScore * 0.8), y: 100 };
-                            const pBottom = { x: 100, y: 100 + (ecoScore * 0.8) };
-                            const pLeft = { x: 100 - (strScore * 0.8), y: 100 };
-
-                            const pathStr = `M ${pTop.x} ${pTop.y} L ${pRight.x} ${pRight.y} L ${pBottom.x} ${pBottom.y} L ${pLeft.x} ${pLeft.y} Z`;
-
-                            return (
-                                <>
-                                 {/* Blue Shaded Area */}
-                                 <path d={pathStr} fill="rgba(59, 130, 246, 0.15)" stroke="#3b82f6" strokeWidth="2.5" />
-                                 
-                                 {/* Points */}
-                                 <circle cx={pTop.x} cy={pTop.y} r="4" fill="#3b82f6" />
-                                 <circle cx={pRight.x} cy={pRight.y} r="4" fill="#3b82f6" />
-                                 <circle cx={pBottom.x} cy={pBottom.y} r="4" fill="#3b82f6" />
-                                 <circle cx={pLeft.x} cy={pLeft.y} r="4" fill="#3b82f6" />
-
-                                 {/* Labels */}
-                                 <text x="100" y="14" textAnchor="middle" className="text-[10px] font-black fill-slate-700">吸引力 ({attScore})</text>
-                                 <text x="184" y="103" textAnchor="start" className="text-[10px] font-black fill-slate-700">可靠性 ({relScore})</text>
-                                 <text x="100" y="195" textAnchor="middle" className="text-[10px] font-black fill-slate-700">经济性 ({ecoScore})</text>
-                                 <text x="15" y="103" textAnchor="end" className="text-[10px] font-black fill-slate-700">战略性 ({strScore})</text>
-                               </>
-                            );
-                          })()}
-                        </svg>
-                      </div>
-
-                      {/* Legends */}
-                      <div className="flex justify-around items-center bg-slate-50 border border-slate-100 rounded-xl p-2 text-[10px] font-bold text-slate-500">
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-2.5 h-2.5 bg-blue-500 rounded-xs"></span>
-                          当前圈闭指标
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-2.5 h-0.5 border-t-2 border-red-400 border-dashed"></span>
-                          75分预警红线
-                        </div>
-                      </div>
+                      ))}
                     </div>
 
-                    {/* B-2: Oil price sensitivity stress testing */}
-                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
-                      <div className="space-y-1">
-                        <h4 className="text-xs font-black text-slate-800 tracking-wider uppercase">
-                          油价变动敏感性压力测试
-                        </h4>
-                        <p className="text-[10px] text-slate-400 font-medium">
-                          左右滑动油价，模拟并重算在超低、极高油价环境下，项目的财务风险和回报。
-                        </p>
-                      </div>
-
-                      {/* Interactive range slider */}
-                      <div className="my-5 bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-black text-slate-600">模拟基准油价</span>
-                          <span className="text-lg font-mono font-black text-blue-600">${oilPrice}/桶</span>
-                        </div>
-                        <input 
-                          type="range"
-                          min="40"
-                          max="100"
-                          step="1"
-                          value={oilPrice}
-                          onChange={(e) => setOilPrice(parseInt(e.target.value))}
-                          className="w-full accent-blue-600 cursor-pointer"
-                        />
-                        <div className="flex justify-between text-[10px] text-slate-400 font-bold">
-                          <span>$40 极低阻抗</span>
-                          <span>$70 基准价</span>
-                          <span>$100 高额回报</span>
-                        </div>
-                      </div>
-
-                      {/* Financial results instant linkage updates */}
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="font-bold text-slate-500">期望净现值 (NPV):</span>
-                          <span className="font-mono font-black text-emerald-600">
-                            {financialMetrics.npv} 亿元 <span className="text-[10px] font-medium text-slate-400">(原{currentTarget.npv70}亿)</span>
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="font-bold text-slate-500">内部收益率 (IRR):</span>
-                          <span className="font-mono font-black text-blue-600">
-                            {financialMetrics.irr}% <span className="text-[10px] font-medium text-slate-400">(原{currentTarget.baseIrr}%)</span>
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="font-bold text-slate-500">盈亏平衡油价安全垫:</span>
-                          <span className={`font-mono font-black ${financialMetrics.irr >= 10 ? 'text-green-600' : 'text-red-600'}`}>
-                            {financialMetrics.buffer}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <button 
-                        onClick={() => alert(`成功导出《${currentTarget.name} 地质经济综合评估报告.pdf》`)}
-                        className="mt-5 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all shadow-md shadow-blue-100"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        生成并导出详细评价报告
-                      </button>
+                    <div className="mt-3.5 pt-3 border-t border-slate-100 text-left bg-rose-50/30 border border-rose-100/50 p-2.5 rounded-xl flex gap-2">
+                      <AlertTriangle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-[10px] text-slate-500 leading-relaxed">
+                        <strong>{lang === 'zh' ? '警报：' : 'Warning: '}</strong>
+                        {lang === 'zh' ? '若沙雅深层断裂错位>22米，本井存在 25% 的流体逸散水侵风险。' : 'Offsets >22m can trigger fluid invasion.'}
+                      </p>
                     </div>
-
                   </div>
 
                 </div>
 
-              </motion.div>
+                {/* Comprehensive Evaluation Conclusion */}
+                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-xs text-left">
+                  <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 mb-3.5">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-indigo-600" />
+                      {lang === 'zh' ? '⑤ 综合评价核心结论与决策' : '5. Integrated Evaluation Conclusions'}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-slate-400 font-bold">{lang === 'zh' ? '推荐等级：' : 'Recommendation:'}</span>
+                      <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-black">
+                        {lang === 'zh' ? '谨慎推荐' : 'Prudent Recommendation'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                      <div className="text-xs font-bold text-emerald-600 mb-2 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        {lang === 'zh' ? '主要优势 (Pros)' : 'Main Advantages'}
+                      </div>
+                      <ul className="space-y-1.5 text-xs text-slate-600 list-decimal list-inside">
+                        {targetVersionData.pros.map((p, idx) => (
+                          <li key={idx} className="leading-relaxed">{p}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                      <div className="text-xs font-bold text-rose-600 mb-2 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                        {lang === 'zh' ? '主要风险及劣势 (Risks/Cons)' : 'Main Risks & Cons'}
+                      </div>
+                      <ul className="space-y-1.5 text-xs text-slate-600 list-decimal list-inside">
+                        {targetVersionData.cons.map((c, idx) => (
+                          <li key={idx} className="leading-relaxed">{c}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="bg-indigo-50/20 p-3.5 rounded-xl border border-indigo-100/40">
+                      <div className="text-xs font-bold text-indigo-600 mb-2 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                        {lang === 'zh' ? '下一步建议措施' : 'Next Step Suggestions'}
+                      </div>
+                      <ul className="space-y-1.5 text-xs text-slate-600 list-disc list-inside">
+                        {targetVersionData.suggestions.map((s, idx) => (
+                          <li key={idx} className="leading-relaxed">{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
 
-            {/* SUB-VIEW 2: TARGET OPTIMIZATION */}
-            {activeSubTab === 'optimization' && (
-              <motion.div
-                key="optimization-view"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                className="space-y-6"
-              >
-                
-                {/* ALGORITHM SWITCH TOP TAB BAR */}
-                <div className="bg-white border border-slate-200 rounded-2xl p-2 shadow-xs flex items-center justify-between">
-                  <div className="flex gap-1.5">
-                    <button
-                      onClick={() => setOptTab('weight')}
-                      className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
-                        optTab === 'weight' 
-                          ? 'bg-blue-600 text-white shadow-md shadow-blue-100' 
-                          : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      综合权重排名
-                    </button>
-                    <button
-                      onClick={() => setOptTab('boston')}
-                      className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
-                        optTab === 'boston' 
-                          ? 'bg-blue-600 text-white shadow-md shadow-blue-100' 
-                          : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      波士顿矩阵定位
-                    </button>
-                    <button
-                      onClick={() => setOptTab('radar')}
-                      className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
-                        optTab === 'radar' 
-                          ? 'bg-blue-600 text-white shadow-md shadow-blue-100' 
-                          : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      多维蛛网分析
-                    </button>
-                    <button
-                      onClick={() => setOptTab('frontier')}
-                      className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
-                        optTab === 'frontier' 
-                          ? 'bg-blue-600 text-white shadow-md shadow-blue-100' 
-                          : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      效益前沿优选
-                    </button>
+            {/* STAGE 1: ① 目标建立 (Target Definition) */}
+            {activeStep === 1 && (
+              <div className="space-y-4 text-left">
+                <div className="bg-gradient-to-br from-indigo-50/30 to-blue-50/30 border border-slate-100 rounded-2xl p-5 shadow-sm">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Award className="w-5 h-5 text-indigo-600" />
+                    <h3 className="text-sm font-extrabold text-slate-900">{lang === 'zh' ? '阶段 ①：评价目标与维度定义' : 'Stage 1: Target & Task Scope Definition'}</h3>
                   </div>
+                  <p className="text-xs text-slate-500 leading-relaxed mb-4">
+                    {lang === 'zh' 
+                      ? '本智能体在工作区初始化时，已自动关联待评价对象，并根据《SY/T 5732 圈闭评价规范》自动建立以下标准评价场景。'
+                      : 'The agent has automatically matched the evaluation target object and established standard scopes based on industrial standards.'}
+                  </p>
 
-                  <span className="text-[10px] font-bold text-slate-400 mr-3 uppercase tracking-widest">
-                    决策权重算法切换项
-                  </span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white p-4 rounded-xl border border-slate-100 space-y-3 shadow-2xs">
+                      <span className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider block border-b border-slate-100 pb-1.5">{lang === 'zh' ? '评价对象核心参数' : 'Target Target Core parameters'}</span>
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <span className="text-slate-400 block">{lang === 'zh' ? '评价对象名称' : 'Target Name'}</span>
+                          <span className="font-bold text-slate-800">{targetVersionData.name}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block">{lang === 'zh' ? '地理区块' : 'Geographic Block'}</span>
+                          <span className="font-bold text-slate-800">{lang === 'zh' ? '塔里木盆地顺北5号带' : 'Tarim Basin SB-5'}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block">{lang === 'zh' ? '勘探阶段' : 'Exploration Phase'}</span>
+                          <span className="font-bold text-slate-800">{lang === 'zh' ? '风险勘探 / 预探阶段' : 'Risk Exploration'}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block">{lang === 'zh' ? '目的层系' : 'Target Formation'}</span>
+                          <span className="font-bold text-slate-800">{lang === 'zh' ? '奥陶系一区一阶一维' : 'Ordovician Fault System'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-xl border border-slate-100 space-y-3 shadow-2xs">
+                      <span className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider block border-b border-slate-100 pb-1.5">{lang === 'zh' ? '评价依据与范围' : 'Evaluation Bounds & Spec'}</span>
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <span className="text-slate-400 block">{lang === 'zh' ? '采用行业标准' : 'Standard Applied'}</span>
+                          <span className="font-bold text-slate-800">SY/T 5732-2020</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block">{lang === 'zh' ? '评价目的' : 'Evaluation Goal'}</span>
+                          <span className="font-bold text-slate-800 truncate">{lang === 'zh' ? '明确断裂保存及钻孔部署' : 'Seal integrity & well deployment'}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block">{lang === 'zh' ? '三维断裂覆盖' : 'Seismic 3D Cov'}</span>
+                          <span className="font-bold text-slate-800">1,240 km²</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block">{lang === 'zh' ? '专家控制规则数' : 'Expert rules count'}</span>
+                          <span className="font-bold text-slate-800">14 {lang === 'zh' ? '条活跃' : 'Active'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* A) DYNAMIC RANKING WEIGHT REGULATOR */}
-                {optTab === 'weight' && (
-                  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
-                    <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                      <div className="flex items-center gap-2">
-                        <Sliders className="w-4 h-4 text-blue-500" />
-                        <h4 className="text-xs font-black text-slate-800">
-                          排队权重智能调节配置
-                        </h4>
-                      </div>
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => applyPreset('geology')}
-                          className="px-2.5 py-1 text-[10px] font-bold bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-lg transition-all"
-                        >
-                          突出地质成功率(Pg)
-                        </button>
-                        <button 
-                          onClick={() => applyPreset('resource')}
-                          className="px-2.5 py-1 text-[10px] font-bold bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-lg transition-all"
-                        >
-                          突出储量规模(P50)
-                        </button>
-                        <button 
-                          onClick={balanceWeights}
-                          className="px-2.5 py-1 text-[10px] font-bold bg-blue-50 hover:bg-blue-100 border border-blue-150 text-blue-600 rounded-lg transition-all"
-                        >
-                          智能权重配平 (100%)
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-xs font-bold text-slate-600">
-                          <span>地质风险权重:</span>
-                          <span className="font-mono text-blue-600 font-black">{weights.geology}%</span>
+                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-xs">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-3">
+                    <Brain className="w-4 h-4 text-indigo-500" />
+                    {lang === 'zh' ? '智能体自适应子任务拆解' : 'Agent Sub-task Auto-Decomposition'}
+                  </span>
+                  <div className="space-y-2.5">
+                    {[
+                      { title: lang === 'zh' ? '任务A: 多源地质测井、地震解释数据对齐' : 'Task A: Geologic Logs & Seismic Align', desc: lang === 'zh' ? '读取.segy及.las，自动重采样井斜并对齐三维储层层位深度。' : 'Load and resample curves in line with 3D seismic horizon.', done: true },
+                      { title: lang === 'zh' ? '任务B: 断裂密封公式计算及折减评分' : 'Task B: Fault Sealing Computation', desc: lang === 'zh' ? '计算走滑断层水平/垂向错断距离，触发专家阈值阻抗折减公式。' : 'Calculate slip displacement and trigger sealing scaling factor.', done: true },
+                      { title: lang === 'zh' ? '任务C: 工程阻抗与超深温度载荷模拟' : 'Task C: HPHT well friction simulation', desc: lang === 'zh' ? '结合邻井实钻，推算目的层高温高压条件下的套管机械拉力冗余系数。' : 'Deduce casing stress factors under extreme 8000m depth temperature.', done: true },
+                      { title: lang === 'zh' ? '任务D: Pg 概率与财务 NPV 敏感度联合仿真' : 'Task D: Pg & Economic Sensitivity Simulation', desc: lang === 'zh' ? '综合五大地质条件，进行5000次蒙特卡洛地质成功率及NPV财务敏感计算。' : 'Execute 5000 Monte Carlo runs to couple Pg and Oil Price curves.', done: true }
+                    ].map((task, i) => (
+                      <div key={i} className="flex gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100/60">
+                        <div className="w-5 h-5 rounded bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Check className="w-3.5 h-3.5" />
                         </div>
-                        <input 
-                          type="range" min="0" max="100" value={weights.geology}
-                          onChange={(e) => handleWeightChange('geology', parseInt(e.target.value))}
-                          className="w-full accent-blue-500"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-xs font-bold text-slate-600">
-                          <span>资源规模权重:</span>
-                          <span className="font-mono text-blue-600 font-black">{weights.resource}%</span>
+                        <div>
+                          <div className="text-xs font-bold text-slate-800">{task.title}</div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">{task.desc}</div>
                         </div>
-                        <input 
-                          type="range" min="0" max="100" value={weights.resource}
-                          onChange={(e) => handleWeightChange('resource', parseInt(e.target.value))}
-                          className="w-full accent-blue-500"
-                        />
                       </div>
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-xs font-bold text-slate-600">
-                          <span>经济效益权重:</span>
-                          <span className="font-mono text-blue-600 font-black">{weights.economics}%</span>
-                        </div>
-                        <input 
-                          type="range" min="0" max="100" value={weights.economics}
-                          onChange={(e) => handleWeightChange('economics', parseInt(e.target.value))}
-                          className="w-full accent-blue-500"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-xs font-bold text-slate-600">
-                          <span>战略权重:</span>
-                          <span className="font-mono text-blue-600 font-black">{weights.strategy}%</span>
-                        </div>
-                        <input 
-                          type="range" min="0" max="100" value={weights.strategy}
-                          onChange={(e) => handleWeightChange('strategy', parseInt(e.target.value))}
-                          className="w-full accent-blue-500"
-                        />
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                )}
+                </div>
+              </div>
+            )}
 
-                {/* B) MULTI-METRIC SORT TABLE */}
-                <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
-                  <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                    <span className="text-xs font-black text-slate-800">多指标智能排序数据表</span>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase">
-                      已选中 {poolTargets.length} / {targets.length} 个目标加入优选方案
+            {/* STAGE 2: ② 资料准备 (Resource Preparation) */}
+            {activeStep === 2 && (
+              <div className="space-y-4 text-left">
+                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-xs">
+                  <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
+                    <span className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                      <FileUp className="w-4 h-4 text-indigo-600" />
+                      {lang === 'zh' ? '已加载评价资源清单与智能对齐状态' : 'Loaded Resource Files & Alignment Quality'}
+                    </span>
+                    <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                      {lang === 'zh' ? '数据完整度：85%' : 'Completeness: 85%'}
                     </span>
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-slate-100 bg-slate-50/50 text-[11px] font-black text-slate-400 uppercase tracking-wider">
-                          <th className="py-3 px-6 w-12 text-center">
-                            <input 
-                              type="checkbox" 
-                              checked={targets.every(t => selectedTargetIds[t.id])}
-                              onChange={toggleSelectAll}
-                              className="rounded accent-blue-600 cursor-pointer"
-                            />
-                          </th>
-                          <th className="py-3 px-4 w-16 text-center">排名</th>
-                          <th className="py-3 px-4">目标名称</th>
-                          <th className="py-3 px-4">地质Pg分</th>
-                          <th className="py-3 px-4">资源分</th>
-                          <th className="py-3 px-4">经济分</th>
-                          <th className="py-3 px-4">战略分</th>
-                          <th className="py-3 px-4 font-black text-blue-600">综合得分</th>
-                          <th className="py-3 px-4">推荐等级</th>
-                          <th className="py-3 px-6">决策参考</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 text-xs text-slate-600">
-                        {sortedTargets.map((t, idx) => (
-                          <tr key={t.id} className="hover:bg-slate-50/70 transition-colors">
-                            <td className="py-3.5 px-6 text-center">
-                              <input 
-                                type="checkbox"
-                                checked={!!selectedTargetIds[t.id]}
-                                onChange={() => toggleSelectTarget(t.id)}
-                                className="rounded accent-blue-600 cursor-pointer"
-                              />
-                            </td>
-                            <td className="py-3.5 px-4 text-center font-mono font-black text-slate-400">{idx + 1}</td>
-                            <td className="py-3.5 px-4 font-black text-slate-800 cursor-pointer hover:text-blue-600 transition-colors" onClick={() => { setSelectedTargetId(t.id); setActiveSubTab('evaluation'); }}>
-                              {t.name}
-                            </td>
-                            <td className="py-3.5 px-4 font-mono font-semibold">{t.geologyScore}</td>
-                            <td className="py-3.5 px-4 font-mono font-semibold">{t.resourceScore}</td>
-                            <td className="py-3.5 px-4 font-mono font-semibold">{t.economicsScore}</td>
-                            <td className="py-3.5 px-4 font-mono font-semibold">{t.strategyScore}</td>
-                            <td className="py-3.5 px-4 font-mono font-black text-blue-600">{t.compositeScore}</td>
-                            <td className="py-3.5 px-4">
-                              <span className={`px-2 py-0.5 rounded-full font-black text-[10px] ${
-                                t.grade === 'A类优先' 
-                                  ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
-                                  : t.grade === 'B类跟进'
-                                  ? 'bg-blue-50 text-blue-600 border border-blue-100'
-                                  : 'bg-red-50 text-red-600 border border-red-100'
-                              }`}>
-                                {t.grade}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-6 font-medium text-slate-400">{t.decisionRef}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* C) DUAL-CHANNEL VISUALIZATION DASHBOARD */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  
-                  {/* View A or Other Alg Switches */}
-                  {optTab === 'boston' ? (
-                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
-                      <div className="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
-                        <h4 className="text-xs font-black text-slate-800 uppercase">
-                          波士顿四象限决策定位图 (Boston Matrix)
-                        </h4>
-                        <span className="text-[10px] text-slate-400 font-bold">X轴: 地质Pg  Y轴: 经济效益</span>
-                      </div>
-                      
-                      {/* Interactive Boston 4 quadrant grid */}
-                      <div className="relative w-full h-64 border border-slate-200 bg-slate-50/50 rounded-xl overflow-hidden">
-                        {/* Center axes */}
-                        <div className="absolute top-1/2 left-0 right-0 h-px border-t border-slate-300 border-dashed"></div>
-                        <div className="absolute left-1/2 top-0 bottom-0 w-px border-l border-slate-300 border-dashed"></div>
-
-                        {/* Quadrant labels */}
-                        <span className="absolute top-3 right-3 text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                          明星区 (Stars) - 高成功高回报
-                        </span>
-                        <span className="absolute bottom-3 right-3 text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
-                          现金牛区 (Cows) - 高成功稳健
-                        </span>
-                        <span className="absolute top-3 left-3 text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
-                          问号区 (Questions) - 高投入待甄别
-                        </span>
-                        <span className="absolute bottom-3 left-3 text-[10px] font-black text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100">
-                          瘦狗区 (Dogs) - 建议搁置
-                        </span>
-
-                        {/* Plot points for each target */}
-                        {sortedTargets.map((t, idx) => {
-                          // Coordinates centered on 50%
-                          // mapped to percentage: 10% to 90%
-                          const xPercent = 10 + (t.geologicPg / 70) * 80;
-                          const yPercent = 90 - (t.baseIrr / 20) * 80;
-
-                          return (
-                            <motion.div
-                              key={t.id}
-                              style={{ left: `${xPercent}%`, top: `${yPercent}%` }}
-                              className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer z-10"
-                              whileHover={{ scale: 1.2 }}
-                              onClick={() => { setSelectedTargetId(t.id); setActiveSubTab('evaluation'); }}
-                            >
-                              <div className="w-4 h-4 bg-blue-600 hover:bg-blue-700 text-white font-mono text-[9px] font-black rounded-full flex items-center justify-center shadow-md animate-pulse">
-                                {idx + 1}
-                              </div>
-                              <span className="absolute top-4 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-black text-slate-700 bg-white border border-slate-200 px-1.5 py-0.5 rounded shadow-xs">
-                                {t.name}
-                              </span>
-                            </motion.div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : optTab === 'radar' ? (
-                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
-                      <div className="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
-                        <h4 className="text-xs font-black text-slate-800 uppercase">
-                          多维度蛛网重叠对比 (Overlay Radar)
-                        </h4>
-                        <span className="text-[10px] text-slate-400 font-bold">全选进行一键覆盖展示</span>
-                      </div>
-                      
-                      <div className="flex justify-center">
-                        <svg className="w-56 h-56 overflow-visible" viewBox="0 0 200 200">
-                          <circle cx="100" cy="100" r="75" fill="none" stroke="#e2e8f0" strokeDasharray="3" />
-                          <circle cx="100" cy="100" r="50" fill="none" stroke="#f1f5f9" />
-                          <line x1="100" y1="20" x2="100" y2="180" stroke="#f1f5f9" />
-                          <line x1="20" y1="100" x2="180" y2="100" stroke="#f1f5f9" />
-
-                          {/* Render overlapping polygons with distinct colors */}
-                          {sortedTargets.slice(0, 3).map((t, idx) => {
-                            const colors = ['rgba(6, 182, 212, 0.1)', 'rgba(16, 185, 129, 0.1)', 'rgba(139, 92, 246, 0.1)'];
-                            const strokeColors = ['#06b6d4', '#10b981', '#8b5cf6'];
-                            
-                            const attScore = Math.min(100, Math.round((t.estimatedResources / 6500) * 80 + 20));
-                            const relScore = Math.min(100, Math.round(t.geologicPg * 2.2 + 10));
-                            const ecoScore = Math.min(100, Math.round((t.baseIrr / 18) * 85 + 15));
-                            const strScore = Math.min(100, Math.round(t.offsetFittedRate * 0.9 + 10));
-
-                            const pTop = { x: 100, y: 100 - (attScore * 0.8) };
-                            const pRight = { x: 100 + (relScore * 0.8), y: 100 };
-                            const pBottom = { x: 100, y: 100 + (ecoScore * 0.8) };
-                            const pLeft = { x: 100 - (strScore * 0.8), y: 100 };
-
-                            const pathStr = `M ${pTop.x} ${pTop.y} L ${pRight.x} ${pRight.y} L ${pBottom.x} ${pBottom.y} L ${pLeft.x} ${pLeft.y} Z`;
-
-                            return (
-                              <g key={t.id}>
-                                <path d={pathStr} fill={colors[idx]} stroke={strokeColors[idx]} strokeWidth="2" opacity="0.8" />
-                              </g>
-                            );
-                          })}
-
-                          <text x="100" y="14" textAnchor="middle" className="text-[10px] font-black fill-slate-500">吸引力</text>
-                          <text x="184" y="103" textAnchor="start" className="text-[10px] font-black fill-slate-500">可靠性</text>
-                          <text x="100" y="195" textAnchor="middle" className="text-[10px] font-black fill-slate-500">经济性</text>
-                          <text x="15" y="103" textAnchor="end" className="text-[10px] font-black fill-slate-500">战略性</text>
-                        </svg>
-                      </div>
-
-                      <div className="flex justify-around text-[10px] font-bold mt-4">
-                        <span className="text-blue-500">● {targets[0].name}</span>
-                        <span className="text-emerald-500">● {targets[1].name}</span>
-                        <span className="text-purple-500">● {targets[2].name}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
-                      <div className="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
-                        <h4 className="text-xs font-black text-slate-800 uppercase">
-                          综合排队得分分布直方图
-                        </h4>
-                        <select className="bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-bold px-2 py-1">
-                          <option>综合排序值</option>
-                          <option>地质Pg分</option>
-                          <option>资源储备</option>
-                        </select>
-                      </div>
-
-                      {/* Histogram of scores */}
-                      <div className="h-48 flex items-end justify-around gap-2 px-2 border-b border-slate-200 relative">
-                        {sortedTargets.map((t, idx) => {
-                          const heightPct = Math.min(100, Math.max(10, t.compositeScore));
-                          return (
-                            <div key={t.id} className="group relative flex flex-col items-center w-12">
-                              {/* Hover Tooltip */}
-                              <div className="absolute -top-10 scale-0 group-hover:scale-100 transition-transform bg-slate-900 text-slate-100 text-[10px] font-bold px-2 py-1 rounded shadow-md z-10 whitespace-nowrap">
-                                得分: {t.compositeScore} 分
-                              </div>
-                              <div 
-                                style={{ height: `${heightPct * 1.5}px` }}
-                                className="w-8 bg-blue-600 hover:bg-blue-500 transition-all rounded-t-lg shadow-sm"
-                              ></div>
-                              <span className="text-[10px] font-mono font-black text-blue-600 mt-1.5">
-                                {t.compositeScore}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      <div className="flex justify-around text-[10px] font-black text-slate-500 mt-3">
-                        {sortedTargets.map(t => (
-                          <span key={t.id} className="truncate max-w-[50px]" title={t.name}>{t.name.substring(0, 3)}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* View B: Knapsack solvers efficient frontier */}
-                  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
-                    <div className="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
-                      <h4 className="text-xs font-black text-slate-800 uppercase">
-                        资金配置效益前沿边界曲线 (投资规划)
-                      </h4>
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500 font-bold">
-                        <span>预算控制上限:</span>
-                        <input 
-                          type="number"
-                          step="0.1"
-                          value={budgetLimit}
-                          onChange={(e) => setBudgetLimit(parseFloat(e.target.value))}
-                          className="w-14 bg-slate-50 border border-slate-200 rounded px-1 text-center font-mono text-red-500 font-black"
-                        />
-                        <span>亿</span>
-                      </div>
-                    </div>
-
-                    <div className="text-[10px] text-slate-400 font-medium mb-3">
-                      基于背包算法，计算在有限勘探预算下累计储量最优化组合。红色虚线代表当前最大资金上限。
-                    </div>
-
-                    {/* SVG Curve display */}
-                    <div className="relative h-44 border-b border-l border-slate-200 bg-slate-50/20 rounded-bl-lg overflow-visible">
-                      
-                      {/* Budget Limit line */}
-                      {(() => {
-                        // Max cost is ~10.1 Billion
-                        const limitPct = (budgetLimit / 10.1) * 100;
-                        return (
-                          <div 
-                            style={{ left: `${limitPct}%` }}
-                            className="absolute top-0 bottom-0 border-l-2 border-red-500 border-dashed z-10 flex flex-col justify-start"
-                          >
-                            <span className="text-[8px] bg-red-500 text-white font-black px-1 py-0.5 rounded -translate-x-1/2">
-                              上限: {budgetLimit} 亿
-                            </span>
+                  <div className="space-y-2.5">
+                    {[
+                      { name: 'SB-5_Seismic_Inversion_Full.segy', type: lang === 'zh' ? '三维地震属性体' : '3D Seismic Volume', size: '12.4 GB', match: '100%', status: lang === 'zh' ? '完全对齐' : 'Fully Aligned', color: 'indigo' },
+                      { name: 'SB-501_structural_logs_V3.las', type: lang === 'zh' ? '邻区井段实钻测井' : 'Wireline Well Logs', size: '154 MB', match: '95%', status: lang === 'zh' ? '深度对齐' : 'Matched', color: 'emerald' },
+                      { name: 'SB-5_Fault_System_Tectonics.dwg', type: lang === 'zh' ? '走滑断裂层系成果' : 'Fault Structure Map', size: '42 MB', match: '100%', status: lang === 'zh' ? '完全融合' : 'Fully Fused', color: 'blue' }
+                    ].map((file, i) => (
+                      <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 gap-2">
+                        <div className="flex items-start gap-2.5">
+                          <div className="w-8 h-8 rounded bg-white border border-slate-100 flex items-center justify-center text-slate-500">
+                            <FileText className="w-4 h-4" />
                           </div>
-                        );
-                      })()}
-
-                      {/* Cumulative curves plotter */}
-                      <svg className="w-full h-full overflow-visible" viewBox="0 0 300 150">
-                        {/* Draw curves path */}
-                        {(() => {
-                          // Accumulate reserve and cost greedy-wise
-                          const greedyTargets = [...sortedTargets].sort((a, b) => {
-                            const ratioA = a.estimatedResources / a.drillingInvestment;
-                            const ratioB = b.estimatedResources / b.drillingInvestment;
-                            return ratioB - ratioA;
-                          });
-
-                          let currentCost = 0;
-                          let currentReserve = 0;
-                          const points = [{ x: 0, y: 150 }];
-
-                          greedyTargets.forEach(t => {
-                            currentCost += t.drillingInvestment;
-                            currentReserve += t.estimatedResources;
-                            // scale to 300 x 150
-                            const px = (currentCost / 10.1) * 300;
-                            const py = 150 - (currentReserve / 18100) * 150;
-                            points.push({ x: px, y: py });
-                          });
-
-                          let pathStr = "M 0 150";
-                          points.forEach(p => {
-                            pathStr += ` L ${p.x} ${p.y}`;
-                          });
-
-                          return (
-                            <>
-                              {/* Green frontier path */}
-                              <path d={pathStr} fill="none" stroke="#10b981" strokeWidth="3" />
-                              {points.map((p, i) => (
-                                <circle key={i} cx={p.x} cy={p.y} r="4" fill="#10b981" />
-                              ))}
-                            </>
-                          );
-                        })()}
-                      </svg>
-
-                      <span className="absolute bottom-1 right-2 text-[8px] text-slate-400 font-bold">累计预算资金 (亿元)</span>
-                      <span className="absolute top-1 left-2 text-[8px] text-slate-400 font-bold">累计储量规模 (万吨)</span>
-                    </div>
-
-                    {/* Planning Solvers Action Panel */}
-                    <div className="flex gap-4 items-center mt-4">
-                      <button 
-                        onClick={handleKnapsackSolve}
-                        className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-100"
-                      >
-                        <Sliders className="w-3.5 h-3.5" />
-                        规划求解：一键生成最优部署组合
-                      </button>
-                    </div>
-
+                          <div>
+                            <div className="text-xs font-bold text-slate-800">{file.name}</div>
+                            <div className="text-[10px] text-slate-400 mt-0.5">{file.type} • {file.size}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs">
+                          <div className="text-right">
+                            <span className="text-slate-400 block text-[9px] uppercase">{lang === 'zh' ? '重采样匹配' : 'Match quality'}</span>
+                            <span className="font-extrabold text-indigo-600">{file.match}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-slate-400 block text-[9px] uppercase">{lang === 'zh' ? '智能体状态' : 'Agent Status'}</span>
+                            <span className="font-bold text-emerald-600">✓ {file.status}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
+                  {/* Warning: missing critical electrical micro-image log (FMI) */}
+                  <div className="mt-4 bg-amber-50/50 border border-amber-100 p-3.5 rounded-xl flex items-start gap-2.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h5 className="text-xs font-bold text-amber-900">{lang === 'zh' ? '提醒：缺少高分辨率电成像测井成果' : 'Notice: High-res electric micro-image log is missing'}</h5>
+                      <p className="text-[10px] text-slate-500 leading-relaxed mt-0.5">
+                        {lang === 'zh' 
+                          ? '智能体检测到未载入顺北501井微观电成像资料（FMI），对碳酸盐岩溶洞裂缝发育密度预测可能存在 10% 误差。您可以通过“补充资料”一键上传或绑定。'
+                          : 'FMI log is absent. This might introduce a 10% margin of error in cavern reservoir density prediction.'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
-              </motion.div>
+                <div className="bg-indigo-50/10 border border-indigo-100/40 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="w-5 h-5 text-indigo-500 flex-shrink-0" />
+                    <span className="text-xs text-slate-600 font-bold leading-normal">
+                      {lang === 'zh' ? '觉得评价参数不够完整？立即补充或者绑定新上传的文件' : 'Want to enrich evaluation inputs? Upload supplementary LAS/DWG now.'}
+                    </span>
+                  </div>
+                  <button 
+                    onClick={() => setIsUploadModalOpen(true)}
+                    className="h-8 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg cursor-pointer flex items-center gap-1.5 transition-all shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>{lang === 'zh' ? '补充目标资料' : 'Upload materials'}</span>
+                  </button>
+                </div>
+              </div>
             )}
 
-            {/* SUB-VIEW 3: PREFERRED POOL MANAGEMENT */}
-            {activeSubTab === 'pool' && (
-              <motion.div
-                key="pool-view"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                className="flex flex-col md:flex-row h-full gap-6 items-stretch"
-              >
-                
-                {/* (A) LEFT SIDEBAR: Oilfields Categorized Tree */}
-                <div className="w-full md:w-64 bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex-shrink-0 flex flex-col justify-between space-y-6">
-                  <div className="space-y-4">
-                    <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest">
-                      优选方案分类库 (A)
+            {/* STAGE 3: ③ 业务评价 (Evaluate Business) */}
+            {activeStep === 3 && (
+              <div className="space-y-4 text-left">
+                <div className="bg-indigo-50/35 border border-indigo-100/40 rounded-2xl p-5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Compass className="w-5 h-5 text-indigo-600" />
+                    <h3 className="text-sm font-extrabold text-slate-900">{lang === 'zh' ? '阶段 ③：多维专业业务评价指标' : 'Stage 3: Multi-Dimensional Professional Evaluation'}</h3>
+                  </div>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    {lang === 'zh' 
+                      ? '智能体在此阶段执行全套复杂力学与成藏分析，下面是地质指标和工程技术指标两个维度的深度展开。'
+                      : 'At this stage, the agent executes full migration modeling and wellbore mechanics analysis.'}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  {/* Detailed Geology Card */}
+                  <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <Compass className="w-4 h-4 text-indigo-600" />
+                        {lang === 'zh' ? '地质条件分析维度（5项）' : 'Geological Attributes (5 items)'}
+                      </span>
+                      <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{targetVersionData.geoScore} {lang === 'zh' ? '分' : 'Pts'}</span>
                     </div>
 
-                    <div className="space-y-2">
-                      {OILFIELDS.map(f => {
-                        const isSelected = selectedOilfield === f.name;
-                        return (
-                          <div
-                            key={f.name}
-                            onClick={() => setSelectedOilfield(f.name)}
-                            className={`p-3 rounded-xl border text-xs font-black flex items-center justify-between cursor-pointer transition-all ${
-                              isSelected 
-                                ? 'bg-blue-50 border-blue-200 text-blue-600 shadow-xs' 
-                                : 'bg-slate-50 hover:bg-slate-100/70 border-slate-150 text-slate-600'
-                            }`}
-                          >
-                            <span>{f.name}</span>
-                            <span className="px-2 py-0.5 rounded-full bg-white border text-[10px]">
-                              {f.name === '吉林油田' ? poolTargets.length : f.count} 个
-                            </span>
+                    <div className="space-y-3">
+                      {[
+                        { name: lang === 'zh' ? '烃源条件 (Source Rock)' : 'Source Rock', stars: targetVersionData.subScores.source, desc: lang === 'zh' ? '寒武系深层生烃大、排烃历史充沛，晚期高产成熟。' : 'High mature deep organic carbon with great discharge history.' },
+                        { name: lang === 'zh' ? '储层物性 (Reservoir)' : 'Reservoir', stars: targetVersionData.subScores.reservoir, desc: lang === 'zh' ? '奥陶系埋深特深碳酸盐岩，以大型溶洞、断裂裂缝缝洞相控为主。' : 'Controlled by vugs and faults network in Ordovician ultra depth.' },
+                        { name: lang === 'zh' ? '主力盖层 (Seal)' : 'Seal', stars: targetVersionData.subScores.caprock, desc: lang === 'zh' ? '盖层厚度：184米，完全无渗漏性微裂纹，极佳阻滞区。' : '184m caprock thickness, perfect blockage with no micro-fractures.' },
+                        { name: lang === 'zh' ? '圈闭闭合 (Trap)' : 'Trap', stars: targetVersionData.subScores.trap, desc: lang === 'zh' ? '走滑断相交叉面走向倾角陡峭，局部溢留点仍需精细三维物探校正。' : 'Steep strike-slip fault slope requires fine 3D seismic calibration.' },
+                        { name: lang === 'zh' ? '保存完整 (Preservation)' : 'Preservation', stars: targetVersionData.subScores.preservation, desc: lang === 'zh' ? '垂向多期走滑，高压充水存在侧向液压不平衡溢流。' : 'Multi-stage faults present risk of lateral hydrodynamic imbalance.' }
+                      ].map((attr, idx) => (
+                        <div key={idx} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-bold text-slate-700">{attr.name}</span>
+                            <div className="flex text-xs text-amber-400">
+                              {[1, 2, 3, 4, 5].map(s => (
+                                <span key={s} className={s <= attr.stars ? 'text-amber-400' : 'text-slate-200'}>★</span>
+                              ))}
+                            </div>
                           </div>
-                        );
-                      })}
+                          <p className="text-[10px] text-slate-400 mt-1 leading-normal">{attr.desc}</p>
+                        </div>
+                      ))}
                     </div>
-
-                    {selectedOilfield === '吉林油田' && (
-                      <div className="pl-4 border-l border-slate-200 space-y-2 mt-2">
-                        <div 
-                          onClick={() => setSelectedScheme('滚动')}
-                          className={`p-2 rounded text-xs font-bold flex items-center gap-2 cursor-pointer ${
-                            selectedScheme === '滚动' ? 'text-blue-600 font-black' : 'text-slate-400 hover:text-slate-600'
-                          }`}
-                        >
-                          <ChevronRight className="w-3 h-3" />
-                          方案-1: 滚动勘探方案 (当前)
-                        </div>
-                        <div 
-                          onClick={() => setSelectedScheme('浅层')}
-                          className={`p-2 rounded text-xs font-bold flex items-center gap-2 cursor-pointer ${
-                            selectedScheme === '浅层' ? 'text-blue-600 font-black' : 'text-slate-400 hover:text-slate-600'
-                          }`}
-                        >
-                          <ChevronRight className="w-3 h-3" />
-                          方案-2: 浅层构造评价方案
-                        </div>
-                      </div>
-                    )}
                   </div>
 
-                  {/* Actions for schema */}
-                  <div className="space-y-2 pt-4 border-t border-slate-100">
-                    <div className="flex gap-1.5">
-                      <input 
-                        type="text"
-                        placeholder="新方案名称..."
-                        value={newSchemeName}
-                        onChange={(e) => setNewSchemeName(e.target.value)}
-                        className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 outline-none focus:border-blue-500 flex-1"
-                      />
-                      <button 
-                        onClick={() => {
-                          if (!newSchemeName.trim()) return;
-                          alert(`成功新建方案：${newSchemeName}`);
-                          setNewSchemeName('');
-                        }}
-                        className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                        title="新建方案"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
+                  {/* Detailed Engineering Card */}
+                  <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <Sliders className="w-4 h-4 text-indigo-600" />
+                        {lang === 'zh' ? '工程可行性技术维度' : 'Engineering Feasibility Specs'}
+                      </span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                        targetVersionData.feasibilityColor === 'rose' ? 'bg-rose-50 text-rose-600' :
+                        targetVersionData.feasibilityColor === 'amber' ? 'bg-amber-50 text-amber-600' :
+                        'bg-emerald-50 text-emerald-600'
+                      }`}>{targetVersionData.feasibility}</span>
                     </div>
+
+                    <div className="bg-indigo-50/20 border border-indigo-100/30 p-3.5 rounded-xl space-y-2">
+                      <h5 className="text-xs font-bold text-indigo-950">{lang === 'zh' ? '物理力学载荷估计' : 'Physical & Mechanical Load Estimation'}</h5>
+                      <div className="grid grid-cols-2 gap-3 text-[11px] text-slate-600">
+                        <div>
+                          <span>{lang === 'zh' ? '主力目的层埋深' : 'Target Target Depth'}</span>
+                          <strong className="block text-slate-800 mt-0.5">8,240 m</strong>
+                        </div>
+                        <div>
+                          <span>{lang === 'zh' ? '最高孔隙流体压力' : 'Pore Fluid Pressure'}</span>
+                          <strong className="block text-slate-800 mt-0.5">94.2 MPa</strong>
+                        </div>
+                        <div>
+                          <span>{lang === 'zh' ? '地层极限高温度' : '极限 BHT'}</span>
+                          <strong className="block text-slate-800 mt-0.5">172 °C</strong>
+                        </div>
+                        <div>
+                          <span>{lang === 'zh' ? '预计套管抗拉裕度' : 'Casing Tensile Margin'}</span>
+                          <strong className="block text-emerald-600 mt-0.5">1.35 {lang === 'zh' ? '(高安全)' : '(Safe)'}</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">{lang === 'zh' ? '工程技术三大核心难点' : 'Drilling Technical Challenges'}</span>
+                      {targetVersionData.engineeringRisks.map((risk, idx) => (
+                        <div key={idx} className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex gap-2.5 items-start">
+                          <span className="w-4 h-4 rounded-full bg-rose-50 text-rose-600 text-[10px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">{idx + 1}</span>
+                          <span className="text-xs text-slate-600 leading-normal">{risk}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+            {/* STAGE 4: ④ 风险分析 (Risk Assessment) */}
+            {activeStep === 4 && (
+              <div className="space-y-4 text-left">
+                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-xs">
+                  <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
+                    <span className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-indigo-600" />
+                      {lang === 'zh' ? '阶段 ④：4大维度风险细分与专家减免预案' : 'Stage 4: Risk Register & Prevention Controls'}
+                    </span>
+                    <span className="text-xs text-rose-600 bg-rose-50 border border-rose-100 font-black px-2 py-0.5 rounded">
+                      {lang === 'zh' ? '高风险警告' : 'High Risk Alert'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {[
+                      { 
+                        area: lang === 'zh' ? '地质成藏风险 (Geology)' : 'Geology Risk', 
+                        level: targetVersionData.riskLevels.geology, 
+                        desc: lang === 'zh' ? '走滑断相分枝渗漏，多期地层应力不平衡导致部分层位有溢流风险。' : 'Fault leakages along strike-slip splays.',
+                        action: lang === 'zh' ? '对策：利用三维地震频段开展断层两盘交叉密封敏感性数值计算。' : 'Action: numerical simulations on cross-fault seal parameters.',
+                        color: targetVersionData.riskLevels.geology === '高' ? 'rose' : 'amber' 
+                      },
+                      { 
+                        area: lang === 'zh' ? '工程施工风险 (Engineering)' : 'Engineering Risk', 
+                        level: targetVersionData.riskLevels.engineering, 
+                        desc: lang === 'zh' ? '埋深超8200米，深层钻井易发生井斜大、钻头寿命短、卡钻等特种复杂故障。' : 'Excessive torque drag, bit wear, and high BHT challenges.',
+                        action: lang === 'zh' ? '对策：采用高硬度金刚石孕镶钻头，加入纳米润滑剂及新型高温钻井泥浆。' : 'Action: apply high-temp drilling muds and nano-lubricants.',
+                        color: 'amber' 
+                      },
+                      { 
+                        area: lang === 'zh' ? '安全与HSE合规风险 (HSE)' : 'HSE Compliance', 
+                        level: targetVersionData.riskLevels.hse, 
+                        desc: lang === 'zh' ? '局部含有酸性硫化氢气，对管鞋材质有腐蚀危险。' : 'Potential acidic H2S gas flow can corrode casings.',
+                        action: lang === 'zh' ? '对策：井口配置自动脱硫装置、井筒防硫保护套，选用特种高合金防腐油管。' : 'Action: equip well with anti-H2S nickel alloys.',
+                        color: 'emerald' 
+                      },
+                      { 
+                        area: lang === 'zh' ? '财务经济效益风险 (Economy)' : 'Economic Risk', 
+                        level: targetVersionData.riskLevels.economy, 
+                        desc: lang === 'zh' ? '特超深单井建设投资偏大，若油价低于65美金/桶将导致折算财务回收周期拉长。' : 'Ultra-deep well drilling raises capital requirements.',
+                        action: lang === 'zh' ? '对策：执行大斜度水平评价井，增加井周单筒一井多靶多向开采。' : 'Action: use directional side-track drilling.',
+                        color: 'amber' 
+                      }
+                    ].map((item, idx) => (
+                      <div key={idx} className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div className="space-y-1.5 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-extrabold text-slate-800">{item.area}</span>
+                            <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${
+                              item.color === 'rose' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                              item.color === 'amber' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                              'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                            }`}>{item.level}</span>
+                          </div>
+                          <p className="text-xs text-slate-600 leading-normal">{item.desc}</p>
+                          <div className="text-[11px] text-indigo-600 font-medium bg-indigo-50/20 p-2 rounded border border-indigo-100/10 mt-1">{item.action}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STAGE 5: ⑤ 综合判断 (Make Judgement) */}
+            {activeStep === 5 && (
+              <div className="space-y-4 text-left">
+                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-xs space-y-4">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <CheckCircle2 className="w-5 h-5 text-indigo-600" />
+                    <h3 className="text-sm font-extrabold text-slate-900">{lang === 'zh' ? '阶段 ⑤：综合决策部署卡' : 'Stage 5: Comprehensive Decision Brief'}</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col justify-between h-32">
+                      <span className="text-slate-400 font-bold block">{lang === 'zh' ? '核心推荐星级' : 'Decision Recommend Grade'}</span>
+                      <div className="flex items-center gap-0.5 my-1.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <span key={star} className={`text-lg ${star <= targetVersionData.recommendationStars ? 'text-amber-400' : 'text-slate-200'}`}>★</span>
+                        ))}
+                      </div>
+                      <span className="text-[10px] text-slate-500">{lang === 'zh' ? '推荐等级：谨慎推荐勘探' : 'Grade: Prudent Recommendation'}</span>
+                    </div>
+
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col justify-between h-32">
+                      <span className="text-slate-400 font-bold block">{lang === 'zh' ? '估算地质Pg概率' : 'Estimated Geological Pg'}</span>
+                      <div className="text-2xl font-black text-slate-800 my-1">
+                        {targetVersionData.geoScore - 40}%
+                      </div>
+                      <span className="text-[10px] text-indigo-600 font-medium">{lang === 'zh' ? '已结合构造完整度进行折减修正' : 'Modified with tectonic seal multipliers'}</span>
+                    </div>
+
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col justify-between h-32">
+                      <span className="text-slate-400 font-bold block">{lang === 'zh' ? '财务估算可回收NPV' : 'Financial Expected NPV'}</span>
+                      <div className="text-2xl font-black text-emerald-600 my-1">
+                        {(targetVersionData.geoScore * 0.05 - 1.2).toFixed(2)} {lang === 'zh' ? '亿元' : 'B CNY'}
+                      </div>
+                      <span className="text-[10px] text-slate-500">{lang === 'zh' ? '按国际油价70美金/桶计算' : 'Calculated at $70/bbl oil price'}</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-indigo-50/20 border border-indigo-100/30 p-4 rounded-xl space-y-2 text-xs text-slate-600">
+                    <span className="font-bold text-slate-900 block">{lang === 'zh' ? 'AI 智能体推荐首口井钻探部署方案' : 'AI Agent Recommended 1st Drilling Coordinates'}</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="bg-white p-2.5 rounded border border-slate-100">
+                        <span className="text-slate-400 text-[10px] block">{lang === 'zh' ? '建议部署井眼坐标' : 'Proposed Well Coordinates'}</span>
+                        <strong className="text-slate-800 block mt-0.5">X: 38472911.2, Y: 4392812.5</strong>
+                      </div>
+                      <div className="bg-white p-2.5 rounded border border-slate-100">
+                        <span className="text-slate-400 text-[10px] block">{lang === 'zh' ? '建议设计垂深' : 'Target Well Depth'}</span>
+                        <strong className="text-slate-800 block mt-0.5">8,240 {lang === 'zh' ? '米' : 'meters'}</strong>
+                      </div>
+                      <div className="bg-white p-2.5 rounded border border-slate-100">
+                        <span className="text-slate-400 text-[10px] block">{lang === 'zh' ? '预测初期平均日产规模' : 'Estimated Daily Capacity'}</span>
+                        <strong className="text-emerald-600 block mt-0.5">65{lang === 'zh' ? '吨/天 (轻质油)' : ' t/d (Light Crude)'}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Compile standard reports button card */}
+                <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-500/20 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="text-left space-y-1">
+                    <h5 className="text-xs font-bold text-slate-900">{lang === 'zh' ? '决策报告一键成果汇签' : 'One-Click Decision Report Compile'}</h5>
+                    <p className="text-[10px] text-slate-400 leading-normal max-w-xl">
+                      {lang === 'zh' 
+                        ? '支持一键将本工作区中的评价参数、灵敏度测试结果、风险防范对策以及可信AI证据链，打包生成符合国家勘探标准规范的汇签成果报告(Word格式)。'
+                        : 'Generate standard comprehensive report incorporating sensitivity results and trust evidence.'}
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => setIsReportModalOpen(true)}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl cursor-pointer shadow-md shadow-emerald-100 flex items-center gap-1.5 transition-all whitespace-nowrap self-start sm:self-auto"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>{lang === 'zh' ? '生成成果报告' : 'Generate Report'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STAGE 6: ⑥ 结果优化 (Feedback Optimization) */}
+            {activeStep === 6 && (
+              <div className="space-y-4 text-left">
+                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-xs space-y-5">
+                  <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <Sliders className="w-5 h-5 text-indigo-600" />
+                    <h3 className="text-sm font-extrabold text-slate-900">{lang === 'zh' ? '阶段 ⑥：专家干预规则与阈值敏感性调整' : 'Stage 6: Expert Control Rules & Sensitivity Optimization'}</h3>
+                  </div>
+
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    {lang === 'zh' 
+                      ? '支持勘探专家人工修改下方的敏感性折减公式和物理阈值边界，智能体将实时重新评估全链路的参数，实现闭环持续迭代。'
+                      : 'Allows expert intervention on sealing factors and physical limits. The agent recalculates values dynamically.'}
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    {/* Slider 1 */}
+                    <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100/80">
+                      <div className="flex justify-between font-bold text-slate-700 text-xs">
+                        <span>{lang === 'zh' ? '走滑断层水平错断因子' : 'Strike-slip Sealing Factor'}</span>
+                        <span className="text-indigo-600 font-extrabold">{ruleFaultSealing}%</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="10" 
+                        max="100" 
+                        value={ruleFaultSealing}
+                        onChange={(e) => setRuleFaultSealing(Number(e.target.value))}
+                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                      />
+                      <div className="text-[10px] text-slate-400 leading-normal mt-1">
+                        {lang === 'zh' ? '值越高，对因多期错位引起的微渗漏折减评分惩罚越小。' : 'Controls penalty sensitivity of fault leaks.'}
+                      </div>
+                    </div>
+
+                    {/* Slider 2 */}
+                    <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100/80">
+                      <div className="flex justify-between font-bold text-slate-700 text-xs">
+                        <span>{lang === 'zh' ? '深层成岩孔隙充填因子' : 'Source Rock Dissolution Factor'}</span>
+                        <span className="text-indigo-600 font-extrabold">0.{ruleReservoirFactor}</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="50" 
+                        max="99" 
+                        value={ruleReservoirFactor}
+                        onChange={(e) => setRuleReservoirFactor(Number(e.target.value))}
+                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                      />
+                      <div className="text-[10px] text-slate-400 leading-normal mt-1">
+                        {lang === 'zh' ? '影响高压溶孔充填系数。系数越高，预测物性空间越好。' : 'Tunes filling modifiers in pore modeling.'}
+                      </div>
+                    </div>
+
+                    {/* Slider 3 */}
+                    <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100/80">
+                      <div className="flex justify-between font-bold text-slate-700 text-xs">
+                        <span>{lang === 'zh' ? '盖层临界密封判定厚度' : 'Seal Critical Thickness'}</span>
+                        <span className="text-indigo-600 font-extrabold">{ruleCaprockThickness} m</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="50" 
+                        max="300" 
+                        value={ruleCaprockThickness}
+                        onChange={(e) => setRuleCaprockThickness(Number(e.target.value))}
+                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                      />
+                      <div className="text-[10px] text-slate-400 leading-normal mt-1">
+                        {lang === 'zh' ? '盖层实测厚度若低于此临界值，保存条件评分扣减。' : 'Forces savings deduction if thickness falls below limit.'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
                     <button 
-                      onClick={() => {
-                        setSelectedTargetIds({});
-                        alert('优选池已成功清空');
-                      }}
-                      className="w-full py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl text-[11px] font-black transition-colors flex items-center justify-center gap-1.5"
+                      onClick={handleReEvaluate}
+                      disabled={reEvaluating}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all shadow-md shadow-indigo-100 cursor-pointer"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      清空 / 归档优选池
+                      <RefreshCw className={`w-3.5 h-3.5 ${reEvaluating ? 'animate-spin' : ''}`} />
+                      <span>{lang === 'zh' ? '重算并更新评价链 (V3)' : 'Apply & Recalculate'}</span>
                     </button>
                   </div>
                 </div>
 
-                {/* (B) RIGHT CONTENT: Aggregate KPI Metrics and Table */}
-                <div className="flex-1 flex flex-col justify-start space-y-6">
-                  
-                  {/* (B) Indicators Micro Dashboard with Pulse Animation on checked change */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col justify-between relative overflow-hidden group">
-                      <div className="text-[10px] text-slate-400 font-black uppercase">总地质储量</div>
-                      <span className="text-2xl font-black text-slate-800 font-mono mt-2 block group-hover:scale-105 transition-transform">
-                        {poolSummary.geology} <span className="text-xs font-medium text-slate-400">万吨</span>
-                      </span>
-                      {poolTargets.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>}
-                    </div>
-
-                    <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col justify-between relative overflow-hidden group">
-                      <div className="text-[10px] text-slate-400 font-black uppercase">预测资源总量</div>
-                      <span className="text-2xl font-black text-slate-800 font-mono mt-2 block group-hover:scale-105 transition-transform">
-                        {poolSummary.resources} <span className="text-xs font-medium text-slate-400">万吨</span>
-                      </span>
-                    </div>
-
-                    <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col justify-between relative overflow-hidden group">
-                      <div className="text-[10px] text-slate-400 font-black uppercase">已探明储量比</div>
-                      <span className="text-2xl font-black text-blue-600 font-mono mt-2 block group-hover:scale-105 transition-transform">
-                        {poolSummary.ratio}
-                      </span>
-                    </div>
-
-                    <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col justify-between relative overflow-hidden group">
-                      <div className="text-[10px] text-slate-400 font-black uppercase">需建井总资金</div>
-                      <span className="text-2xl font-black text-emerald-600 font-mono mt-2 block group-hover:scale-105 transition-transform">
-                        {poolSummary.budget} <span className="text-xs font-medium text-slate-400">亿元</span>
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* (C) PREFERRED POOL DETAIL TABLE */}
-                  <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden flex-1 flex flex-col">
-                    <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                      <span className="text-xs font-black text-slate-800">当前方案：吉林油田深层气藏滚动优选方案 (已评审)</span>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                        精细优选池列表 ({poolTargets.length})
-                      </span>
-                    </div>
-
-                    {poolTargets.length === 0 ? (
-                      <div className="flex-1 flex flex-col items-center justify-center p-12 text-slate-400">
-                        <AlertTriangle className="w-12 h-12 text-slate-300 mb-3 animate-bounce" />
-                        <span className="text-sm font-black">优选池为空，请在「目标优选」中选择加入目标</span>
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto flex-1">
-                        <table className="w-full text-left border-collapse">
-                          <thead>
-                            <tr className="border-b border-slate-100 bg-slate-50/50 text-[11px] font-black text-slate-400 uppercase tracking-wider">
-                              <th className="py-3 px-6 w-16 text-center">序号</th>
-                              <th className="py-3 px-4">圈闭/砂体名称</th>
-                              <th className="py-3 px-4">资源类型</th>
-                              <th className="py-3 px-4">储量发现度</th>
-                              <th className="py-3 px-4">圈闭成因</th>
-                              <th className="py-3 px-4">建井投资</th>
-                              <th className="py-3 px-6 w-24 text-center">操作选择</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 text-xs text-slate-600">
-                            {poolTargets.map((t, index) => (
-                              <tr key={t.id} className="hover:bg-slate-50/70 transition-colors">
-                                <td className="py-3.5 px-6 text-center font-mono font-black text-slate-400">{index + 1}</td>
-                                <td 
-                                  className="py-3.5 px-4 font-black text-blue-600 cursor-pointer hover:underline"
-                                  onClick={() => { setSelectedTargetId(t.id); setActiveSubTab('evaluation'); }}
-                                >
-                                  {t.name}
-                                </td>
-                                <td className="py-3.5 px-4">
-                                  <span className="px-2 py-0.5 rounded-full bg-slate-100 border text-[10px] font-bold text-slate-600">
-                                    {t.resourceType}
-                                  </span>
-                                </td>
-                                <td className="py-3.5 px-4">
-                                  <span className="font-bold text-slate-700">{t.maturity}</span>
-                                </td>
-                                <td className="py-3.5 px-4 text-slate-500 font-medium">{t.origin}</td>
-                                <td className="py-3.5 px-4 font-mono font-black text-slate-700">{t.drillingInvestment} 亿</td>
-                                <td className="py-3.5 px-6 text-center">
-                                  <button 
-                                    onClick={() => handleRevokeFromPool(t.id)}
-                                    className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg hover:text-red-700 transition-colors"
-                                    title="撤销 / 移除"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-
-                    {/* Master Actions Footer */}
-                    <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row gap-3 justify-end">
-                      <button 
-                        onClick={() => alert('成功导出 Excel 报表：吉林油田深层气藏滚动优选方案数据表.xlsx')}
-                        className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all shadow-xs"
-                      >
-                        <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                        批量导出 Excel.xlsx
-                      </button>
-                      <button 
+                {/* History version comparison */}
+                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-xs text-left">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-3">
+                    <Clock className="w-4 h-4 text-indigo-500" />
+                    {lang === 'zh' ? '历史评价版本对比（全链路可追溯）' : 'History Versions Comparison (Fully Auditable)'}
+                  </span>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {[
+                      { ver: 'V1', label: lang === 'zh' ? '初始基础资料评价' : 'Base Geological assessment', author: lang === 'zh' ? '王工' : 'Engineer Wang', date: '2026-07-15' },
+                      { ver: 'V2', label: lang === 'zh' ? '引入三维相控物探解释' : 'Superimposed 3D Inversion', author: 'AI智能体', date: '2026-07-18' },
+                      { ver: 'V3', label: lang === 'zh' ? '专家微调孔隙/断裂因子' : 'Expert fine-tuned rules', author: lang === 'zh' ? '李工' : 'Engineer Li', date: '2026-07-20' }
+                    ].map((v) => (
+                      <button
+                        key={v.ver}
                         onClick={() => {
-                          const name = prompt('请输入新方案另存名称:', '吉林油田深层气藏滚动优选方案-副本');
-                          if (name) alert(`成功另存新方案为：${name}`);
+                          setActiveVersion(v.ver as any);
+                          triggerToast(lang === 'zh' ? `已切换到评价版本: ${v.ver}` : `Switched to ${v.ver}`);
                         }}
-                        className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                        className={`p-3.5 rounded-xl text-left border flex items-center justify-between transition-all cursor-pointer shadow-2xs ${
+                          activeVersion === v.ver 
+                            ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-100' 
+                            : 'bg-white border-slate-100 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                        }`}
                       >
-                        <Save className="w-4 h-4 text-indigo-500" />
-                        另存为新方案
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-1.5 py-0.2 text-[9px] font-black rounded ${activeVersion === v.ver ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>{v.ver}</span>
+                            <span className="font-bold text-xs truncate max-w-[130px]">{v.label}</span>
+                          </div>
+                          <div className={`text-[10px] mt-1.5 ${activeVersion === v.ver ? 'text-indigo-100' : 'text-slate-400'}`}>
+                            {v.author} • {v.date}
+                          </div>
+                        </div>
+                        {activeVersion === v.ver && (
+                          <Check className="w-4 h-4 text-white flex-shrink-0" />
+                        )}
                       </button>
-                      <button 
-                        onClick={() => alert('已成功向总部专家在线评审组递交方案审核材料。')}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all shadow-md shadow-blue-100"
-                      >
-                        <Send className="w-4 h-4" />
-                        提交总部在线评审
-                      </button>
-                    </div>
-
+                    ))}
                   </div>
-
                 </div>
-
-              </motion.div>
+              </div>
             )}
 
-          </AnimatePresence>
           </div>
         </motion.div>
 
-        {/* ASSISTANT SIDEBAR */}
+        {/* 3. ASSISTANT SIDEBAR (Absolute positioned drawer) */}
         <AssistantSidebar
           lang={lang}
           isOpen={isAssistantOpen}
           onClose={() => setIsAssistantOpen(false)}
           agentName={lang === 'zh' ? '勘探目标评价智能体' : 'Exploration Target Evaluation Agent'}
-          agentStatus="Idle"
+          agentStatus={reEvaluating ? 'Running' : 'Idle'}
           mode="absolute"
           offsetTop="top-0"
-          onRefreshAgent={handleRefreshAi}
+          onRefreshAgent={handleReEvaluate}
         />
-
       </div>
 
-      {/* Evidence Chain Panel */}
-      <EvidenceChainPanel lang={lang} />
+      {/* 4. COLLAPSIBLE BOTTOM PANEL (Exact style reference to EvidenceChainPanel) */}
+      <div className="w-full flex-shrink-0 bg-white border-t border-slate-200 flex flex-col shadow-[0_-12px_40px_rgba(0,0,0,0.06)] relative z-[30]">
+        <div 
+          className="h-12 flex items-center justify-between px-6 cursor-pointer bg-slate-900 text-white hover:bg-slate-800 transition-colors border-b border-white/10 w-full"
+          onClick={() => setIsEvidenceExpanded(!isEvidenceExpanded)}
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-tight shadow-sm">
+              <i className="fas fa-shield-alt"></i>
+              <span>{lang === 'zh' ? '可信AI' : 'TRUSTABLE AI'}</span>
+            </div>
+            <h3 className="text-sm font-bold">
+              {lang === 'zh' ? '证据链与运行状态' : 'Evidence Chain & Run Status'}
+            </h3>
+          </div>
+          <i className={`fas ${isEvidenceExpanded ? 'fa-chevron-down' : 'fa-chevron-up'} text-xs text-slate-400`}></i>
+        </div>
+        
+        <AnimatePresence>
+          {isEvidenceExpanded && (
+            <motion.div 
+              initial={{ height: 0 }}
+              animate={{ height: 320 }}
+              exit={{ height: 0 }}
+              className="overflow-hidden flex flex-col"
+            >
+              <div className="flex border-b border-slate-200 bg-slate-100 px-4">
+                 {[
+                   { id: 'evidence', name: '评价可信证据链', enName: 'Decision Evidence Chain', icon: 'fa-link' },
+                   { id: 'logs', name: 'Agent 运行步骤', enName: 'Agent Steps Log', icon: 'fa-terminal' },
+                   { id: 'versions', name: '历史评价版本', enName: 'History Versions', icon: 'fa-history' },
+                 ].map(tab => (
+                   <button
+                     key={tab.id}
+                     onClick={() => setActiveEvidenceTab(tab.id as any)}
+                     className={`px-4 h-10 text-xs font-bold transition-all relative flex items-center gap-2 ${activeEvidenceTab === tab.id ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+                   >
+                     <i className={`fas ${tab.icon} text-xs`}></i>
+                     {lang === 'zh' ? tab.name : tab.enName}
+                     {activeEvidenceTab === tab.id && (
+                       <motion.div 
+                         layoutId="activeEvidenceTabUnderline"
+                         className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500"
+                       />
+                     )}
+                   </button>
+                 ))}
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar bg-white p-4">
+                 {activeEvidenceTab === 'evidence' && renderEvidenceTab()}
+                 {activeEvidenceTab === 'logs' && renderLogsTab()}
+                 {activeEvidenceTab === 'versions' && renderVersionsTab()}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* --- MODAL DIALOGS (Light styled) --- */}
+      
+      {/* 1. RULE ADJUSTMENT MODAL */}
+      <AnimatePresence>
+        {isRulesModalOpen && (
+          <div className="fixed inset-0 z-[100] flex justify-end">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsRulesModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs"
+            />
+            <motion.div 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              className="relative w-full max-w-md bg-white border-l border-slate-200 h-full p-6 flex flex-col justify-between text-left shadow-2xl"
+            >
+              <div>
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
+                  <span className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                    <Sliders className="w-5 h-5 text-indigo-600" />
+                    {lang === 'zh' ? '评价规则库及阈值调整' : 'Evaluation Rules & Thresholds'}
+                  </span>
+                  <button 
+                    onClick={() => setIsRulesModalOpen(false)}
+                    className="w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center cursor-pointer transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-6 text-xs text-slate-600">
+                  <div className="bg-indigo-50/40 p-4 rounded-xl border border-indigo-100/40">
+                    <div className="font-bold text-indigo-900 mb-1">{lang === 'zh' ? '规则定义机制' : 'Rules Engine Spec'}</div>
+                    <p className="text-indigo-950/80 leading-relaxed">
+                      {lang === 'zh' 
+                        ? '调整下方滑块将即时修改评价智能体对断裂密封和储集物性敏感性的折减公式，并会在重新评估时应用于全流程计算。'
+                        : 'Adjusting these sliders updates the scaling formula applied by the evaluation agent in real-time.'}
+                    </p>
+                  </div>
+
+                  {/* Slider 1 */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between font-bold text-slate-700">
+                      <span>{lang === 'zh' ? '走滑断裂遮挡判定因子' : 'Strike-slip Sealing Factor'}</span>
+                      <span className="text-indigo-600 font-extrabold">{ruleFaultSealing}%</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="10" 
+                      max="100" 
+                      value={ruleFaultSealing}
+                      onChange={(e) => setRuleFaultSealing(Number(e.target.value))}
+                      className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    />
+                    <div className="text-[10px] text-slate-400 leading-normal">
+                      {lang === 'zh' ? '影响圈闭评价中的断坪连通封闭计算权，值越高对微断层漏失惩罚越低。' : 'Controls penalty sensitivity of micro-fault leaks.'}
+                    </div>
+                  </div>
+
+                  {/* Slider 2 */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between font-bold text-slate-700">
+                      <span>{lang === 'zh' ? '烃源岩溶蚀折减折旧率' : 'Source Rock Dissolution Factor'}</span>
+                      <span className="text-indigo-600 font-extrabold">0.{ruleReservoirFactor}</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="50" 
+                      max="99" 
+                      value={ruleReservoirFactor}
+                      onChange={(e) => setRuleReservoirFactor(Number(e.target.value))}
+                      className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    />
+                    <div className="text-[10px] text-slate-400 leading-normal">
+                      {lang === 'zh' ? '影响储层孔隙计算模型的充填修正。数值越高，预测的物性空间越好。' : 'Tunes filling modifiers in deep reservoir pores modeling.'}
+                    </div>
+                  </div>
+
+                  {/* Slider 3 */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between font-bold text-slate-700">
+                      <span>{lang === 'zh' ? '主力盖层临界密封厚度' : 'Seal Critical Thickness'}</span>
+                      <span className="text-indigo-600 font-extrabold">{ruleCaprockThickness} m</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="50" 
+                      max="300" 
+                      value={ruleCaprockThickness}
+                      onChange={(e) => setRuleCaprockThickness(Number(e.target.value))}
+                      className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    />
+                    <div className="text-[10px] text-slate-400 leading-normal">
+                      {lang === 'zh' ? '盖层厚度低于此临界值时将强制扣减保存评分。推荐在100-150m。' : 'Forces savings deduction if caprock thickness falls below limit.'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="pt-6 border-t border-slate-100 flex gap-3">
+                <button 
+                  onClick={() => setIsRulesModalOpen(false)}
+                  className="flex-1 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-500 font-bold text-xs rounded-xl transition-all cursor-pointer text-center border border-slate-100"
+                >
+                  {lang === 'zh' ? '取消' : 'Cancel'}
+                </button>
+                <button 
+                  onClick={() => {
+                    setIsRulesModalOpen(false);
+                    handleReEvaluate();
+                  }}
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-indigo-100 cursor-pointer text-center"
+                >
+                  {lang === 'zh' ? '应用并重新评估' : 'Apply & Re-evaluate'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 2. SUPPLEMENT MATERIALS MODAL */}
+      <AnimatePresence>
+        {isUploadModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsUploadModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs"
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-md bg-white border border-slate-100 rounded-2xl p-6 shadow-2xl text-left text-slate-800"
+            >
+              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
+                <span className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
+                  <FileUp className="w-4 h-4 text-indigo-600" />
+                  {lang === 'zh' ? '补充目标评价资料' : 'Upload Evaluation Data'}
+                </span>
+                <button 
+                  onClick={() => setIsUploadModalOpen(false)}
+                  className="w-7 h-7 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center cursor-pointer transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Drag and Drop box */}
+              <div className="border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-2xl p-6 flex flex-col items-center justify-center gap-2.5 text-center cursor-pointer bg-slate-50/50 hover:bg-indigo-50/10 transition-all">
+                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                  <FileUp className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-700">{lang === 'zh' ? '点击或拖拽文件至此区域上传' : 'Drag and drop your file here, or click'}</p>
+                  <p className="text-[10px] text-slate-400 mt-1">支持 LAS, PDF, Excel, Word 格式，大小不超过 50MB</p>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">{lang === 'zh' ? '推荐补充的缺失资料：' : 'Recommended missing data:'}</span>
+                <div className="bg-slate-50 border border-slate-100 p-2.5 rounded-xl text-xs flex items-center justify-between text-slate-600">
+                  <span className="truncate max-w-[240px]">🛰️ {lang === 'zh' ? '沙特顺北5井三维走滑层位闭合图.las' : 'SB-5 3D fault closure.las'}</span>
+                  <button 
+                    onClick={() => {
+                      setIsUploadModalOpen(false);
+                      triggerToast(lang === 'zh' ? '✓ LAS曲线加载成功，已自动融入圈闭反演模型。' : '✓ LAS curve loaded successfully.');
+                    }}
+                    className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-extrabold text-[10px] rounded border border-indigo-100 cursor-pointer transition-colors"
+                  >
+                    {lang === 'zh' ? '一键匹配' : 'Bind'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end gap-2 text-xs">
+                <button 
+                  onClick={() => setIsUploadModalOpen(false)}
+                  className="px-4 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer transition-colors"
+                >
+                  {lang === 'zh' ? '取消' : 'Cancel'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 3. REPORT GENERATION MODAL */}
+      <AnimatePresence>
+        {isReportModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsReportModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs"
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-md bg-white border border-slate-100 rounded-2xl p-6 shadow-2xl text-left text-slate-800"
+            >
+              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
+                <span className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-indigo-600" />
+                  {lang === 'zh' ? '生成目标综合评价报告' : 'Generate Comprehensive Report'}
+                </span>
+                <button 
+                  onClick={() => setIsReportModalOpen(false)}
+                  className="w-7 h-7 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center cursor-pointer transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="space-y-4 text-xs text-slate-600">
+                <p className="leading-relaxed">
+                  {lang === 'zh' 
+                    ? 'AI智能体将一键汇总本工作空间中所有已加载的测井、物探解释曲线，综合评价结论与证据链条，打包输出为国家标准的成果汇签报告。'
+                    : 'The AI Agent will automatically compile all well logs, geophysics, and reasoning evidence to generate a standardized report.'}
+                </p>
+
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1.5 text-[11px] text-slate-600">
+                  <div className="flex justify-between font-bold">
+                    <span>{lang === 'zh' ? '报告名称' : 'Report Name'}</span>
+                    <span className="text-slate-900">【{target.name}】风险综合评价报告.docx</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>{lang === 'zh' ? '包含图表' : 'Charts Included'}</span>
+                    <span>14 {lang === 'zh' ? '张' : 'items'} (含走向剖面图、Pg概率曲线)</span>
+                  </div>
+                  <div className="flex justify-between font-bold">
+                    <span>{lang === 'zh' ? '证据可信等级' : 'Evidence Credibility'}</span>
+                    <span className="text-indigo-600">A级完全对齐</span>
+                  </div>
+                </div>
+
+                <div className="border border-indigo-100 bg-indigo-50/30 p-3 rounded-xl flex gap-2">
+                  <Sparkles className="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5 animate-pulse" />
+                  <span className="text-[10px] text-slate-400 leading-normal">
+                    {lang === 'zh' ? '智能体将在后台渲染排版。此报告已深度融合您在 [V3 版本] 中对断层遮挡因子的修正。' : 'The agent will render this automatically incorporating your expert tweaks.'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end gap-2 text-xs">
+                <button 
+                  onClick={() => setIsReportModalOpen(false)}
+                  className="px-4 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer transition-colors"
+                >
+                  {lang === 'zh' ? '关闭' : 'Close'}
+                </button>
+                <button 
+                  onClick={() => {
+                    setIsReportModalOpen(false);
+                    triggerToast(lang === 'zh' ? '🎉 报告生成成功！已触发浏览器下载。' : '🎉 Report compiled! Starting download.');
+                  }}
+                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg cursor-pointer shadow-md shadow-indigo-100 transition-colors"
+                >
+                  {lang === 'zh' ? '一键生成并下载' : 'Generate & Download'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

@@ -55,33 +55,51 @@ const TreeNode: React.FC<{ name: string; children?: string[]; level: number; def
 export const ExplorationTargetRequirementTree: React.FC<ExplorationTargetRequirementTreeProps> = ({ lang, onOpenAddResourcePage }) => {
     const data = [
         { 
-            name: lang === 'zh' ? '圈闭与地震解释' : 'Trap & Seismic Interpretation', 
+            name: lang === 'zh' ? '① 目标建立 (Target Definition)' : '1. Target Definition', 
             children: [
-                lang === 'zh' ? '顶底构造图 (dwg格式)' : 'Top-Bottom Structure Map (dwg)', 
-                lang === 'zh' ? '三维地震数据体 (segy)' : '3D Seismic Data Volume (segy)', 
-                lang === 'zh' ? '构造断裂体系解释 (报告)' : 'Fault System Interpretation (Report)'
+                lang === 'zh' ? '评价对象与目的 (圈闭及钻探价值)' : 'Target Object & Goal (Trap/Drilling Value)', 
+                lang === 'zh' ? '评价范围与边界 (层系、区域与断裂面)' : 'Scope & Boundary (Stratum/Region/Fault)', 
+                lang === 'zh' ? '任务定义与评价标准规范 (SY/T 5732)' : 'Task Definition & Evaluation Specs'
             ] 
         },
         { 
-            name: lang === 'zh' ? '储层物性参数' : 'Reservoir Properties', 
+            name: lang === 'zh' ? '② 资料准备 (Resource Preparation)' : '2. Resource Preparation', 
             children: [
-                lang === 'zh' ? '孔隙度与渗透率测试 (数据)' : 'Porosity & Permeability Logs (Data)', 
-                lang === 'zh' ? '含油气饱和度分析 (图表)' : 'Oil/Gas Saturation Analysis (Chart)',
-                lang === 'zh' ? '压汞分析及微观孔喉 (报告)' : 'Mercury Injection & Pore Throat (Report)'
+                lang === 'zh' ? '地震解释成果与断裂体系 (SEGY/DWG)' : 'Seismic Inversion & Fault System (SEGY/DWG)', 
+                lang === 'zh' ? '邻区实钻与测井解释成果 (LAS)' : 'Offset Well Logs & Interpretation (LAS)',
+                lang === 'zh' ? '区域地质背景、盖层性质与专家先验规则' : 'Geology Context, Seals & Expert Prior Rules'
             ] 
         },
         { 
-            name: lang === 'zh' ? '储量估算与地质风险' : 'Reserves & Geological Risk', 
+            name: lang === 'zh' ? '③ 业务评价 (Evaluate Business)' : '3. Evaluate Business', 
             children: [
-                lang === 'zh' ? '地质成功率(Pg)概率评估 (模型)' : 'Geological Success Rate (Pg) Evaluation', 
-                lang === 'zh' ? '采收率预测模型 (数据)' : 'Recovery Factor Predictive Model'
+                lang === 'zh' ? '烃源条件评价 (晚期成熟度与供烃充沛度)' : 'Source Rock Assessment (Maturity & Supply)', 
+                lang === 'zh' ? '储层物性评价 (孔隙度与致密孔喉网)' : 'Reservoir Properties (Porosity & Pore Throat)',
+                lang === 'zh' ? '圈闭闭合与断层密封保存性评价' : 'Trap Closure & Fault Sealing Preservation'
             ] 
         },
         { 
-            name: lang === 'zh' ? '开发部署与经济指标' : 'Development & Economics', 
+            name: lang === 'zh' ? '④ 风险分析 (Analyze Risk)' : '4. Analyze Risk', 
             children: [
-                lang === 'zh' ? '单井设计与投资概算 (表)' : 'Well Design & Investment Estimate (Sheet)', 
-                lang === 'zh' ? '油价敏感性财务评价 (模型)' : 'Oil Price Sensitivity Evaluation Model'
+                lang === 'zh' ? '地质成功率 Pg 概率及流体逸散风险' : 'Geological Pg & Fluid Leakage Risk', 
+                lang === 'zh' ? '钻井工程高温高压摩擦阻抗技术瓶颈' : 'Drilling Engineering HPHT Friction Bottlenecks',
+                lang === 'zh' ? '硫化氢 H2S 酸性腐蚀与 HSE 安全合规审定' : 'H2S Corrosion & HSE Safety Compliance'
+            ] 
+        },
+        { 
+            name: lang === 'zh' ? '⑤ 综合判断 (Make Judgement)' : '5. Make Judgement', 
+            children: [
+                lang === 'zh' ? '多维度全因子权重决策星级推荐' : 'Integrated Multi-factor Stars Recommendation', 
+                lang === 'zh' ? '主要核心优势与关键限制缺陷清单' : 'Main Advantages & Key Cons Constraints',
+                lang === 'zh' ? '第一口评价井设计坐标与勘探部署方案' : '1st Well Design Coordinates & Deploy Plan'
+            ] 
+        },
+        { 
+            name: lang === 'zh' ? '⑥ 结果优化 (Optimize Result)' : '6. Optimize Result', 
+            children: [
+                lang === 'zh' ? '新资料加载自动感知与重新触发机制' : 'Auto-sensing & Re-evaluation Trigger', 
+                lang === 'zh' ? '历史评价版本差异对比 (V1/V2/V3 迭代)' : 'Version Comparison (V1/V2/V3 Iterations)',
+                lang === 'zh' ? '成果归档与多维度国家标准汇签报告导出' : 'Archiving & Standardized Report Export'
             ] 
         }
     ];
@@ -93,14 +111,14 @@ export const ExplorationTargetRequirementTree: React.FC<ExplorationTargetRequire
                     <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-[11px]"></i>
                     <input 
                         type="text" 
-                        placeholder={lang === 'zh' ? "搜索评价资源..." : "Search evaluation resources..."}
+                        placeholder={lang === 'zh' ? "搜索业务评价流程..." : "Search evaluation pipeline..."}
                         className="w-full pl-8 pr-3 py-2 text-[13px] bg-white border border-slate-200 rounded shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-slate-600 placeholder-slate-400"
                     />
                 </div>
                 <div className="flex gap-2 h-[34px]">
                     <button 
                         onClick={onOpenAddResourcePage}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2 rounded text-[13px] font-medium transition-colors shadow-sm"
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center gap-2 rounded text-[13px] font-medium transition-colors shadow-sm"
                     >
                         <i className="fas fa-plus text-[11px]"></i>
                         {lang === 'zh' ? '添加资源' : 'Add resource'}
