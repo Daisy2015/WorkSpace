@@ -602,22 +602,20 @@ description: "${skill.description}"
                               e.stopPropagation();
                               handleOpenDrawer(skill);
                             }}
-                            className="text-xs text-slate-500 hover:text-indigo-600 transition-colors flex items-center gap-1 font-medium"
+                            className="text-slate-400 hover:text-indigo-600 transition-colors"
                             title={lang === 'zh' ? '详情' : 'Details'}
                           >
-                            <i className="fas fa-eye text-[10px]"></i>
-                            <span>{lang === 'zh' ? '详情' : 'Details'}</span>
+                            <i className="fas fa-eye text-xs"></i>
                           </button>
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
                               downloadSkillZip(skill);
                             }}
-                            className="text-xs text-slate-500 hover:text-emerald-600 transition-colors flex items-center gap-1 font-medium"
+                            className="text-slate-400 hover:text-emerald-600 transition-colors"
                             title={lang === 'zh' ? '下载' : 'Download'}
                           >
-                            <i className="fas fa-download text-[10px]"></i>
-                            <span>{lang === 'zh' ? '下载' : 'Download'}</span>
+                            <i className="fas fa-download text-xs"></i>
                           </button>
                           <button 
                             onClick={(e) => {

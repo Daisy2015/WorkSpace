@@ -12,6 +12,7 @@ docs
 docs/*.md
 dist
 dist-ssr
+.workbuddy/*
 *.local
 
 # Editor directories and files

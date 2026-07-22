@@ -552,13 +552,14 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
                           </div>
                           <div>
                             <div className="font-bold text-slate-800">{agent.name}</div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-slate-400 font-mono">{agent.id}</span>
-                              <div className="flex gap-1">
-                                {agent.initPageUrl && <i className="fas fa-magic text-[9px] text-emerald-500" title={lang === 'zh' ? '已配置初始化页面' : 'Init Configured'}></i>}
-                                {agent.runPageUrl && <i className="fas fa-desktop text-[9px] text-purple-500" title={lang === 'zh' ? '已配置运行页面' : 'Run Configured'}></i>}
+                            {(agent.initPageUrl || agent.runPageUrl) && (
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <div className="flex gap-1">
+                                  {agent.initPageUrl && <i className="fas fa-magic text-[9px] text-emerald-500" title={lang === 'zh' ? '已配置初始化页面' : 'Init Configured'}></i>}
+                                  {agent.runPageUrl && <i className="fas fa-desktop text-[9px] text-purple-500" title={lang === 'zh' ? '已配置运行页面' : 'Run Configured'}></i>}
+                                </div>
                               </div>
-                            </div>
+                            )}
                           </div>
                         </div>
                       </td>
