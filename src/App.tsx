@@ -1130,16 +1130,6 @@ const App: React.FC = () => {
                   <button
                       onClick={() => {
                           setIsProfileDropdownOpen(false);
-                          handleTabChange('admin');
-                      }}
-                      className="w-full flex items-center px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer text-left"
-                  >
-                      <i className="fas fa-shield-alt mr-2.5 text-slate-400 text-sm"></i>
-                      {lang === 'zh' ? '后台管理' : 'Backend Admin'}
-                  </button>
-                  <button
-                      onClick={() => {
-                          setIsProfileDropdownOpen(false);
                           setIsLoggedIn(false);
                       }}
                       className="w-full flex items-center px-3 py-2 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer text-left border-t border-slate-100 mt-1"

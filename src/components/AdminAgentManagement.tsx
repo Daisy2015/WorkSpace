@@ -479,23 +479,27 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
           <div className="h-6 w-px bg-slate-200 mx-2"></div>
           <div className="flex bg-slate-100 p-1 rounded-xl">
             {[
+              { id: 'All', label: lang === 'zh' ? '全部' : 'All', icon: 'fa-th-large' },
               { id: 'General', label: lang === 'zh' ? '通用' : 'General', icon: 'fa-bolt' },
               { id: 'Scenario', label: lang === 'zh' ? '场景' : 'Scenario', icon: 'fa-cube' },
               { id: 'Role', label: lang === 'zh' ? '岗位' : 'Role', icon: 'fa-user-tie' },
-            ].map(item => (
-              <button
-                key={item.id}
-                onClick={() => setFilterType(filterType === item.id ? null : item.id)}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-                  filterType === item.id 
-                    ? 'bg-white text-indigo-600 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                <i className={`fas ${item.icon} text-[10px]`}></i>
-                {item.label}
-              </button>
-            ))}
+            ].map(item => {
+              const isActive = item.id === 'All' ? filterType === null : filterType === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setFilterType(item.id === 'All' ? null : item.id)}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+                    isActive 
+                      ? 'bg-white text-indigo-600 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <i className={`fas ${item.icon} text-[10px]`}></i>
+                  {item.label}
+                </button>
+              );
+            })}
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -887,6 +891,31 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
       <CreateAgentModal 
         isOpen={isCreateModalOpen} 
         onClose={() => setIsCreateModalOpen(false)} 
+        onSubmit={(newAgentData) => {
+          const newAgent: ManagedAgent = {
+            id: `agent-${String(agents.length + 1).padStart(3, '0')}`,
+            name: newAgentData.name,
+            type: newAgentData.type,
+            version: '专业版',
+            skillsCount: newAgentData.selectedSkills.length,
+            toolsCount: 0,
+            recentCalls: 0,
+            currentVersion: 'v1.0.0',
+            isEnabled: true,
+            updateTime: new Date().toISOString().replace('T', ' ').substring(0, 16),
+            description: newAgentData.description,
+            initPageUrl: newAgentData.initPageUrl,
+            runPageUrl: newAgentData.runPageUrl,
+            mcpAddress: newAgentData.mcpAddress,
+            selectedSkills: newAgentData.selectedSkills,
+            ioSchema: 'JSON',
+            reasoningMode: 'ReAct',
+            tags: ['Custom'],
+            industry: 'General',
+            modifiedBy: '用户'
+          };
+          setAgents(prev => [newAgent, ...prev]);
+        }}
         lang={lang} 
       />
     </div>

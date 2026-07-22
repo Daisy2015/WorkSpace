@@ -6,6 +6,15 @@ import { MOCK_SKILLS as FALLBACK_SKILLS } from './AdminSkillManagement';
 interface CreateAgentModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSubmit?: (agentData: {
+    name: string;
+    description: string;
+    type: 'Role' | 'Scenario' | 'General';
+    initPageUrl: string;
+    runPageUrl: string;
+    mcpAddress: string;
+    selectedSkills: string[];
+  }) => void;
   lang: Language;
 }
 
@@ -15,10 +24,11 @@ const MOCK_MCP_SERVICES = [
   { name: 'generate_optimization_suggest', desc: '生成优化建议', path: '/api/v1/optimization/suggest' },
 ];
 
-export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onClose, lang }) => {
+export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onClose, onSubmit, lang }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    type: 'General' as 'Role' | 'Scenario' | 'General',
     mcpAddress: '',
     initPageUrl: '', // New field
     runPageUrl: '', // Renamed from visualPageUrl
@@ -46,6 +56,38 @@ export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onCl
   const [showMcpPreview, setShowMcpPreview] = useState(false);
   const [showVisualPreview, setShowVisualPreview] = useState(false);
   const [isSkillDropdownOpen, setIsSkillDropdownOpen] = useState(false);
+
+  const handleRegister = () => {
+    if (!formData.name.trim()) {
+      alert(lang === 'zh' ? '请输入智能体名称' : 'Please enter agent name');
+      return;
+    }
+    if (!formData.description.trim()) {
+      alert(lang === 'zh' ? '请输入智能体描述' : 'Please enter agent description');
+      return;
+    }
+    if (onSubmit) {
+      onSubmit({
+        name: formData.name,
+        description: formData.description,
+        type: formData.type,
+        initPageUrl: formData.initPageUrl,
+        runPageUrl: formData.runPageUrl,
+        mcpAddress: formData.mcpAddress,
+        selectedSkills: formData.selectedSkills,
+      });
+    }
+    setFormData({
+      name: '',
+      description: '',
+      type: 'General',
+      mcpAddress: '',
+      initPageUrl: '',
+      runPageUrl: '',
+      selectedSkills: [],
+    });
+    onClose();
+  };
 
   return (
     <AnimatePresence>
@@ -107,6 +149,32 @@ export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onCl
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-black text-slate-500 ml-1">
+                        {lang === 'zh' ? '智能体类型' : 'Agent Type'} <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+                        {[
+                          { id: 'General', label: lang === 'zh' ? '通用' : 'General', icon: 'fa-bolt' },
+                          { id: 'Scenario', label: lang === 'zh' ? '场景' : 'Scenario', icon: 'fa-cube' },
+                          { id: 'Role', label: lang === 'zh' ? '岗位' : 'Role', icon: 'fa-user-tie' },
+                        ].map(item => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, type: item.id as 'Role' | 'Scenario' | 'General' })}
+                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                              formData.type === item.id 
+                                ? 'bg-white text-indigo-600 shadow-sm border border-slate-200/20' 
+                                : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+                            }`}
+                          >
+                            <i className={`fas ${item.icon} text-[10px]`}></i>
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-black text-slate-500 ml-1">
@@ -227,7 +295,7 @@ export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onCl
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <div className="w-1 h-3 bg-indigo-600 rounded-full"></div>
-                    <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">{lang === 'zh' ? 'skills配置' : 'Skills Config'} <span className="text-rose-500">*</span></h4>
+                    <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">{lang === 'zh' ? 'skills配置（选填）' : 'Skills Config (Optional)'}</h4>
                   </div>
                   
                   <div className="relative">
@@ -237,7 +305,7 @@ export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onCl
                     >
                       {formData.selectedSkills.length === 0 && (
                         <span className="text-xs text-slate-400 font-medium ml-1">
-                          {lang === 'zh' ? '请选择skills配置（可多选）' : 'Select skills...'}
+                          {lang === 'zh' ? '请选择skills配置（可多选，选填）' : 'Select skills (optional)...'}
                         </span>
                       )}
                       {formData.selectedSkills.map(skillId => {
@@ -309,6 +377,7 @@ export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onCl
                 {lang === 'zh' ? '取消' : 'Cancel'}
               </button>
               <button 
+                onClick={handleRegister}
                 className="px-8 py-2 rounded-xl text-[11px] font-black text-white bg-indigo-600 hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-100"
               >
                 <i className="fas fa-check text-[10px]"></i>
