@@ -73,10 +73,10 @@ export const IntelligentQueryTopBar: React.FC<IntelligentQueryTopBarProps> = ({
         <div className="flex items-center gap-1 text-slate-400">
           <button 
             className="hover:text-slate-600 p-2 rounded-lg hover:bg-slate-100 transition-colors" 
-            title={lang === 'zh' ? '分享' : 'Share'}
+            title={lang === 'zh' ? '成员管理' : 'Members'}
             id="btn-workspace-share-query"
           >
-            <i className="fas fa-share-alt"></i>
+            <i className="fas fa-users"></i>
           </button>
           <button 
             onClick={onOpenSettings}

@@ -14,6 +14,8 @@ interface CreateAgentModalProps {
     runPageUrl: string;
     mcpAddress: string;
     selectedSkills: string[];
+    icon: string;
+    businessCategory?: string;
   }) => void;
   lang: Language;
 }
@@ -22,6 +24,30 @@ const MOCK_MCP_SERVICES = [
   { name: 'get_well_production', desc: '查询单井产量', path: '/api/v1/production/well' },
   { name: 'get_frac_params', desc: '获取压裂参数', path: '/api/v1/frac/params' },
   { name: 'generate_optimization_suggest', desc: '生成优化建议', path: '/api/v1/optimization/suggest' },
+];
+
+const SYSTEM_ICONS = [
+  'fa-robot', 'fa-bolt', 'fa-cube', 'fa-user-tie', 'fa-clipboard-check', 
+  'fa-drafting-compass', 'fa-radiation', 'fa-tachometer-alt', 'fa-video', 
+  'fa-project-diagram', 'fa-chart-area', 'fa-oil-can', 'fa-chart-bar', 
+  'fa-balance-scale', 'fa-file-invoice', 'fa-exchange-alt', 'fa-database', 
+  'fa-desktop', 'fa-stethoscope', 'fa-walking', 'fa-heartbeat', 'fa-tools', 
+  'fa-shield-alt', 'fa-search-plus', 'fa-clipboard-list', 'fa-check-double', 
+  'fa-chart-pie', 'fa-money-bill-wave', 'fa-globe', 'fa-industry', 'fa-brain',
+  'fa-magic', 'fa-cogs', 'fa-search', 'fa-microchip', 'fa-server'
+];
+
+const BUSINESS_CATEGORIES = [
+  '地质研究',
+  '测录井解释',
+  '钻井工程',
+  '完井压裂',
+  '开发生产',
+  '油藏工程',
+  '生产运行',
+  '设备运维',
+  '安全环保',
+  '经营管理'
 ];
 
 export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onClose, onSubmit, lang }) => {
@@ -33,6 +59,8 @@ export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onCl
     initPageUrl: '', // New field
     runPageUrl: '', // Renamed from visualPageUrl
     selectedSkills: [] as string[],
+    icon: 'fa-robot',
+    businessCategory: '',
   });
 
   const [availableSkills, setAvailableSkills] = useState<SkillEntry[]>([]);
@@ -50,12 +78,20 @@ export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onCl
       } else {
         setAvailableSkills(FALLBACK_SKILLS);
       }
+      // Pick a random icon on modal open to make it interactive and delightful!
+      const randomIndex = Math.floor(Math.random() * SYSTEM_ICONS.length);
+      setFormData(prev => ({
+        ...prev,
+        icon: SYSTEM_ICONS[randomIndex],
+        businessCategory: '',
+      }));
     }
   }, [isOpen]);
 
   const [showMcpPreview, setShowMcpPreview] = useState(false);
   const [showVisualPreview, setShowVisualPreview] = useState(false);
   const [isSkillDropdownOpen, setIsSkillDropdownOpen] = useState(false);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
 
   const handleRegister = () => {
     if (!formData.name.trim()) {
@@ -64,6 +100,10 @@ export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onCl
     }
     if (!formData.description.trim()) {
       alert(lang === 'zh' ? '请输入智能体描述' : 'Please enter agent description');
+      return;
+    }
+    if (formData.type === 'Scenario' && !formData.businessCategory.trim()) {
+      alert(lang === 'zh' ? '请输入或选择场景所属业务分类' : 'Please enter or select business category');
       return;
     }
     if (onSubmit) {
@@ -75,6 +115,8 @@ export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onCl
         runPageUrl: formData.runPageUrl,
         mcpAddress: formData.mcpAddress,
         selectedSkills: formData.selectedSkills,
+        icon: formData.icon,
+        businessCategory: formData.type === 'Scenario' ? formData.businessCategory : undefined,
       });
     }
     setFormData({
@@ -85,6 +127,8 @@ export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onCl
       initPageUrl: '',
       runPageUrl: '',
       selectedSkills: [],
+      icon: 'fa-robot',
+      businessCategory: '',
     });
     onClose();
   };
@@ -138,6 +182,54 @@ export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onCl
                   </div>
                   
                   <div className="grid gap-4">
+                    {/* Agent Icon Configuration */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-black text-slate-500 ml-1">
+                        {lang === 'zh' ? '智能体图标' : 'Agent Icon'} <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="flex items-center gap-3 bg-slate-50/50 border border-slate-100 p-3 rounded-xl">
+                        <div className="w-12 h-12 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl flex items-center justify-center text-xl shadow-inner">
+                          <i className={`fas ${formData.icon}`}></i>
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <div className="text-xs font-bold text-slate-700">
+                            {lang === 'zh' ? `当前图标: ${formData.icon}` : `Current Icon: ${formData.icon}`}
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const randomIndex = Math.floor(Math.random() * SYSTEM_ICONS.length);
+                                setFormData(prev => ({ ...prev, icon: SYSTEM_ICONS[randomIndex] }));
+                              }}
+                              className="px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 transition-all text-[11px] font-black rounded-lg flex items-center gap-1.5 shadow-sm"
+                            >
+                              <i className="fas fa-random text-[10px]"></i>
+                              {lang === 'zh' ? '从系统已有图标中随机选择一个' : 'Random Selection'}
+                            </button>
+                            
+                            {/* Quick selection of some popular icons */}
+                            <div className="flex gap-1 items-center ml-2 border-l border-slate-200 pl-3">
+                              {['fa-robot', 'fa-brain', 'fa-cube', 'fa-user-tie', 'fa-tools'].map(ic => (
+                                <button
+                                  key={ic}
+                                  type="button"
+                                  onClick={() => setFormData(prev => ({ ...prev, icon: ic }))}
+                                  className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] transition-all ${
+                                    formData.icon === ic 
+                                      ? 'bg-indigo-100 text-indigo-600 border border-indigo-200' 
+                                      : 'bg-white hover:bg-slate-100 text-slate-400 border border-slate-100'
+                                  }`}
+                                >
+                                  <i className={`fas ${ic}`}></i>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-black text-slate-500 ml-1">
                         {lang === 'zh' ? '智能体名称' : 'Agent Name'} <span className="text-rose-500">*</span>
@@ -176,6 +268,57 @@ export const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onCl
                         ))}
                       </div>
                     </div>
+
+                    {/* Scenario Business Category (only visible for Scenario type) */}
+                    <AnimatePresence>
+                      {formData.type === 'Scenario' && (
+                        <motion.div 
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="space-y-1.5 relative overflow-visible"
+                        >
+                          <label className="text-[11px] font-black text-slate-500 ml-1 flex justify-between items-center">
+                            <span>{lang === 'zh' ? '场景所属业务分类' : 'Scenario Business Category'} <span className="text-rose-500">*</span></span>
+                            <span className="text-[9px] font-bold text-slate-400">({lang === 'zh' ? '支持手动输入或下拉选择' : 'Supports manual input or select'})</span>
+                          </label>
+                          <div className="relative flex">
+                            <input 
+                              type="text" 
+                              placeholder={lang === 'zh' ? '请输入或选择所属业务分类' : 'Enter or select business category'}
+                              className="w-full bg-slate-50/50 border border-slate-100 rounded-xl p-2.5 px-4 text-xs font-medium focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 bg-white outline-none transition-all pr-10"
+                              value={formData.businessCategory}
+                              onChange={(e) => setFormData({ ...formData, businessCategory: e.target.value })}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
+                            >
+                              <i className={`fas fa-chevron-down text-[10px] transition-transform ${isCategoryDropdownOpen ? 'rotate-180' : ''}`}></i>
+                            </button>
+                          </div>
+                          
+                          {isCategoryDropdownOpen && (
+                            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-100 rounded-xl shadow-xl z-50 py-1 max-h-40 overflow-y-auto custom-scrollbar">
+                              {BUSINESS_CATEGORIES.map(cat => (
+                                <div 
+                                  key={cat}
+                                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+                                  onClick={() => {
+                                    setFormData({ ...formData, businessCategory: cat });
+                                    setIsCategoryDropdownOpen(false);
+                                  }}
+                                >
+                                  {cat}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-black text-slate-500 ml-1">
                         {lang === 'zh' ? '智能体描述' : 'Agent Description'} <span className="text-rose-500">*</span>

@@ -24,6 +24,8 @@ export interface Workspace {
   reportNeedOutline?: boolean;
   selectedReportTemplateId?: string;
   selectedReportObjectInstance?: string;
+  memberUserIds?: string[];
+  memberPermissions?: Record<string, 'edit' | 'view'>;
 }
 
 export type ResourceType = 'domain' | 'mbu' | 'artifact' | 'folder';

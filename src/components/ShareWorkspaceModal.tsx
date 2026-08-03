@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language } from '../types';
 
-interface User {
+export interface User {
   id: string;
   name: string;
   avatar?: string;
@@ -21,6 +21,9 @@ interface ShareWorkspaceModalProps {
   onClose: () => void;
   workspaceName: string;
   lang: Language;
+  initialSelectedUserIds?: Set<string>;
+  initialUserPermissions?: Record<string, 'edit' | 'view'>;
+  onSave?: (selectedUserIds: Set<string>, userPermissions: Record<string, 'edit' | 'view'>) => void;
 }
 
 const DEPARTMENTS: Department[] = [
@@ -31,7 +34,7 @@ const DEPARTMENTS: Department[] = [
   { id: 'dept-5', name: '生产协调指挥中心', count: 15 },
 ];
 
-const ALL_USERS: User[] = [
+export const ALL_USERS: User[] = [
   { id: 'u-1', name: '张伟', role: '高级工程师', department: 'dept-1' },
   { id: 'u-2', name: '王芳', role: '钻井专家', department: 'dept-1' },
   { id: 'u-3', name: '李强', role: '技术员', department: 'dept-1' },
@@ -47,11 +50,22 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
   onClose,
   workspaceName,
   lang,
+  initialSelectedUserIds,
+  initialUserPermissions,
+  onSave,
 }) => {
   const [activeDeptId, setActiveDeptId] = useState<string>(DEPARTMENTS[0].id);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [userPermissions, setUserPermissions] = useState<Record<string, 'edit' | 'view'>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [copied, setCopied] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setSelectedUserIds(initialSelectedUserIds ? new Set(initialSelectedUserIds) : new Set());
+      setUserPermissions(initialUserPermissions || {});
+    }
+  }, [isOpen, initialSelectedUserIds, initialUserPermissions]);
 
   const filteredUsers = ALL_USERS.filter(u => 
     u.department === activeDeptId && 
@@ -60,8 +74,20 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
 
   const toggleUser = (userId: string) => {
     const next = new Set(selectedUserIds);
-    if (next.has(userId)) next.delete(userId);
-    else next.add(userId);
+    if (next.has(userId)) {
+      next.delete(userId);
+      setUserPermissions(prev => {
+        const updated = { ...prev };
+        delete updated[userId];
+        return updated;
+      });
+    } else {
+      next.add(userId);
+      setUserPermissions(prev => ({
+        ...prev,
+        [userId]: 'view' // default permission is 'view' (可查看)
+      }));
+    }
     setSelectedUserIds(next);
   };
 
@@ -74,7 +100,9 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
   };
 
   const handleShare = () => {
-    // Logic for actual sharing would go here
+    if (onSave) {
+      onSave(selectedUserIds, userPermissions);
+    }
     onClose();
   };
 
@@ -99,10 +127,10 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
             <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
               <div>
                 <h3 className="text-xl font-bold text-gray-900">
-                  {lang === 'zh' ? '共享工作空间' : 'Share Workspace'}
+                  {lang === 'zh' ? '工作空间成员管理' : 'Workspace Member Management'}
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">
-                  {lang === 'zh' ? `正在分享：${workspaceName}` : `Sharing: ${workspaceName}`}
+                  {lang === 'zh' ? `成员管理：${workspaceName}` : `Members: ${workspaceName}`}
                 </p>
               </div>
               <button 
@@ -117,7 +145,7 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
               {/* Left: Department List */}
               <div className="w-1/3 bg-gray-50/50 border-r border-gray-100 overflow-y-auto p-4 custom-scrollbar">
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">
-                  {lang === 'zh' ? '按部门选择' : 'Select by Department'}
+                  {lang === 'zh' ? '按部门筛选' : 'Filter by Department'}
                 </div>
                 <div className="space-y-1">
                   {DEPARTMENTS.map(dept => (
@@ -177,6 +205,27 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
                           <div className="text-sm font-bold text-gray-900">{user.name}</div>
                           <div className="text-[11px] text-gray-500">{user.role}</div>
                         </div>
+                        
+                        {/* Inline permission setting */}
+                        {selectedUserIds.has(user.id) && (
+                          <div 
+                            className="relative mr-1" 
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <select
+                              value={userPermissions[user.id] || 'view'}
+                              onChange={(e) => {
+                                const val = e.target.value as 'edit' | 'view';
+                                setUserPermissions(prev => ({ ...prev, [user.id]: val }));
+                              }}
+                              className="text-[11px] bg-white border border-gray-200 rounded-lg px-2 py-1 text-gray-700 font-bold focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                            >
+                              <option value="view">{lang === 'zh' ? '可查看' : 'Can View'}</option>
+                              <option value="edit">{lang === 'zh' ? '可编辑' : 'Can Edit'}</option>
+                            </select>
+                          </div>
+                        )}
+
                         <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
                           selectedUserIds.has(user.id)
                             ? 'bg-blue-600 border-blue-600'
@@ -203,7 +252,71 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
               </div>
             </div>
 
-            {/* Selected Summary & Invite Section */}
+            {/* Selected Members with Permission Settings List */}
+            {selectedUserIds.size > 0 && (
+              <div className="px-8 py-4 bg-gray-50/40 border-t border-gray-100">
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2.5">
+                  {lang === 'zh' ? '已选成员权限清单' : 'Member Permissions List'}
+                </div>
+                <div className="max-h-[130px] overflow-y-auto space-y-2 custom-scrollbar">
+                  {selectedUsers.map(u => {
+                    const perm = userPermissions[u.id] || 'view';
+                    return (
+                      <div key={u.id} className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-gray-200/60 shadow-2xs">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-[10px] font-bold">
+                            {u.name.charAt(0)}
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-gray-800">{u.name}</span>
+                            <span className="text-[10px] text-gray-400 ml-2">{u.role}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3">
+                          {/* Permission Selector buttons */}
+                          <div className="flex items-center bg-gray-100 p-0.5 rounded-lg border border-gray-200/20">
+                            <button
+                              type="button"
+                              onClick={() => setUserPermissions(prev => ({ ...prev, [u.id]: 'view' }))}
+                              className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${
+                                perm === 'view'
+                                  ? 'bg-white text-blue-600 shadow-2xs'
+                                  : 'text-gray-500 hover:text-gray-950'
+                              }`}
+                            >
+                              {lang === 'zh' ? '可查看' : 'Viewer'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setUserPermissions(prev => ({ ...prev, [u.id]: 'edit' }))}
+                              className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${
+                                perm === 'edit'
+                                  ? 'bg-white text-blue-600 shadow-2xs'
+                                  : 'text-gray-500 hover:text-gray-950'
+                              }`}
+                            >
+                              {lang === 'zh' ? '可编辑' : 'Editor'}
+                            </button>
+                          </div>
+
+                          {/* Remove Button */}
+                          <button
+                            onClick={() => toggleUser(u.id)}
+                            className="w-6 h-6 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 flex items-center justify-center transition-all"
+                            title={lang === 'zh' ? '移除' : 'Remove'}
+                          >
+                            <i className="fas fa-trash-alt text-[10px]"></i>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Link invite & Save Section */}
             <div className="p-6 bg-gray-50/80 border-t border-gray-100 space-y-4">
               {/* Profile Link Section */}
               <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-gray-200">
@@ -212,7 +325,7 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
                 </div>
                 <div className="flex-1">
                   <div className="text-[11px] font-bold text-gray-900">
-                    {lang === 'zh' ? '通过链接邀请' : 'Invite via Link'}
+                    {lang === 'zh' ? '通过专属邀请链接分配成员' : 'Assign Members via Invitation Link'}
                   </div>
                   <div className="text-[10px] text-gray-400 truncate">
                     https://aunit.app/share/ws-a9k2l9m...
@@ -234,7 +347,7 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-xs text-gray-500">
-                    {lang === 'zh' ? '已选择：' : 'Selected: '}
+                    {lang === 'zh' ? '已选定成员数：' : 'Selected Members: '}
                   </span>
                   <span className="text-sm font-bold text-gray-900">
                     {selectedUserIds.size} {lang === 'zh' ? '人' : 'people'}
@@ -249,34 +362,14 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
                   </button>
                   <button 
                     onClick={handleShare}
-                    disabled={selectedUserIds.size === 0}
                     className="px-8 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
                   >
-                    {lang === 'zh' ? '确定共享' : 'Share Now'}
-                    <i className="fas fa-paper-plane text-xs"></i>
+                    {lang === 'zh' ? '保存更改' : 'Save Changes'}
+                    <i className="fas fa-save text-xs"></i>
                   </button>
                 </div>
               </div>
             </div>
-
-            {/* Selected Users Avatars (Floating mini-scroll if many) */}
-            {selectedUserIds.size > 0 && (
-              <div className="px-6 pb-4 flex gap-2 overflow-x-auto no-scrollbar">
-                {selectedUsers.map(u => (
-                  <div key={u.id} className="relative group flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold border border-white">
-                      {u.name.charAt(0)}
-                    </div>
-                    <button 
-                      onClick={() => toggleUser(u.id)}
-                      className="absolute -top-1 -right-1 w-4 h-4 bg-gray-900 text-white rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <i className="fas fa-times"></i>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </motion.div>
         </div>
       )}

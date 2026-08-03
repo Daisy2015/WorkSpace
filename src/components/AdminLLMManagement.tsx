@@ -474,7 +474,7 @@ export const AdminLLMManagement: React.FC<AdminLLMManagementProps> = ({ lang }) 
                       {editingId ? '编辑大模型' : '新增大模型'}
                     </h2>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      {editingId ? '修改当前大模型的底层配置与属性' : '在智能平台中接入并配置新的大语言模型'}
+                      {editingId ? '修改当前大模型的底层配置与属性' : '在智能装配工厂中接入并配置新的大语言模型'}
                     </p>
                   </div>
                 </div>

@@ -1125,7 +1125,7 @@ const App: React.FC = () => {
                       className="w-full flex items-center px-3 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer text-left"
                   >
                       <i className="fas fa-brain mr-2.5 text-slate-400 text-sm"></i>
-                      {lang === 'zh' ? '智能平台' : 'Intelligence Platform'}
+                      {lang === 'zh' ? '智能装配工厂' : 'Intelligent Assembly Factory'}
                   </button>
                   <button
                       onClick={() => {

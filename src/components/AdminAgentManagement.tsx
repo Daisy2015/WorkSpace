@@ -42,6 +42,8 @@ interface ManagedAgent {
   selectedGeneralAgents?: string[];
   selectedScenarioAgents?: string[];
   modifiedBy: string;
+  icon?: string;
+  businessCategory?: string;
 }
 
 const MOCK_MANAGED_AGENTS: ManagedAgent[] = [
@@ -539,19 +541,28 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${
+                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${
                             agent.type === 'Role' ? 'bg-indigo-100 text-indigo-600' :
                             agent.type === 'Scenario' ? 'bg-purple-100 text-purple-600' :
                             'bg-blue-100 text-blue-600'
                           }`}>
                             <i className={`fas ${
-                              agent.type === 'Role' ? 'fa-user-tie' :
-                              agent.type === 'Scenario' ? 'fa-cube' :
-                              'fa-bolt'
+                              agent.icon || (
+                                agent.type === 'Role' ? 'fa-user-tie' :
+                                agent.type === 'Scenario' ? 'fa-cube' :
+                                'fa-bolt'
+                              )
                             }`}></i>
                           </div>
                           <div>
-                            <div className="font-bold text-slate-800">{agent.name}</div>
+                            <div className="font-bold text-slate-800 flex items-center gap-2 flex-wrap">
+                              <span>{agent.name}</span>
+                              {agent.type === 'Scenario' && agent.businessCategory && (
+                                <span className="px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded text-[9px] font-bold border border-purple-100">
+                                  {agent.businessCategory}
+                                </span>
+                              )}
+                            </div>
                             {(agent.initPageUrl || agent.runPageUrl) && (
                               <div className="flex items-center gap-2 mt-0.5">
                                 <div className="flex gap-1">
@@ -679,7 +690,11 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
                 <div className="px-8 py-4 border-b border-slate-100 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-lg">
-                      <i className="fas fa-id-card"></i>
+                      <i className={`fas ${selectedAgent.icon || (
+                        selectedAgent.type === 'Role' ? 'fa-user-tie' :
+                        selectedAgent.type === 'Scenario' ? 'fa-cube' :
+                        'fa-bolt'
+                      )}`}></i>
                     </div>
                     <div>
                       <h3 className="text-lg font-black text-slate-800">{lang === 'zh' ? '智能体详情' : 'Agent Details'}</h3>
@@ -726,6 +741,29 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
                           <option value="General">{lang === 'zh' ? '通用' : 'General'}</option>
                         </select>
                       </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '智能体图标' : 'Agent Icon'}</label>
+                        <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 p-3 rounded-xl">
+                          <div className="w-10 h-10 bg-white text-indigo-600 border border-slate-200 rounded-lg flex items-center justify-center text-lg shadow-sm">
+                            <i className={`fas ${selectedAgent.icon || 'fa-robot'}`}></i>
+                          </div>
+                          <span className="text-xs font-medium text-slate-600">{selectedAgent.icon || 'fa-robot'}</span>
+                        </div>
+                      </div>
+
+                      {selectedAgent.type === 'Scenario' && (
+                        <div className="space-y-2 animate-in fade-in duration-200">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '场景所属业务分类' : 'Business Category'}</label>
+                          <input 
+                            type="text" 
+                            value={selectedAgent.businessCategory || ''} 
+                            onChange={(e) => handleUpdateAgent(selectedAgent.id, { businessCategory: e.target.value })} 
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" 
+                          />
+                        </div>
+                      )}
+
                       <div className="space-y-2">
                         <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{lang === 'zh' ? '描述' : 'Description'}</label>
                         <textarea defaultValue={selectedAgent.description} className="w-full h-20 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none" />
@@ -913,7 +951,9 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
             reasoningMode: 'ReAct',
             tags: ['Custom'],
             industry: 'General',
-            modifiedBy: '用户'
+            modifiedBy: '用户',
+            icon: newAgentData.icon,
+            businessCategory: newAgentData.businessCategory,
           };
           setAgents(prev => [newAgent, ...prev]);
         }}

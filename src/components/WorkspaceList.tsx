@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Workspace, WorkspaceStatus, Language, WorkspaceTemplate } from '../types';
-import { ShareWorkspaceModal } from './ShareWorkspaceModal';
+import { ShareWorkspaceModal, ALL_USERS, User } from './ShareWorkspaceModal';
 import { templates as reportTemplates, ReportTemplate, getChapters, getUsageCount } from './SmartReportCreateModal';
 
 interface WorkspaceListProps {
@@ -272,6 +272,24 @@ const getTemplateObjectType = (templateId: string): { type: string; label: strin
   return map[templateId] || { type: 'well', label: '开发井' };
 };
 
+const parseWorkspaceObjects = (objects: any[]): { type: string; name: string }[] => {
+  if (!objects) return [];
+  return objects.map((obj) => {
+    let type = 'well';
+    if (obj.id) {
+      const parts = obj.id.split('-');
+      if (parts[0]) type = parts[0];
+    } else if (obj.category) {
+      const cat = obj.category;
+      if (cat === '油气田' || cat.toLowerCase().includes('oil')) type = 'oilfield';
+      else if (cat === '区块' || cat.toLowerCase().includes('block')) type = 'block';
+      else if (cat === '井' || cat.toLowerCase().includes('well')) type = 'well';
+      else if (cat === '产层' || cat.toLowerCase().includes('reservoir')) type = 'reservoir';
+    }
+    return { type, name: obj.label || obj.name || '' };
+  });
+};
+
 export const WorkspaceList: React.FC<WorkspaceListProps> = ({
   workspaces,
   templates = [],
@@ -319,21 +337,35 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
 
   // Workspace Objects selection state
   const [selectedWorkspaceObjects, setSelectedWorkspaceObjects] = useState<{ type: string; name: string }[]>([]);
-  const [activeObjectType, setActiveObjectType] = useState<string>('well');
-  const [objectSearchQuery, setObjectSearchQuery] = useState<string>('');
-  const [isObjectDropdownOpen, setIsObjectDropdownOpen] = useState<boolean>(false);
+
+  // New workspace member selection state
+  const [isNewWorkspaceShareModalOpen, setIsNewWorkspaceShareModalOpen] = useState(false);
+  const [newWorkspaceSelectedUserIds, setNewWorkspaceSelectedUserIds] = useState<Set<string>>(new Set());
+  const [newWorkspaceUserPermissions, setNewWorkspaceUserPermissions] = useState<Record<string, 'edit' | 'view'>>({});
+
+  // Workspace Object Multi-Selector Modal state
+  const [isObjectSelectorModalOpen, setIsObjectSelectorModalOpen] = useState(false);
+  const [tempSelectedObjects, setTempSelectedObjects] = useState<{ type: string; name: string }[]>([]);
+  const [modalActiveObjectType, setModalActiveObjectType] = useState<string>('all');
+  const [modalSearchQuery, setModalSearchQuery] = useState('');
 
   // Reset step on drawer close
   React.useEffect(() => {
     if (!isDrawerOpen) {
       setCreationStep('basic');
       setSelectedWorkspaceObjects([]);
-      setActiveObjectType('well');
-      setObjectSearchQuery('');
-      setIsObjectDropdownOpen(false);
+      setTempSelectedObjects([]);
+      setModalActiveObjectType('all');
+      setModalSearchQuery('');
       setChartObject('');
       setSelectedChartTemplate('1');
       setChartActiveCategory(lang === 'zh' ? '单井柱状图' : 'Well Log');
+      setNewWorkspaceSelectedUserIds(new Set());
+      setNewWorkspaceUserPermissions({});
+      setNewName('');
+      setNewDesc('');
+      setNewAgent('智能问数');
+      setEditingWorkspace(null);
     }
   }, [isDrawerOpen]);
 
@@ -589,131 +621,36 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
 
           {/* Workspace Objects Selector */}
           <div className="pt-2">
-            <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
-              {lang === 'zh' ? '工作空间对象' : 'Workspace Objects'}
-              <span className="text-slate-400 font-normal text-[10px]">
-                {lang === 'zh' ? '(先选类型，再搜并添加对象)' : '(Select type first, then search and add)'}
-              </span>
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-bold text-slate-700 flex items-center gap-1">
+                {lang === 'zh' ? '工作空间对象' : 'Workspace Objects'}
+                <span className="text-slate-400 font-normal text-[10px]">
+                  {lang === 'zh' ? `(已选 ${selectedWorkspaceObjects.length} 个对象)` : `(${selectedWorkspaceObjects.length} selected)`}
+                </span>
+              </label>
 
-            <div className="flex gap-2 items-center">
-              {/* Dropdown 1: Object Type */}
-              <div className="relative w-1/3 min-w-[90px]">
-                <select
-                  value={activeObjectType}
-                  onChange={(e) => {
-                    setActiveObjectType(e.target.value);
-                    setObjectSearchQuery('');
-                    setIsObjectDropdownOpen(false);
-                  }}
-                  className="w-full pl-3 pr-8 py-2.5 bg-slate-50 border border-slate-200/60 rounded-xl text-xs outline-none focus:bg-white focus:ring-4 focus:ring-blue-100/30 transition-all text-slate-800 font-bold appearance-none cursor-pointer"
-                >
-                  {WORKSPACE_OBJECT_TYPES.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {lang === 'zh' ? type.nameZh : type.nameEn}
-                    </option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">
-                  <i className="fas fa-chevron-down"></i>
-                </div>
-              </div>
-
-              {/* Dropdown/Input 2: Search corresponding names */}
-              <div className="relative flex-1">
-                <div className="relative">
-                  <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                  <input
-                    type="text"
-                    value={objectSearchQuery}
-                    onChange={(e) => {
-                      setObjectSearchQuery(e.target.value);
-                      setIsObjectDropdownOpen(true);
-                    }}
-                    onFocus={() => setIsObjectDropdownOpen(true)}
-                    placeholder={lang === 'zh' ? '输入或检索对象名称...' : 'Search or enter name...'}
-                    className="w-full pl-9 pr-12 py-2.5 bg-slate-50 border border-slate-200/60 rounded-xl text-xs outline-none focus:bg-white focus:ring-4 focus:ring-blue-100/30 transition-all text-slate-800 font-medium placeholder:text-slate-400"
-                  />
-                  {objectSearchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setObjectSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
-                    >
-                      <i className="fas fa-times"></i>
-                    </button>
-                  )}
-                </div>
-
-                {/* Suggestions dropdown popup list */}
-                {isObjectDropdownOpen && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-30" 
-                      onClick={() => setIsObjectDropdownOpen(false)} 
-                    />
-                    
-                    <div className="absolute left-0 right-0 mt-1.5 max-h-48 overflow-y-auto bg-white border border-slate-200/80 rounded-xl shadow-lg z-40 custom-scrollbar py-1 divide-y divide-slate-50">
-                      {(() => {
-                        const availableList = WORKSPACE_OBJECTS_REGISTRY[activeObjectType] || [];
-                        const query = objectSearchQuery.trim().toLowerCase();
-                        
-                        const filtered = availableList.filter((name) => {
-                          const isAlreadySelected = selectedWorkspaceObjects.some(
-                            (o) => o.type === activeObjectType && o.name === name
-                          );
-                          return !isAlreadySelected && name.toLowerCase().includes(query);
-                        });
-
-                        const handleAddObj = (name: string) => {
-                          setSelectedWorkspaceObjects((prev) => [
-                            ...prev,
-                            { type: activeObjectType, name }
-                          ]);
-                          setObjectSearchQuery('');
-                          setIsObjectDropdownOpen(false);
-                        };
-
-                        return (
-                          <>
-                            {filtered.map((name) => (
-                              <button
-                                key={name}
-                                type="button"
-                                onClick={() => handleAddObj(name)}
-                                className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center justify-between"
-                              >
-                                <span>{name}</span>
-                                <span className="text-[9px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded">
-                                  {lang === 'zh' ? '推荐' : 'REC'}
-                                </span>
-                              </button>
-                            ))}
-                            
-                            {query && !selectedWorkspaceObjects.some(o => o.type === activeObjectType && o.name.toLowerCase() === query) && (
-                              <button
-                                type="button"
-                                onClick={() => handleAddObj(objectSearchQuery.trim())}
-                                className="w-full text-left px-4 py-2.5 text-xs font-bold text-blue-600 hover:bg-blue-50/50 transition-colors flex items-center gap-1.5"
-                              >
-                                <i className="fas fa-plus text-[10px]"></i>
-                                <span>{lang === 'zh' ? `添加自定义 "${objectSearchQuery.trim()}"` : `Add custom "${objectSearchQuery.trim()}"`}</span>
-                              </button>
-                            )}
-
-                            {filtered.length === 0 && !query && (
-                              <div className="px-4 py-3 text-center text-slate-400 text-[11px] font-medium">
-                                {lang === 'zh' ? '暂无可选择的对象' : 'No options available'}
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setTempSelectedObjects([...selectedWorkspaceObjects]);
+                  setModalActiveObjectType('all');
+                  setModalSearchQuery('');
+                  setIsObjectSelectorModalOpen(true);
+                }}
+                className="text-xs text-blue-600 hover:text-blue-700 font-bold transition-colors flex items-center gap-1.5"
+              >
+                <i className="fas fa-plus text-[10px]"></i>
+                <span>{lang === 'zh' ? '添加/管理对象' : 'Manage Objects'}</span>
+              </button>
             </div>
+
+            {selectedWorkspaceObjects.length === 0 && (
+              <div className="p-3.5 bg-slate-50/30 border border-dashed border-slate-200 rounded-xl text-center">
+                <p className="text-[11px] text-slate-400 font-medium">
+                  {lang === 'zh' ? '暂无添加对象，点击右上角进行添加' : 'No objects added yet. Click top right to add.'}
+                </p>
+              </div>
+            )}
 
             {/* Selected Objects categorized list badges */}
             {selectedWorkspaceObjects.length > 0 && (
@@ -771,6 +708,77 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Member Management */}
+            <div className="pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-bold text-slate-700 flex items-center gap-1">
+                  {lang === 'zh' ? '成员管理' : 'Member Management'}
+                  <span className="text-slate-400 font-normal text-[10px]">
+                    {lang === 'zh' ? `(已选 ${newWorkspaceSelectedUserIds.size} 人)` : `(${newWorkspaceSelectedUserIds.size} selected)`}
+                  </span>
+                </label>
+                
+                <button
+                  type="button"
+                  onClick={() => setIsNewWorkspaceShareModalOpen(true)}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-bold transition-colors flex items-center gap-1.5"
+                >
+                  <i className="fas fa-user-plus text-[10px]"></i>
+                  <span>{lang === 'zh' ? '添加/管理成员' : 'Manage Members'}</span>
+                </button>
+              </div>
+
+              {newWorkspaceSelectedUserIds.size > 0 ? (
+                <div className="flex flex-wrap gap-2.5 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100">
+                  {Array.from(newWorkspaceSelectedUserIds).map((userId) => {
+                    const u = ALL_USERS.find((user) => user.id === userId);
+                    if (!u) return null;
+
+                    return (
+                      <div key={userId} className="relative group">
+                        <div 
+                          className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-blue-600 text-xs font-black border-2 border-white shadow-sm"
+                          title={`${u.name} (${u.role})`}
+                        >
+                          {u.name.charAt(0)}
+                        </div>
+                        
+                        {/* Name tooltip */}
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 bg-slate-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                          {u.name}
+                        </div>
+
+                        {/* Delete button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextIds = new Set(newWorkspaceSelectedUserIds);
+                            nextIds.delete(userId);
+                            setNewWorkspaceSelectedUserIds(nextIds);
+                            
+                            setNewWorkspaceUserPermissions((prev) => {
+                              const updated = { ...prev };
+                              delete updated[userId];
+                              return updated;
+                            });
+                          }}
+                          className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-full flex items-center justify-center text-[8px] border border-slate-200/60 shadow-sm transition-all duration-200"
+                        >
+                          <i className="fas fa-times"></i>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-3.5 bg-slate-50/30 border border-dashed border-slate-200 rounded-xl text-center">
+                  <p className="text-[11px] text-slate-400 font-medium">
+                    {lang === 'zh' ? '暂无添加成员，点击右上角进行添加' : 'No members added yet. Click top right to add.'}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -1369,12 +1377,7 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
   };
 
   // Editing States
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editDesc, setEditDesc] = useState('');
-  const [editAgent, setEditAgent] = useState('报告生成Agent');
-  const [editError, setEditError] = useState('');
 
   // Sharing States
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -1470,6 +1473,50 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
       };
     });
 
+    if (editingWorkspace) {
+      if (!newName.trim()) {
+        setNameError(lang === 'zh' ? '工作空间名称不能为空' : 'Workspace name cannot be empty');
+        return;
+      }
+      
+      const updateData: Partial<Workspace> = {
+        name: newName.trim(),
+        description: newDesc.trim(),
+        defaultAgent: newAgent,
+        objects: formattedObjects,
+        lastModified: new Date().toISOString(),
+        memberUserIds: Array.from(newWorkspaceSelectedUserIds),
+        memberPermissions: newWorkspaceUserPermissions,
+      };
+
+      if (newAgent === '智能报告') {
+        updateData.reportNeedOutline = reportNeedOutline;
+        updateData.selectedReportTemplateId = selectedReportTemplateId;
+        updateData.selectedReportObjectInstance = selectedReportObjectInstance;
+      }
+
+      onUpdateWorkspace(editingWorkspace.id, updateData);
+      
+      // Reset & close
+      setEditingWorkspace(null);
+      setNewName('');
+      setNewDesc('');
+      setNewAgent('智能问数');
+      setInitObject('');
+      setInitTemplate('');
+      setInitTimeRange('');
+      setSelectedWorkspaceObjects([]);
+      setNewWorkspaceSelectedUserIds(new Set());
+      setNewWorkspaceUserPermissions({});
+      setAgentConfig({
+        data_scope: 'all',
+        query_depth: 'hybrid',
+      });
+      setNameError('');
+      setIsDrawerOpen(false);
+      return;
+    }
+
     if (creationTab === 'template') {
       const selectedTpl = templates.find((t) => t.id === selectedTemplateId);
       if (!selectedTpl) {
@@ -1490,6 +1537,8 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
       setNewDesc('');
       setNewAgent('智能问数');
       setSelectedWorkspaceObjects([]);
+      setNewWorkspaceSelectedUserIds(new Set());
+      setNewWorkspaceUserPermissions({});
       setAgentConfig({
         data_scope: 'all',
         query_depth: 'hybrid',
@@ -1522,6 +1571,8 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
     setInitTemplate('');
     setInitTimeRange('');
     setSelectedWorkspaceObjects([]);
+    setNewWorkspaceSelectedUserIds(new Set());
+    setNewWorkspaceUserPermissions({});
     setAgentConfig({
       data_scope: 'all',
       query_depth: 'hybrid',
@@ -1533,28 +1584,29 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
   const handleEditClick = (e: React.MouseEvent, ws: Workspace) => {
     e.stopPropagation();
     setEditingWorkspace(ws);
-    setEditName(ws.name);
-    setEditDesc(ws.description || '');
-    setEditAgent(ws.defaultAgent || '智能问数');
-    setEditError('');
-    setIsEditModalOpen(true);
-  };
+    setNewName(ws.name);
+    setNewDesc(ws.description || '');
+    setNewAgent(ws.defaultAgent || '智能问数');
+    setNameError('');
+    
+    // Parse existing objects
+    const parsedObjects = parseWorkspaceObjects(ws.objects || []);
+    setSelectedWorkspaceObjects(parsedObjects);
+    
+    // Parse existing members
+    setNewWorkspaceSelectedUserIds(new Set(ws.memberUserIds || []));
+    setNewWorkspaceUserPermissions(ws.memberPermissions || {});
 
-  const handleUpdate = () => {
-    if (!editName.trim()) {
-      setEditError(lang === 'zh' ? '工作空间名称不能为空' : 'Workspace name cannot be empty');
-      return;
-    }
-    if (editingWorkspace) {
-      onUpdateWorkspace(editingWorkspace.id, {
-        name: editName.trim(),
-        description: editDesc.trim(),
-        defaultAgent: editAgent,
-        lastModified: new Date().toISOString(),
-      });
-      setIsEditModalOpen(false);
-      setEditingWorkspace(null);
-    }
+    // Set agent configs
+    const configs = AGENT_CONFIGS[ws.defaultAgent || '智能问数'] || [];
+    const initialConfig: Record<string, string> = {};
+    configs.forEach((field) => {
+      initialConfig[field.key] = field.defaultValue;
+    });
+    setAgentConfig(initialConfig);
+
+    setCreationStep('basic');
+    setIsDrawerOpen(true);
   };
 
   const handleShareClick = (e: React.MouseEvent, ws: Workspace) => {
@@ -1621,7 +1673,7 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
               activeTab === 'my' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            {lang === 'zh' ? '我的' : 'My Workspaces'}
+            {lang === 'zh' ? '我创建的' : 'Created by Me'}
             {activeTab === 'my' && (
               <motion.div
                 layoutId="activeTabUnderline"
@@ -1635,7 +1687,7 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
               activeTab === 'shared' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            {lang === 'zh' ? '分享给我的' : 'Shared with Me'}
+            {lang === 'zh' ? '我参与的' : 'Participated by Me'}
             {activeTab === 'shared' && (
               <motion.div
                 layoutId="activeTabUnderline"
@@ -1778,16 +1830,16 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                             </div>
                           </div>
 
-                          {/* Share Workspace */}
+                          {/* Member Management */}
                           <div className="relative group/btn">
                             <button
                               onClick={(e) => handleShareClick(e, ws)}
                               className="w-7 h-7 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50/60 active:scale-95 flex items-center justify-center transition-all"
                             >
-                              <i className="fas fa-share-alt text-xs"></i>
+                              <i className="fas fa-users text-xs"></i>
                             </button>
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-gray-900 text-white text-[10px] font-bold rounded opacity-0 pointer-events-none group-hover/btn:opacity-100 transition-opacity duration-150 whitespace-nowrap z-30 shadow-md">
-                              {lang === 'zh' ? '分享' : 'Share'}
+                              {lang === 'zh' ? '成员管理' : 'Members'}
                               <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900" />
                             </div>
                           </div>
@@ -1876,13 +1928,19 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
               <div className="px-8 py-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                 <div>
                   <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                    <span>{lang === 'zh' ? '新建工作空间' : 'New Workspace'}</span>
+                    <span>{editingWorkspace ? (lang === 'zh' ? '编辑工作空间' : 'Edit Workspace') : (lang === 'zh' ? '新建工作空间' : 'New Workspace')}</span>
                   </h3>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {creationStep === 'basic' ? (
-                      lang === 'zh'
-                        ? '请填写工作空间基本信息，并从下方列表中检索并选择适合的协同智能体。'
-                        : 'Enter basic workspace details and select a collaborative agent.'
+                      editingWorkspace ? (
+                        lang === 'zh'
+                          ? '请修改工作空间基本信息，并从下方列表中重新选择适合的协同智能体。'
+                          : 'Modify basic workspace details and select a collaborative agent.'
+                      ) : (
+                        lang === 'zh'
+                          ? '请填写工作空间基本信息，并从下方列表中检索并选择适合的协同智能体。'
+                          : 'Enter basic workspace details and select a collaborative agent.'
+                      )
                     ) : (
                       lang === 'zh'
                         ? '请配置所选智能体的高级参数、生成大纲与分析流程以完成初始化。'
@@ -2017,7 +2075,7 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                           onClick={handleCreateWorkspace}
                           className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/10 active:scale-98 cursor-pointer"
                         >
-                          <span>{lang === 'zh' ? '立即创建' : 'Create Now'}</span>
+                          <span>{editingWorkspace ? (lang === 'zh' ? '保存修改' : 'Save Changes') : (lang === 'zh' ? '立即创建' : 'Create Now')}</span>
                           <i className="fas fa-check text-[10px]"></i>
                         </button>
                       );
@@ -2038,107 +2096,11 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                       onClick={handleCreateWorkspace}
                       className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/10 active:scale-98 cursor-pointer"
                     >
-                      <span>{lang === 'zh' ? '确认创建' : 'Confirm and Create'}</span>
+                      <span>{editingWorkspace ? (lang === 'zh' ? '确认保存' : 'Save Changes') : (lang === 'zh' ? '确认创建' : 'Confirm and Create')}</span>
                       <i className="fas fa-check text-[10px]"></i>
                     </button>
                   </>
                 )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Editing dialog modal */}
-      <AnimatePresence>
-        {isEditModalOpen && editingWorkspace && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsEditModalOpen(false)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden p-6 space-y-5"
-            >
-              <h3 className="text-base font-bold text-gray-900">
-                {lang === 'zh' ? '编辑工作空间' : 'Edit Workspace'}
-              </h3>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                    {lang === 'zh' ? '工作空间名称 *' : 'Workspace Name *'}
-                  </label>
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => {
-                      setEditName(e.target.value);
-                      if (e.target.value.trim()) setEditError('');
-                    }}
-                    className={`w-full px-4 py-2.5 bg-gray-50 border ${
-                      editError ? 'border-red-400 focus:ring-red-100' : 'border-gray-200 focus:ring-blue-100'
-                    } rounded-xl text-xs focus:bg-white focus:ring-4 outline-none transition-all placeholder:text-gray-400`}
-                    placeholder={lang === 'zh' ? '请输入名称' : 'Enter name'}
-                  />
-                  {editError && <p className="text-red-500 text-[11px] mt-1 font-semibold">{editError}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                    {lang === 'zh' ? '工作空间描述' : 'Workspace Description'}
-                  </label>
-                  <textarea
-                    value={editDesc}
-                    onChange={(e) => setEditDesc(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-4 focus:ring-blue-100 outline-none resize-none transition-all placeholder:text-gray-400"
-                    rows={3}
-                    placeholder={lang === 'zh' ? '请输入描述' : 'Enter description'}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                    {lang === 'zh' ? '智能体 *' : 'Agent *'}
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={editAgent}
-                      onChange={(e) => setEditAgent(e.target.value)}
-                      className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs focus:bg-white focus:ring-4 focus:ring-blue-100 outline-none transition-all text-gray-800 cursor-pointer pr-10 font-medium"
-                    >
-                      {AGENTS.map((agent) => (
-                        <option key={agent.id} value={agent.id}>
-                          {agent.name}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
-                      <i className="fas fa-chevron-down text-xs"></i>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="flex-1 py-2 border border-gray-200 text-gray-500 rounded-xl text-xs font-bold hover:bg-gray-50 transition-colors"
-                >
-                  {lang === 'zh' ? '取消' : 'Cancel'}
-                </button>
-                <button
-                  onClick={handleUpdate}
-                  className="flex-1 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/10 transition-all"
-                >
-                  {lang === 'zh' ? '保存修改' : 'Save Changes'}
-                </button>
               </div>
             </motion.div>
           </div>
@@ -2236,6 +2198,359 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
           lang={lang}
         />
       )}
+
+      {/* Creation workspace sharing/member selection modal */}
+      <ShareWorkspaceModal
+        isOpen={isNewWorkspaceShareModalOpen}
+        onClose={() => setIsNewWorkspaceShareModalOpen(false)}
+        workspaceName={newName.trim() || (lang === 'zh' ? '新工作空间' : 'New Workspace')}
+        lang={lang}
+        initialSelectedUserIds={newWorkspaceSelectedUserIds}
+        initialUserPermissions={newWorkspaceUserPermissions}
+        onSave={(selectedIds, permissions) => {
+          setNewWorkspaceSelectedUserIds(selectedIds);
+          setNewWorkspaceUserPermissions(permissions);
+        }}
+      />
+
+      {/* Object Selection Modal */}
+      <AnimatePresence>
+        {isObjectSelectorModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsObjectSelectorModalOpen(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+
+            {/* Modal Container */}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] z-10 animate-scaleUp"
+            >
+              {/* Header */}
+              <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10 flex-shrink-0">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <i className="fas fa-layer-group text-blue-500"></i>
+                    <span>{lang === 'zh' ? '添加/管理工作空间对象' : 'Manage Workspace Objects'}</span>
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {lang === 'zh' ? '支持对井、区块、油气田、地层等多源对象进行快速筛选与多选配置' : 'Filter and multi-select wells, blocks, oilfields, and formations'}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setIsObjectSelectorModalOpen(false)} 
+                  className="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-900 transition-colors cursor-pointer"
+                >
+                  <i className="fas fa-times text-xs"></i>
+                </button>
+              </div>
+
+              {/* Main Contents Container */}
+              <div className="flex flex-col flex-1 overflow-hidden">
+                {/* 上面是搜索 (Top Section: Search Bar spanning full width) */}
+                <div className="px-8 pt-5 pb-3 border-b border-gray-100/80 flex-shrink-0 bg-white">
+                  <div className="relative">
+                    <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input
+                      type="text"
+                      value={modalSearchQuery}
+                      onChange={(e) => setModalSearchQuery(e.target.value)}
+                      placeholder={lang === 'zh' ? '输入名称检索现有对象，或直接回车/点击按钮添加自定义对象...' : 'Search for existing objects, or type and click button to add custom...'}
+                      className="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs outline-none focus:bg-white focus:ring-4 focus:ring-blue-100/30 transition-all text-slate-800 font-medium placeholder:text-slate-400"
+                    />
+                    {modalSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setModalSearchQuery('')}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                      >
+                        <i className="fas fa-times"></i>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 中间分栏 (Middle Section: Split layout for types and names) */}
+                <div className="flex flex-1 overflow-hidden min-h-[320px]">
+                  {/* 左侧是对象类型 (Left Column: Object Types) */}
+                  <div className="w-1/4 bg-slate-50/50 border-r border-slate-100 p-4 flex flex-col gap-1.5 overflow-y-auto custom-scrollbar flex-shrink-0">
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider pl-2 mb-1">
+                      {lang === 'zh' ? '对象类型' : 'Object Types'}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setModalActiveObjectType('all')}
+                      className={`w-full text-left py-3 px-3.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2.5 cursor-pointer ${
+                        modalActiveObjectType === 'all'
+                          ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+                      }`}
+                    >
+                      <i className="fas fa-border-all text-[11px]"></i>
+                      <span>{lang === 'zh' ? '全部类型' : 'All Types'}</span>
+                    </button>
+                    {WORKSPACE_OBJECT_TYPES.map((type) => (
+                      <button
+                        key={type.id}
+                        type="button"
+                        onClick={() => setModalActiveObjectType(type.id)}
+                        className={`w-full text-left py-3 px-3.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2.5 cursor-pointer ${
+                          modalActiveObjectType === type.id
+                            ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+                        }`}
+                      >
+                        <i className={`fas ${type.icon} text-[11px]`}></i>
+                        <span>{lang === 'zh' ? type.nameZh : type.nameEn}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* 右侧是该对象类型对应的对象名称 (Right Column: Object Names) */}
+                  <div className="flex-1 p-6 flex flex-col overflow-hidden bg-white">
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-3 flex items-center justify-between flex-shrink-0">
+                      <span>
+                        {(() => {
+                          if (modalActiveObjectType === 'all') {
+                            return lang === 'zh' ? '所有可选对象名称' : 'All Available Object Names';
+                          }
+                          const typeObj = WORKSPACE_OBJECT_TYPES.find(t => t.id === modalActiveObjectType);
+                          return lang === 'zh' ? `可选${typeObj?.nameZh || ''}名称` : `Available ${typeObj?.nameEn || ''} Names`;
+                        })()}
+                      </span>
+                      {modalSearchQuery && (
+                        <span className="text-[10px] text-blue-500 font-bold normal-case bg-blue-50 px-2 py-0.5 rounded-md">
+                          {lang === 'zh' ? '搜索过滤中' : 'Search Filtering'}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1.5 pr-1">
+                      {/* Add Custom Button if search query is present */}
+                      {modalSearchQuery.trim() && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const targetType = modalActiveObjectType === 'all' ? 'well' : modalActiveObjectType;
+                            const customName = modalSearchQuery.trim();
+                            
+                            // Check if already in tempSelectedObjects
+                            const alreadySelected = tempSelectedObjects.some(
+                              (o) => o.type === targetType && o.name.toLowerCase() === customName.toLowerCase()
+                            );
+                            
+                            if (!alreadySelected) {
+                              setTempSelectedObjects((prev) => [...prev, { type: targetType, name: customName }]);
+                            }
+                            setModalSearchQuery('');
+                          }}
+                          className="w-full p-3 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100/70 hover:to-indigo-100/70 border border-dashed border-blue-200 rounded-xl text-xs font-bold text-blue-700 transition-all flex items-center justify-between shadow-sm mb-2 cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <i className="fas fa-plus-circle text-blue-500 animate-pulse"></i>
+                            <span>
+                              {lang === 'zh' 
+                                ? `添加 "${modalSearchQuery.trim()}" 为自定义对象` 
+                                : `Add "${modalSearchQuery.trim()}" as custom object`
+                              }
+                            </span>
+                          </div>
+                          <span className="text-[9px] bg-blue-100/80 text-blue-600 px-2.5 py-1 rounded-lg font-black uppercase">
+                            {(() => {
+                              const currentType = modalActiveObjectType === 'all' ? 'well' : modalActiveObjectType;
+                              const typeObj = WORKSPACE_OBJECT_TYPES.find(t => t.id === currentType);
+                              return lang === 'zh' ? typeObj?.nameZh : typeObj?.nameEn;
+                            })()}
+                          </span>
+                        </button>
+                      )}
+
+                      {/* Filtered items */}
+                      {(() => {
+                        // Get current items
+                        let availableItems: { type: string; name: string }[] = [];
+                        if (modalActiveObjectType === 'all') {
+                          WORKSPACE_OBJECT_TYPES.forEach((t) => {
+                            const list = WORKSPACE_OBJECTS_REGISTRY[t.id] || [];
+                            list.forEach((name) => {
+                              availableItems.push({ type: t.id, name });
+                            });
+                          });
+                        } else {
+                          const list = WORKSPACE_OBJECTS_REGISTRY[modalActiveObjectType] || [];
+                          list.forEach((name) => {
+                            availableItems.push({ type: modalActiveObjectType, name });
+                          });
+                        }
+
+                        // Apply search filter
+                        if (modalSearchQuery.trim()) {
+                          const query = modalSearchQuery.trim().toLowerCase();
+                          availableItems = availableItems.filter((item) =>
+                            item.name.toLowerCase().includes(query)
+                          );
+                        }
+
+                        if (availableItems.length === 0) {
+                          return (
+                            <div className="py-12 text-center">
+                              <div className="w-12 h-12 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center text-xl mx-auto mb-3">
+                                <i className="fas fa-box-open"></i>
+                              </div>
+                              <p className="text-xs text-slate-400 font-bold">
+                                {lang === 'zh' ? '未找到匹配的系统预设对象' : 'No matching objects found'}
+                              </p>
+                              <p className="text-[10px] text-slate-400 mt-1 px-4">
+                                {lang === 'zh' 
+                                  ? '可在上方搜索框中输入新对象名称，并一键创建自定义对象' 
+                                  : 'Type a name in search box to create and add a custom object'
+                                }
+                              </p>
+                            </div>
+                          );
+                        }
+
+                        return availableItems.map((item) => {
+                          const isSelected = tempSelectedObjects.some(
+                            (o) => o.type === item.type && o.name === item.name
+                          );
+                          const typeInfo = WORKSPACE_OBJECT_TYPES.find((t) => t.id === item.type);
+
+                          return (
+                            <button
+                              key={`${item.type}-${item.name}`}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setTempSelectedObjects((prev) =>
+                                    prev.filter((o) => !(o.type === item.type && o.name === item.name))
+                                  );
+                                } else {
+                                  setTempSelectedObjects((prev) => [...prev, item]);
+                                }
+                              }}
+                              className={`w-full px-4 py-3 rounded-xl border transition-all flex items-center justify-between text-left cursor-pointer ${
+                                isSelected
+                                  ? 'bg-blue-50/40 border-blue-200 shadow-sm'
+                                  : 'bg-white hover:bg-slate-50 border-slate-100 hover:border-slate-200'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs ${
+                                  isSelected ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'
+                                }`}>
+                                  <i className={`fas ${typeInfo?.icon || 'fa-tag'}`}></i>
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-slate-800 leading-none mb-1">{item.name}</p>
+                                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none">
+                                    {lang === 'zh' ? typeInfo?.nameZh : typeInfo?.nameEn}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${
+                                isSelected
+                                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                                  : 'border-slate-200 text-transparent hover:border-blue-300'
+                              }`}>
+                                <i className="fas fa-check text-[8px] font-black"></i>
+                              </div>
+                            </button>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 下面是已经选择的对象列表 (Bottom Section: Already selected objects) */}
+                <div className="px-8 py-4 bg-slate-50/50 border-t border-slate-100 flex-shrink-0">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <i className="fas fa-clipboard-check text-slate-400"></i>
+                      <span>{lang === 'zh' ? `当前已选工作空间对象 (${tempSelectedObjects.length})` : `Selected Workspace Objects (${tempSelectedObjects.length})`}</span>
+                    </span>
+                    {tempSelectedObjects.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setTempSelectedObjects([])}
+                        className="text-[10px] text-rose-500 hover:text-rose-600 font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                      >
+                        <i className="fas fa-trash-alt text-[9px]"></i>
+                        <span>{lang === 'zh' ? '一键清空' : 'Clear All'}</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {tempSelectedObjects.length > 0 ? (
+                    <div className="max-h-[100px] overflow-y-auto custom-scrollbar flex flex-wrap gap-1.5 p-1">
+                      {tempSelectedObjects.map((item) => {
+                        const typeInfo = WORKSPACE_OBJECT_TYPES.find((t) => t.id === item.type);
+                        return (
+                          <div
+                            key={`${item.type}-${item.name}`}
+                            className="inline-flex items-center gap-1.5 pl-2 pr-1.5 py-1 rounded-lg bg-white border border-slate-200/80 shadow-sm text-xs text-slate-700 font-bold animate-fadeIn"
+                          >
+                            <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md font-semibold font-mono uppercase">
+                              {lang === 'zh' ? typeInfo?.nameZh : typeInfo?.nameEn}
+                            </span>
+                            <span className="truncate max-w-[120px]">{item.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTempSelectedObjects((prev) =>
+                                  prev.filter((o) => !(o.type === item.type && o.name === item.name))
+                                );
+                              }}
+                              className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all cursor-pointer"
+                            >
+                              <i className="fas fa-times"></i>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-4 text-center border border-dashed border-slate-200/80 bg-white/50 rounded-xl">
+                      <p className="text-[11px] text-slate-400 font-semibold">
+                        {lang === 'zh' ? '暂未选择任何对象，请通过上方搜索或中部分类进行添加' : 'No objects selected yet. Search or browse categories to add.'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="px-8 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-2.5 z-10 sticky bottom-0 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsObjectSelectorModalOpen(false)}
+                  className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 transition-all shadow-sm cursor-pointer"
+                >
+                  {lang === 'zh' ? '取消' : 'Cancel'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedWorkspaceObjects(tempSelectedObjects);
+                    setIsObjectSelectorModalOpen(false);
+                  }}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-100 cursor-pointer"
+                >
+                  {lang === 'zh' ? '确认保存' : 'Save Changes'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -11,13 +11,13 @@ interface PersonalCenterProps {
 
 export const PersonalCenter: React.FC<PersonalCenterProps> = ({ lang, onExit, onLangChange, onSavePreferences }) => {
   // --- Profile Fields ---
-  const [name, setName] = useState('李明');
-  const [position, setPosition] = useState('高级钻井地质专家');
-  const [department, setDepartment] = useState('勘探开发研究院 - 地质研究所');
-  const [employeeId, setEmployeeId] = useState('CN-2024098');
-  const [email, setEmail] = useState('ming.li@juradata.com');
-  const [phone, setPhone] = useState('+86 138-1234-5678');
-  const [avatar, setAvatar] = useState<string | null>(null);
+  const [name, setName] = useState(() => localStorage.getItem('profile-name') || '李明');
+  const [position, setPosition] = useState(() => localStorage.getItem('profile-position') || '高级钻井地质专家');
+  const [department, setDepartment] = useState(() => localStorage.getItem('profile-department') || '勘探开发研究院 - 地质研究所');
+  const [employeeId, setEmployeeId] = useState(() => localStorage.getItem('profile-employeeId') || 'CN-2024098');
+  const [email, setEmail] = useState(() => localStorage.getItem('profile-email') || 'ming.li@juradata.com');
+  const [phone, setPhone] = useState(() => localStorage.getItem('profile-phone') || '+86 138-1234-5678');
+  const [avatar, setAvatar] = useState<string | null>(() => localStorage.getItem('profile-avatar') || null);
 
   const registerTime = '2024-01-15 09:00';
   const lastLoginTime = '2026-07-01 23:15';
@@ -26,13 +26,13 @@ export const PersonalCenter: React.FC<PersonalCenterProps> = ({ lang, onExit, on
 
   // Initial values to detect changes for personal info manual save
   const [initialProfile, setInitialProfile] = useState({
-    name: '李明',
-    position: '高级钻井地质专家',
-    department: '勘探开发研究院 - 地质研究所',
-    employeeId: 'CN-2024098',
-    email: 'ming.li@juradata.com',
-    phone: '+86 138-1234-5678',
-    avatar: null as string | null
+    name: localStorage.getItem('profile-name') || '李明',
+    position: localStorage.getItem('profile-position') || '高级钻井地质专家',
+    department: localStorage.getItem('profile-department') || '勘探开发研究院 - 地质研究所',
+    employeeId: localStorage.getItem('profile-employeeId') || 'CN-2024098',
+    email: localStorage.getItem('profile-email') || 'ming.li@juradata.com',
+    phone: localStorage.getItem('profile-phone') || '+86 138-1234-5678',
+    avatar: localStorage.getItem('profile-avatar') || null as string | null
   });
 
   // --- Password Fields ---
@@ -100,6 +100,15 @@ export const PersonalCenter: React.FC<PersonalCenterProps> = ({ lang, onExit, on
 
   // Manual save for Personal Info
   const handleSaveProfile = () => {
+    localStorage.setItem('profile-name', name);
+    localStorage.setItem('profile-position', position);
+    localStorage.setItem('profile-department', department);
+    localStorage.setItem('profile-employeeId', employeeId);
+    localStorage.setItem('profile-email', email);
+    localStorage.setItem('profile-phone', phone);
+    if (avatar) {
+      localStorage.setItem('profile-avatar', avatar);
+    }
     setInitialProfile({
       name,
       position,
@@ -180,6 +189,7 @@ export const PersonalCenter: React.FC<PersonalCenterProps> = ({ lang, onExit, on
     // Cycle or pick a random avatar
     const randomAvatar = avatars[Math.floor(Math.random() * avatars.length)];
     setAvatar(randomAvatar);
+    localStorage.setItem('profile-avatar', randomAvatar);
     triggerToast(lang === 'zh' ? '头像上传成功' : 'Avatar uploaded successfully');
   };
 
