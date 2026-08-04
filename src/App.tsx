@@ -2076,6 +2076,7 @@ const App: React.FC = () => {
           isOpen={isHarnessExplorerOpen} 
           onClose={() => setIsHarnessExplorerOpen(false)} 
           lang={lang} 
+          workspaceName={activeWorkspaceData?.name}
         />
       </div>
       {/* Edit Workspace Modal */}

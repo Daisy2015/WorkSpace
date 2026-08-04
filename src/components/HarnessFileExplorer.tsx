@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
+import JSZip from 'jszip';
 
 interface FileItem {
   name: string;
@@ -15,12 +16,14 @@ interface HarnessFileExplorerProps {
   isOpen: boolean;
   onClose: () => void;
   lang: 'zh' | 'en';
+  workspaceName?: string;
 }
 
 export const HarnessFileExplorer: React.FC<HarnessFileExplorerProps> = ({
   isOpen,
   onClose,
   lang,
+  workspaceName,
 }) => {
   const isZh = lang === 'zh';
 
@@ -284,6 +287,52 @@ export async function runAgentExecutor(wellId: string, inputData: any) {
   // Track selected file
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(fileSystemData[0]);
 
+  // Download a single file
+  const downloadSingleFile = (file: FileItem) => {
+    if (!file || !file.content) return;
+    const blob = new Blob([file.content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Download entire workspace directory as a zip
+  const downloadAllAsZip = async () => {
+    try {
+      const zip = new JSZip();
+
+      const addFilesToZip = (items: FileItem[]) => {
+        items.forEach((item) => {
+          if (item.type === 'file' && item.content !== undefined) {
+            zip.file(item.path, item.content);
+          } else if (item.type === 'folder' && item.children) {
+            addFilesToZip(item.children);
+          }
+        });
+      };
+
+      addFilesToZip(fileSystemData);
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cleanName = workspaceName ? workspaceName.replace(/[\s/\\?%*:|"<>]/g, '_') : 'workspace';
+      a.download = `${cleanName}_harness.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to generate zip:', err);
+    }
+  };
+
   if (!isOpen) return null;
 
   // Render the File Tree recursively
@@ -298,7 +347,7 @@ export async function runAgentExecutor(wellId: string, inputData: any) {
           <div key={item.path} className="flex flex-col">
             <button
               onClick={() => toggleFolder(item.path)}
-              className="flex items-center gap-2 py-1.5 px-2 hover:bg-slate-50 rounded-lg text-slate-700 text-left transition-colors"
+              className="flex items-center gap-2 py-1.5 px-2 hover:bg-slate-50 rounded-lg text-slate-700 text-left transition-colors cursor-pointer"
               style={{ paddingLeft: `${level * 16 + 8}px` }}
             >
               <i className={`fas ${isExpanded ? 'fa-chevron-down text-slate-400' : 'fa-chevron-right text-slate-400'} text-[9px] w-3`}></i>
@@ -316,19 +365,32 @@ export async function runAgentExecutor(wellId: string, inputData: any) {
 
       // It's a file
       return (
-        <button
+        <div
           key={item.path}
           onClick={() => setSelectedFile(item)}
-          className={`flex items-center gap-2 py-1.5 px-2 rounded-lg text-left transition-all ${
+          className={`group flex items-center justify-between py-1.5 px-2 rounded-lg text-left transition-all cursor-pointer ${
             isSelected 
               ? 'bg-indigo-50 border border-indigo-100/60 text-indigo-700 font-semibold shadow-xs shadow-indigo-50/40' 
               : 'hover:bg-slate-50 text-slate-600'
           }`}
           style={{ paddingLeft: `${level * 16 + 22}px` }}
         >
-          <i className={`fas ${item.icon || 'fa-file-code text-slate-400'} text-xs w-3.5 text-center`}></i>
-          <span className="text-xs truncate">{item.name}</span>
-        </button>
+          <div className="flex items-center gap-2 truncate flex-1 pr-1">
+            <i className={`fas ${item.icon || 'fa-file-code text-slate-400'} text-xs w-3.5 text-center flex-shrink-0`}></i>
+            <span className="text-xs truncate">{item.name}</span>
+          </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              downloadSingleFile(item);
+            }}
+            title={isZh ? '下载此文件' : 'Download File'}
+            className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-100/50 rounded transition-all flex-shrink-0"
+          >
+            <i className="fas fa-download text-[10px]"></i>
+          </button>
+        </div>
       );
     });
   };
@@ -354,30 +416,47 @@ export async function runAgentExecutor(wellId: string, inputData: any) {
             </div>
             <div>
               <h3 className="text-sm font-black text-slate-800 tracking-tight">
-                {isZh ? '工作空间目录与配置文件' : 'Harness Configuration & Files'}
+                {workspaceName || (isZh ? '工作空间目录与配置文件' : 'Harness Configuration & Files')}
               </h3>
-              <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-                {isZh ? '当前工作空间评测工程 Harness 文件结构' : 'Harness project structure and logs in active workspace'}
-              </p>
             </div>
           </div>
-          <button 
-            onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-all cursor-pointer"
-            id="btn-close-harness-drawer"
-          >
-            <i className="fas fa-times text-sm"></i>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={downloadAllAsZip}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-indigo-500/20 cursor-pointer"
+              title={isZh ? '打包下载整个工作空间目录 (.zip)' : 'Download All Files as Zip'}
+            >
+              <i className="fas fa-file-archive text-xs"></i>
+              <span>{isZh ? '打包下载目录' : 'Download Zip'}</span>
+            </button>
+            <button 
+              onClick={onClose}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-all cursor-pointer"
+              id="btn-close-harness-drawer"
+            >
+              <i className="fas fa-times text-sm"></i>
+            </button>
+          </div>
         </div>
 
         {/* Content Body (Split view) */}
         <div className="flex-1 flex overflow-hidden">
           {/* Left Panel: File list / tree */}
           <div className="w-72 bg-white border-r border-slate-200 flex flex-col flex-shrink-0 overflow-y-auto custom-scrollbar p-3 gap-1">
-            <div className="px-2 py-1 mb-2">
+            <div className="px-2 py-1 mb-2 flex items-center justify-between">
               <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">
                 {isZh ? '工程目录' : 'Harness Directory'}
               </span>
+              <button
+                type="button"
+                onClick={downloadAllAsZip}
+                title={isZh ? '打包下载整个工作空间 (.zip)' : 'Download Zip'}
+                className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 cursor-pointer"
+              >
+                <i className="fas fa-download text-[9px]"></i>
+                <span>{isZh ? '打包' : 'Zip'}</span>
+              </button>
             </div>
             <div className="flex flex-col gap-0.5">
               {renderTree(fileSystemData)}
@@ -397,17 +476,29 @@ export async function runAgentExecutor(wellId: string, inputData: any) {
                       {selectedFile.language}
                     </span>
                   </div>
-                  <button
-                    onClick={() => {
-                      if (selectedFile.content) {
-                        navigator.clipboard.writeText(selectedFile.content);
-                      }
-                    }}
-                    className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 rounded-lg transition-all"
-                  >
-                    <i className="fas fa-copy"></i>
-                    <span>{isZh ? '复制内容' : 'Copy'}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => downloadSingleFile(selectedFile)}
+                      className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-slate-700 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 rounded-lg transition-all cursor-pointer"
+                      title={isZh ? '下载当前选中的文件' : 'Download Selected File'}
+                    >
+                      <i className="fas fa-download text-xs text-indigo-500"></i>
+                      <span>{isZh ? '下载文件' : 'Download'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (selectedFile.content) {
+                          navigator.clipboard.writeText(selectedFile.content);
+                        }
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 rounded-lg transition-all cursor-pointer"
+                    >
+                      <i className="fas fa-copy"></i>
+                      <span>{isZh ? '复制内容' : 'Copy'}</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Document Body */}
@@ -447,10 +538,14 @@ export async function runAgentExecutor(wellId: string, inputData: any) {
         {/* Footer */}
         <div className="h-14 bg-white border-t border-slate-200 px-6 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-              {isZh ? '自动化评测评判引擎 Ready' : 'Auto Eval Grader Engine Ready'}
-            </span>
+            <button
+              type="button"
+              onClick={downloadAllAsZip}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 rounded-lg text-xs font-bold border border-slate-200/80 transition-all cursor-pointer"
+            >
+              <i className="fas fa-file-archive text-indigo-500"></i>
+              <span>{isZh ? '打包下载整个工作空间目录 (.zip)' : 'Download Entire Directory (.zip)'}</span>
+            </button>
           </div>
           <button 
             onClick={onClose}

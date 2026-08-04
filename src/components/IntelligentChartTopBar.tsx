@@ -224,10 +224,10 @@ export const IntelligentChartTopBar: React.FC<IntelligentChartTopBarProps> = ({
           <button 
             onClick={onOpenSettings}
             className="hover:text-slate-600 p-2 rounded-lg hover:bg-slate-100 transition-colors" 
-            title={lang === 'zh' ? '设置' : 'Settings'}
+            title={lang === 'zh' ? '工作空间目录' : 'Workspace Directory'}
             id="btn-workspace-settings-chart"
           >
-            <i className="fas fa-cog"></i>
+            <i className="fas fa-folder"></i>
           </button>
         </div>
       </div>
