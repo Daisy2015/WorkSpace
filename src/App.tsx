@@ -20,7 +20,6 @@ import { WorkspaceTemplates } from './components/WorkspaceTemplates';
 import { AgentSquare } from './components/AgentSquare';
 import { MultiAgentChatPanel } from './components/MultiAgentChatPanel';
 import { AgentsPanel } from './components/AgentsPanel';
-import { IntelligentConstruction } from './components/IntelligentConstruction';
 import { IntelligentConstructionV2 } from './components/IntelligentConstructionV2';
 import { IntelligentObjectDiscovery } from './components/IntelligentObjectDiscovery';
 import WorkspaceStrategyConfig from './components/WorkspaceStrategyConfig';
@@ -1198,16 +1197,7 @@ const App: React.FC = () => {
         )}
 
         {/* Scenario 7: Intelligent Construction View */}
-        {currentTab === 'construction' && (
-            <IntelligentConstruction 
-                lang={lang}
-                workspaceName={constructionWorkspaceName}
-                onComplete={() => handleTabChange('construction-completion')}
-            />
-        )}
-
-        {/* Scenario 7.1: Intelligent Construction V2 View */}
-        {currentTab === 'construction-v2' && (
+        {(currentTab === 'construction' || currentTab === 'construction-v2') && (
             <IntelligentConstructionV2 
                 lang={lang}
                 workspaceName={constructionWorkspaceName}
