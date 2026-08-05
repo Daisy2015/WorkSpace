@@ -3,7 +3,7 @@ import { IntelligentQueryTopBar } from './IntelligentQueryTopBar';
 import { ResourceTree } from './ResourceTree';
 import { MultiAgentChatPanel } from './MultiAgentChatPanel';
 import { EvidenceChainPanel } from './EvidenceChainPanel';
-import { Workspace, ResourceNode, Message } from '../types';
+import { Workspace, ResourceNode, Message, SavedOutcome } from '../types';
 
 interface IntelligentQueryWorkspaceDetailProps {
   lang: 'zh' | 'en';
@@ -23,6 +23,9 @@ interface IntelligentQueryWorkspaceDetailProps {
   onDeleteResources: (idsToDelete: string[]) => void;
   onTogglePublic: (id: string, node: ResourceNode) => void;
   onOpenAddResourcePage: () => void;
+  savedOutcomes?: SavedOutcome[];
+  onDeleteOutcome?: (id: string) => void;
+  onSelectOutcome?: (outcome: SavedOutcome) => void;
   
   // Object scope
   isObjectScopeExpanded: boolean;
@@ -61,6 +64,9 @@ export const IntelligentQueryWorkspaceDetail: React.FC<IntelligentQueryWorkspace
   onDeleteResources,
   onTogglePublic,
   onOpenAddResourcePage,
+  savedOutcomes,
+  onDeleteOutcome,
+  onSelectOutcome,
   
   isObjectScopeExpanded,
   setIsObjectScopeExpanded,
@@ -119,6 +125,9 @@ export const IntelligentQueryWorkspaceDetail: React.FC<IntelligentQueryWorkspace
                 lang={lang}
                 hideCheckboxes={false}
                 isSmartReport={false}
+                savedOutcomes={savedOutcomes}
+                onDeleteOutcome={onDeleteOutcome}
+                onSelectOutcome={onSelectOutcome}
               />
             </div>
             

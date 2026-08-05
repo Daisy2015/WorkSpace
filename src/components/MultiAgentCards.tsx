@@ -4,19 +4,71 @@ import ReactMarkdown from 'react-markdown';
 
 // --- UserMessageCard ---
 export const UserMessageCard = ({ message, avatar = 'ME' }: { message: Message, avatar?: string }) => {
+  // Extract attachments from message.attachments or parse 📎 lines from message.content
+  let attachmentsList: { name: string; size?: string }[] = message.attachments ? [...message.attachments] : [];
+  let textContent = message.content || '';
+
+  if (attachmentsList.length === 0 && textContent.includes('📎')) {
+    const lines = textContent.split('\n');
+    const remainingLines: string[] = [];
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('📎')) {
+        const match = trimmed.match(/^📎\s*(.*?)(?:\s*\((.*?)\))?$/);
+        if (match) {
+          attachmentsList.push({ name: match[1], size: match[2] });
+        } else {
+          attachmentsList.push({ name: trimmed.replace(/^📎\s*/, '') });
+        }
+      } else if (trimmed) {
+        remainingLines.push(line);
+      }
+    });
+    textContent = remainingLines.join('\n');
+  }
+
   return (
     <div className="max-w-[720px] mx-auto mb-6">
       <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-xs flex-shrink-0 mt-0.5">
+        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs flex-shrink-0 mt-0.5 shadow-2xs">
           {avatar}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="bg-white border border-gray-200 rounded-2xl px-4 py-2.5 shadow-sm inline-block max-w-full">
-            <div className="text-gray-800 text-sm leading-relaxed">
-              {message.content}
-            </div>
+          <div className="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs inline-block max-w-full space-y-2.5">
+            {/* Independent File Attachment Badges */}
+            {attachmentsList.length > 0 && (
+              <div className="flex flex-wrap gap-2 pb-1 border-b border-slate-100">
+                {attachmentsList.map((att, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50/80 border border-indigo-100/80 rounded-xl text-xs text-indigo-950 font-medium shadow-2xs hover:bg-indigo-100/70 transition-colors"
+                  >
+                    <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs flex-shrink-0">
+                      <i className="fas fa-file-lines"></i>
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-semibold text-slate-800 text-xs truncate max-w-[220px]">
+                        {att.name}
+                      </span>
+                      {att.size && (
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {att.size}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Question Text in separate line */}
+            {textContent.trim() ? (
+              <div className="text-slate-800 text-sm leading-relaxed whitespace-pre-wrap font-normal">
+                {textContent.trim()}
+              </div>
+            ) : null}
           </div>
-          <div className="mt-1 ml-1 text-[10px] text-gray-400">
+          <div className="mt-1 ml-1 text-[10px] text-slate-400">
             {new Date(message.timestamp).toLocaleTimeString()}
           </div>
         </div>

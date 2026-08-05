@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { ResourceNode, Language } from '../types';
+import { ResourceNode, Language, SavedOutcome } from '../types';
 import { translations } from '../i18n';
 
 interface ResourceTreeProps {
@@ -15,6 +15,9 @@ interface ResourceTreeProps {
   lang: Language;
   hideCheckboxes?: boolean;
   isSmartReport?: boolean;
+  savedOutcomes?: SavedOutcome[];
+  onDeleteOutcome?: (id: string) => void;
+  onSelectOutcome?: (outcome: SavedOutcome) => void;
 }
 
 // --- Helper for Tree IDs ---
@@ -191,12 +194,32 @@ export const ResourceTree: React.FC<ResourceTreeProps> = ({
   onOpenAddResourcePage,
   lang,
   hideCheckboxes = false,
-  isSmartReport = false
+  isSmartReport = false,
+  savedOutcomes = [],
+  onDeleteOutcome,
+  onSelectOutcome
 }) => {
   const t = translations[lang];
   const [searchTerm, setSearchTerm] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [targetMbuId, setTargetMbuId] = useState<string | null>(null);
+  const [isOutcomesExpanded, setIsOutcomesExpanded] = useState(true);
+
+  // Default internal demo outcomes if none passed from props
+  const [localOutcomes, setLocalOutcomes] = useState<SavedOutcome[]>([
+    { id: 'outcome-1', name: '钻井工程设计与安全风险评估报告', date: '2026-08-04 14:30', isPublic: true },
+    { id: 'outcome-2', name: '油藏动态分析及产能预测图表', date: '2026-08-05 09:15', isPublic: false }
+  ]);
+
+  const outcomesList = savedOutcomes !== undefined ? savedOutcomes : localOutcomes;
+
+  const handleDeleteOutcome = (id: string) => {
+    if (onDeleteOutcome) {
+      onDeleteOutcome(id);
+    } else {
+      setLocalOutcomes(prev => prev.filter(o => o.id !== id));
+    }
+  };
 
   const displayedNodes = useMemo(() => {
     const filter = (nodes: ResourceNode[]): ResourceNode[] => {
@@ -244,7 +267,7 @@ export const ResourceTree: React.FC<ResourceTreeProps> = ({
 
   return (
     <div className="h-full flex flex-col bg-white border-r border-slate-200">
-      <div className="p-4 border-b border-slate-100 bg-slate-50/30 flex flex-col gap-3">
+      <div className="p-4 border-b border-slate-100 bg-slate-50/30 flex flex-col gap-3 flex-shrink-0">
         <div className="relative group">
            <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-[10px] group-focus-within:text-blue-500 transition-colors"></i>
            <input 
@@ -258,13 +281,13 @@ export const ResourceTree: React.FC<ResourceTreeProps> = ({
         <div className="flex gap-2">
             <button 
               onClick={onOpenAddResourcePage}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-[11px] py-2 px-3 rounded-lg flex items-center justify-center transition-all shadow-sm font-bold active:scale-95"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-[11px] py-2 px-3 rounded-lg flex items-center justify-center transition-all shadow-sm font-bold active:scale-95 cursor-pointer"
             >
               <i className="fas fa-plus mr-1.5 text-[10px]"></i> {t.addResource}
             </button>
             <button 
                 onClick={() => (window as any).dispatchEvent(new CustomEvent('bulk-select', { detail: getAllIds(displayedNodes) }))}
-                className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[11px] py-2 px-3 rounded-lg flex items-center justify-center transition-all shadow-sm active:scale-95"
+                className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-[11px] py-2 px-3 rounded-lg flex items-center justify-center transition-all shadow-sm active:scale-95 cursor-pointer"
                 title={t.selectAll}
             >
              <i className="fas fa-check-double text-[10px]"></i>
@@ -276,7 +299,7 @@ export const ResourceTree: React.FC<ResourceTreeProps> = ({
                             onDeleteResources(Array.from(selectedResources));
                         }
                     }}
-                    className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 text-[11px] py-2 px-3 rounded-lg flex items-center justify-center transition-all shadow-sm active:scale-95"
+                    className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 text-[11px] py-2 px-3 rounded-lg flex items-center justify-center transition-all shadow-sm active:scale-95 cursor-pointer"
                     title={t.batchDelete}
                 >
                 <i className="fas fa-trash-alt text-[10px]"></i>
@@ -284,6 +307,7 @@ export const ResourceTree: React.FC<ResourceTreeProps> = ({
             )}
         </div>
       </div>
+
       <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-0.5">
         {displayedNodes.map(node => (
           <ResourceTreeNode 
@@ -303,6 +327,83 @@ export const ResourceTree: React.FC<ResourceTreeProps> = ({
           />
         ))}
       </div>
+
+      {/* 成果列表 (Saved Outcomes Section at the bottom of Resource Tree) */}
+      <div className="border-t border-slate-200 bg-white flex flex-col flex-shrink-0">
+        <div 
+          onClick={() => setIsOutcomesExpanded(!isOutcomesExpanded)}
+          className="px-3.5 py-2.5 bg-slate-50/90 border-b border-slate-100 flex items-center justify-between cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-md bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 text-xs shadow-2xs">
+              <i className="fas fa-award text-[11px]"></i>
+            </div>
+            <h3 className="text-xs font-bold text-slate-700 tracking-tight">
+              {lang === 'zh' ? '成果列表' : 'Saved Outcomes'}
+            </h3>
+            <span className="px-1.5 py-0.2 text-[10px] font-bold bg-amber-100 text-amber-800 rounded-full">
+              {outcomesList.length}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <i className={`fas fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200 ${isOutcomesExpanded ? 'rotate-180' : ''}`}></i>
+          </div>
+        </div>
+
+        {isOutcomesExpanded && (
+          <div className="max-h-52 overflow-y-auto custom-scrollbar p-2 space-y-1.5 bg-slate-50/40">
+            {outcomesList.length > 0 ? (
+              outcomesList.map(item => (
+                <div 
+                  key={item.id}
+                  onClick={() => onSelectOutcome?.(item)}
+                  className="group flex items-center justify-between p-2 bg-white hover:bg-indigo-50/60 border border-slate-200/90 hover:border-indigo-200 rounded-xl transition-all shadow-2xs cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 text-xs flex-shrink-0">
+                      <i className="fas fa-file-contract"></i>
+                    </div>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="text-xs font-bold text-slate-800 group-hover:text-indigo-600 truncate">
+                        {item.name}
+                      </span>
+                      <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                        <span>{item.date}</span>
+                        {item.isPublic ? (
+                          <span className="px-1 py-0.2 bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded text-[9px] font-medium">
+                            {lang === 'zh' ? '公开' : 'Public'}
+                          </span>
+                        ) : (
+                          <span className="px-1 py-0.2 bg-slate-100 text-slate-500 border border-slate-200 rounded text-[9px] font-medium">
+                            {lang === 'zh' ? '私有' : 'Private'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteOutcome(item.id);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-md hover:bg-red-50 text-slate-400 hover:text-red-600 flex items-center justify-center transition-all ml-1 flex-shrink-0 cursor-pointer"
+                    title={lang === 'zh' ? '删除成果' : 'Delete'}
+                  >
+                    <i className="fas fa-trash-alt text-[10px]"></i>
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="py-4 text-center text-xs text-slate-400">
+                <i className="fas fa-inbox text-slate-300 text-base mb-1 block"></i>
+                {lang === 'zh' ? '暂无保存的成果' : 'No saved outcomes yet'}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
     </div>
   );

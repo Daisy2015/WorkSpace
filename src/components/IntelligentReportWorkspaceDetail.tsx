@@ -5,7 +5,7 @@ import { ResourceTree } from './ResourceTree';
 import { ReportGenerationAgent } from './ReportGenerationAgent';
 import { AssistantSidebar } from './AssistantSidebar';
 import { EvidenceChainPanel } from './EvidenceChainPanel';
-import { Workspace, ResourceNode } from '../types';
+import { Workspace, ResourceNode, SavedOutcome } from '../types';
 
 interface IntelligentReportWorkspaceDetailProps {
   lang: 'zh' | 'en';
@@ -25,6 +25,9 @@ interface IntelligentReportWorkspaceDetailProps {
   onDeleteResources: (idsToDelete: string[]) => void;
   onTogglePublic: (id: string, node: ResourceNode) => void;
   onOpenAddResourcePage: () => void;
+  savedOutcomes?: SavedOutcome[];
+  onDeleteOutcome?: (id: string) => void;
+  onSelectOutcome?: (outcome: SavedOutcome) => void;
   
   // Panel states
   isResourcePanelOpen: boolean;
@@ -48,6 +51,9 @@ export const IntelligentReportWorkspaceDetail: React.FC<IntelligentReportWorkspa
   onDeleteResources,
   onTogglePublic,
   onOpenAddResourcePage,
+  savedOutcomes,
+  onDeleteOutcome,
+  onSelectOutcome,
   
   isResourcePanelOpen,
   setIsResourcePanelOpen,
@@ -105,6 +111,9 @@ export const IntelligentReportWorkspaceDetail: React.FC<IntelligentReportWorkspa
                 lang={lang}
                 hideCheckboxes={true}
                 isSmartReport={true}
+                savedOutcomes={savedOutcomes}
+                onDeleteOutcome={onDeleteOutcome}
+                onSelectOutcome={onSelectOutcome}
               />
             </div>
           </div>

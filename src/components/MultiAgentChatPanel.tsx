@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Message, ResourceNode, Language, Workspace, Agent } from '../types';
 import { translations } from '../i18n';
 import { UserMessageCard, UnifiedResponseCard } from './MultiAgentCards';
+import { MOCK_SKILLS } from './AdminSkillManagement';
 
 interface MultiAgentChatPanelProps {
   messages: Message[];
@@ -47,10 +48,13 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [showMentionMenu, setShowMentionMenu] = useState(false);
-  const [mentionFilter, setMentionFilter] = useState('');
+  const [showSkillMenu, setShowSkillMenu] = useState(false);
+  const [skillFilter, setSkillFilter] = useState('');
+  const [attachedFiles, setAttachedFiles] = useState<{ id: string; name: string; size: string; file: File }[]>([]);
+  
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const t = translations[lang];
 
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -127,17 +131,18 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
     const value = e.target.value;
     setInput(value);
 
-    const lastAtPos = value.lastIndexOf('@');
-    if (lastAtPos !== -1) {
-      const textAfterAt = value.substring(lastAtPos + 1);
-      if (!textAfterAt.includes(' ')) {
-        setShowMentionMenu(true);
-        setMentionFilter(textAfterAt);
+    // Check for / or \ slash skill trigger
+    const lastSlashPos = Math.max(value.lastIndexOf('/'), value.lastIndexOf('\\'));
+    if (lastSlashPos !== -1) {
+      const textAfterSlash = value.substring(lastSlashPos + 1);
+      if (!textAfterSlash.includes(' ') && !textAfterSlash.includes('\n')) {
+        setShowSkillMenu(true);
+        setSkillFilter(textAfterSlash);
       } else {
-        setShowMentionMenu(false);
+        setShowSkillMenu(false);
       }
     } else {
-      setShowMentionMenu(false);
+      setShowSkillMenu(false);
     }
 
     // Auto resize
@@ -145,27 +150,79 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
     e.target.style.height = e.target.scrollHeight + 'px';
   };
 
-  const handleMentionSelect = (agent: Agent) => {
-    const lastAtPos = input.lastIndexOf('@');
-    const newValue = input.substring(0, lastAtPos) + `@${agent.name} ` + input.substring(lastAtPos + mentionFilter.length + 1);
+  const handleSkillSelect = (skill: any) => {
+    const lastSlashPos = Math.max(input.lastIndexOf('/'), input.lastIndexOf('\\'));
+    let newValue = '';
+    if (lastSlashPos !== -1) {
+      newValue = input.substring(0, lastSlashPos) + `/${skill.name} `;
+    } else {
+      newValue = input ? `${input} /${skill.name} ` : `/${skill.name} `;
+    }
     setInput(newValue);
-    setShowMentionMenu(false);
+    setShowSkillMenu(false);
     inputRef.current?.focus();
   };
 
+  const handleSkillClick = () => {
+    if (!showSkillMenu) {
+      setShowSkillMenu(true);
+      setSkillFilter('');
+      if (!input.endsWith('/')) {
+        setInput(prev => prev ? (prev.endsWith(' ') ? `${prev}/` : `${prev} /`) : '/');
+      }
+    } else {
+      setShowSkillMenu(false);
+    }
+    inputRef.current?.focus();
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const filesArray = Array.from(e.target.files).map(file => {
+        let sizeStr = '';
+        if (file.size < 1024) sizeStr = `${file.size} B`;
+        else if (file.size < 1024 * 1024) sizeStr = `${(file.size / 1024).toFixed(1)} KB`;
+        else sizeStr = `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+
+        return {
+          id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+          name: file.name,
+          size: sizeStr,
+          file
+        };
+      });
+      setAttachedFiles(prev => [...prev, ...filesArray]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const removeAttachedFile = (id: string) => {
+    setAttachedFiles(prev => prev.filter(f => f.id !== id));
+  };
+
   const handleSend = async () => {
-    if (!input.trim() || isGenerating) return;
+    if ((!input.trim() && attachedFiles.length === 0) || isGenerating) return;
+
+    let finalContent = input;
+    if (attachedFiles.length > 0) {
+      const fileListStr = attachedFiles.map(f => `📎 ${f.name} (${f.size})`).join('\n');
+      finalContent = input ? `${input}\n\n${fileListStr}` : fileListStr;
+    }
 
     const userMsg: Message = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       role: 'user',
-      content: input,
+      content: finalContent,
+      attachments: attachedFiles.map(f => ({ name: f.name, size: f.size })),
       timestamp: Date.now()
     };
 
     setMessages(prev => [...prev, userMsg]);
     setInput('');
-    setShowMentionMenu(false);
+    setAttachedFiles([]);
+    setShowSkillMenu(false);
     setIsGenerating(true);
     onChatStart();
 
@@ -1115,28 +1172,58 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
 
       {/* Input Area */}
       <div className="p-4 bg-white border-t border-gray-200 relative">
-        {/* Mention Menu */}
-        {showMentionMenu && (
-          <div className="absolute bottom-full left-4 mb-2 w-64 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden z-50">
-            <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500">
-              {lang === 'zh' ? '选择智能体' : 'Select Agent'}
+        {/* Hidden File Input */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileSelect}
+          multiple
+          className="hidden"
+          id="hidden-chat-file-input"
+        />
+
+        {/* Skills Menu (Triggered by / or Skill Button) */}
+        {showSkillMenu && (
+          <div className="absolute bottom-full left-4 mb-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-50">
+            <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                <i className="fas fa-wand-magic-sparkles text-indigo-500"></i>
+                <span>{lang === 'zh' ? '工作空间技能列表' : 'Workspace Skills'}</span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-medium">
+                {lang === 'zh' ? '使用 / 快速唤起' : 'Type / to trigger'}
+              </span>
             </div>
-            <div className="max-h-48 overflow-y-auto">
-              {agents.filter(a => a.name.toLowerCase().includes(mentionFilter.toLowerCase())).map(agent => (
-                <div 
-                  key={agent.id} 
-                  onClick={() => handleMentionSelect(agent)}
-                  className="px-3 py-2 hover:bg-indigo-50 cursor-pointer flex items-center gap-3 transition-colors"
+            <div className="max-h-56 overflow-y-auto p-1">
+              {MOCK_SKILLS.filter(s => s.name.toLowerCase().includes(skillFilter.toLowerCase()) || s.description.toLowerCase().includes(skillFilter.toLowerCase())).map(skill => (
+                <div
+                  key={skill.id}
+                  onClick={() => handleSkillSelect(skill)}
+                  className="p-2.5 hover:bg-indigo-50/80 rounded-xl cursor-pointer transition-all flex items-start gap-2.5 group"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm border border-gray-200">
-                    {agent.avatar}
+                  <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0 text-xs mt-0.5 border border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                    <i className="fas fa-bolt"></i>
                   </div>
-                  <div>
-                    <div className="text-sm font-bold text-gray-800">{agent.name}</div>
-                    <div className="text-[10px] text-gray-500">{agent.role}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-xs font-bold text-slate-800 group-hover:text-indigo-600 transition-colors truncate">
+                        {skill.name}
+                      </span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 uppercase flex-shrink-0">
+                        {skill.category === 'Business' ? (lang === 'zh' ? '业务' : 'Business') : (lang === 'zh' ? '通用' : 'General')}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
+                      {skill.description}
+                    </p>
                   </div>
                 </div>
               ))}
+              {MOCK_SKILLS.filter(s => s.name.toLowerCase().includes(skillFilter.toLowerCase()) || s.description.toLowerCase().includes(skillFilter.toLowerCase())).length === 0 && (
+                <div className="p-4 text-center text-xs text-slate-400">
+                  {lang === 'zh' ? '未找到相关技能' : 'No matching skills found'}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1147,49 +1234,128 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
               <i className="fas fa-circle-notch fa-spin"></i> {lang === 'zh' ? '多智能体协作执行中...' : 'Multi-Agent Collab Running...'}
             </div>
           )}
-          <div className="relative flex items-end gap-2">
-            <div className="flex-1 relative bg-white border border-gray-200 rounded-2xl shadow-sm focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all flex items-center p-1">
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 rounded-xl border border-slate-100 ml-1">
-                <i className="fas fa-database text-[10px] text-indigo-500"></i>
-                <span className="text-[11px] font-bold text-slate-600">
-                  {selectedResources.size} {lang === 'zh' ? '资源' : 'Resources'}
-                </span>
+
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xs focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/10 transition-all flex flex-col p-3 gap-2.5">
+            {/* Attached Files List - Rendered inside the input box card top */}
+            {attachedFiles.length > 0 && (
+              <div className="flex flex-wrap gap-2 pb-2 border-b border-slate-100">
+                {attachedFiles.map(fileItem => (
+                  <div
+                    key={fileItem.id}
+                    className="flex items-center gap-2 px-2.5 py-1 bg-indigo-50/90 border border-indigo-100/80 rounded-xl text-xs text-indigo-900 shadow-2xs"
+                  >
+                    <i className="fas fa-file-lines text-indigo-500 text-xs"></i>
+                    <span className="font-semibold truncate max-w-[200px]">{fileItem.name}</span>
+                    <span className="text-[10px] text-indigo-400 font-mono">({fileItem.size})</span>
+                    <button
+                      type="button"
+                      onClick={() => removeAttachedFile(fileItem.id)}
+                      className="ml-1 w-4 h-4 rounded-full bg-indigo-100 hover:bg-indigo-200 text-indigo-600 flex items-center justify-center transition-colors cursor-pointer"
+                      title={lang === 'zh' ? '移除文件' : 'Remove file'}
+                    >
+                      <i className="fas fa-times text-[9px]"></i>
+                    </button>
+                  </div>
+                ))}
               </div>
-              <button 
-                onClick={() => setIsRecording(!isRecording)}
-                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors flex-shrink-0 ${
-                  isRecording ? 'bg-red-50 text-red-500 animate-pulse' : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'
-                }`}
-              >
-                <i className={`fas ${isRecording ? 'fa-stop' : 'fa-microphone'}`}></i>
-              </button>
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={handleInputChange}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                placeholder={lang === 'zh' ? (isRecording ? '正在录音...' : '请输入您的问题...') : (isRecording ? 'Recording...' : 'Type a message...')}
-                className="flex-1 bg-transparent border-none px-2 py-2.5 text-sm focus:outline-none resize-none min-h-[40px] max-h-32"
-                rows={1}
-                style={{ height: 'auto' }}
-              />
+            )}
+
+            {/* Center Input Textarea - Expanded Height */}
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder={lang === 'zh' ? (isRecording ? '正在录音...' : '输入问题，可用 / 唤起技能...') : (isRecording ? 'Recording...' : 'Type message, use / for skills...')}
+              className="w-full bg-transparent border-none text-sm text-slate-800 placeholder-slate-400 focus:outline-none resize-none min-h-[56px] max-h-36 py-1 px-1 leading-relaxed"
+              rows={2}
+            />
+
+            {/* Bottom Controls Bar inside Card */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              {/* Left Side Tools: Resource Badge + File Upload + Skill List Button */}
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-100 text-slate-600 transition-colors">
+                  <i className="fas fa-database text-[10px] text-indigo-500"></i>
+                  <span className="text-[11px] font-bold">
+                    {selectedResources.size} {lang === 'zh' ? '资源' : 'Resources'}
+                  </span>
+                </div>
+
+                {/* File Upload Button */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-8 px-2.5 rounded-xl flex items-center gap-1.5 text-xs text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/80 border border-transparent hover:border-indigo-100 transition-all cursor-pointer font-medium"
+                  title={lang === 'zh' ? '上传文件' : 'Upload File'}
+                  id="btn-chat-upload-file"
+                >
+                  <i className="fas fa-paperclip text-xs"></i>
+                  <span className="hidden sm:inline text-[11px]">{lang === 'zh' ? '附件' : 'Attach'}</span>
+                </button>
+
+                {/* Skill List Slash Button */}
+                <button
+                  type="button"
+                  onClick={handleSkillClick}
+                  className={`h-8 px-2.5 rounded-xl flex items-center gap-1.5 text-xs transition-all cursor-pointer font-medium border ${
+                    showSkillMenu 
+                      ? 'bg-indigo-50 text-indigo-600 border-indigo-200 font-bold' 
+                      : 'text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/80 border-transparent hover:border-indigo-100'
+                  }`}
+                  title={lang === 'zh' ? '技能列表 (按 / 唤起)' : 'Skills List (Type /)'}
+                  id="btn-chat-skills"
+                >
+                  <i className="fas fa-wand-magic-sparkles text-xs text-indigo-500"></i>
+                  <span className="hidden sm:inline text-[11px]">{lang === 'zh' ? '技能' : 'Skills'}</span>
+                </button>
+              </div>
+
+              {/* Right Side Actions: Voice Recording + Send Button */}
+              <div className="flex items-center gap-2">
+                {/* Voice Input Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsRecording(!isRecording)}
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                    isRecording 
+                      ? 'bg-red-500 text-white animate-pulse shadow-xs' 
+                      : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'
+                  }`}
+                  title={lang === 'zh' ? (isRecording ? '点击停止录音' : '语音输入') : (isRecording ? 'Stop Recording' : 'Voice Input')}
+                  id="btn-voice-input"
+                >
+                  <i className={`fas ${isRecording ? 'fa-stop' : 'fa-microphone'} text-xs`}></i>
+                </button>
+
+                {/* Send Button */}
+                <button
+                  type="button"
+                  onClick={handleSend}
+                  disabled={(!input.trim() && attachedFiles.length === 0) || isGenerating}
+                  className={`h-8 px-3.5 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-all shadow-2xs cursor-pointer ${
+                    (!input.trim() && attachedFiles.length === 0) || isGenerating 
+                      ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed' 
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-xs'
+                  }`}
+                  id="btn-send-chat"
+                >
+                  {isGenerating ? (
+                    <i className="fas fa-spinner fa-spin"></i>
+                  ) : (
+                    <>
+                      <span>{lang === 'zh' ? '发送' : 'Send'}</span>
+                      <i className="fas fa-paper-plane text-[10px]"></i>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-            <button
-              onClick={handleSend}
-              disabled={!input.trim() || isGenerating}
-              className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-all shadow-sm ${
-                !input.trim() || isGenerating 
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                  : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-md'
-              }`}
-            >
-              {isGenerating ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-paper-plane"></i>}
-            </button>
           </div>
         </div>
       </div>

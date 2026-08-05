@@ -9,6 +9,13 @@ export enum WorkspaceStatus {
   ARCHIVED = 'ARCHIVED'
 }
 
+export interface SavedOutcome {
+  id: string;
+  name: string;
+  date: string;
+  isPublic: boolean;
+}
+
 export interface Workspace {
   id: string;
   name: string;
@@ -57,6 +64,7 @@ export interface Message {
   role: 'user' | 'model';
   content: string;
   timestamp: number;
+  attachments?: { name: string; size?: string }[];
   isTemp?: boolean; // Is it a temporary result?
   relatedSources?: string[]; // IDs of resources used
   contentType?: 'text' | 'report'; // Content type

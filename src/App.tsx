@@ -45,7 +45,7 @@ import { ProChartGenerationAgent } from './components/ProChartGenerationAgent';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESOURCE_TREE, MOCK_TEMPLATES } from './constants';
-import { Message, ResourceNode, Language, Workspace, KnowledgeItem, WorkspaceStatus, WorkspaceTemplate, Agent } from './types';
+import { Message, ResourceNode, Language, Workspace, KnowledgeItem, WorkspaceStatus, WorkspaceTemplate, Agent, SavedOutcome } from './types';
 import { translations } from './i18n';
 
 type MainTab = 'dashboard' | 'agent-square' | 'workspaces' | 'admin' | 'intelligence' | 'knowledge' | 'templates' | 'construction' | 'construction-v2' | 'construction-completion' | 'profile';
@@ -163,6 +163,10 @@ const App: React.FC = () => {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isSaveOutcomeModalOpen, setIsSaveOutcomeModalOpen] = useState(false);
   const [outcomeToSave, setOutcomeToSave] = useState<{ name: string } | null>(null);
+  const [savedOutcomes, setSavedOutcomes] = useState<SavedOutcome[]>([
+    { id: 'outcome-1', name: '钻井工程设计与安全风险评估报告', date: '2026-08-04 14:30', isPublic: true },
+    { id: 'outcome-2', name: '油藏动态分析及产能预测图表', date: '2026-08-05 09:15', isPublic: false }
+  ]);
   const [activeAgentAppId, setActiveAgentAppId] = useState<string | null>(null);
   const [isAssistantExpanded, setIsAssistantExpanded] = useState(true);
 
@@ -1332,9 +1336,26 @@ const App: React.FC = () => {
                                 onEditReport={handleEditReport}
                                 displayAgents={displayAgents}
                                 workspaceVersion={workspaceVersion}
-                                onSaveOutcome={handleOpenSaveOutcome}
+                                 onSaveOutcome={handleOpenSaveOutcome}
                                 isResourcePanelOpen={isResourcePanelOpen}
                                 setIsResourcePanelOpen={setIsResourcePanelOpen}
+                                savedOutcomes={savedOutcomes}
+                                onDeleteOutcome={(id) => setSavedOutcomes(prev => prev.filter(o => o.id !== id))}
+                                onSelectOutcome={(outcome) => {
+                                    setSelectedResourceForDetail({
+                                        id: outcome.id,
+                                        name: outcome.name,
+                                        type: 'artifact',
+                                        meta: {
+                                            sourceType: 'system',
+                                            fileType: 'Outcome',
+                                            isPublic: outcome.isPublic,
+                                            date: outcome.date,
+                                            isArtifactOutcome: true
+                                        }
+                                    });
+                                    setIsResourceDetailModalOpen(true);
+                                }}
                             />
                             {isAddResourcePageOpen && (
                                 <AddResourcePage 
@@ -1396,6 +1417,23 @@ const App: React.FC = () => {
                                 onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
                                 isResourcePanelOpen={isResourcePanelOpen}
                                 setIsResourcePanelOpen={setIsResourcePanelOpen}
+                                savedOutcomes={savedOutcomes}
+                                onDeleteOutcome={(id) => setSavedOutcomes(prev => prev.filter(o => o.id !== id))}
+                                onSelectOutcome={(outcome) => {
+                                    setSelectedResourceForDetail({
+                                        id: outcome.id,
+                                        name: outcome.name,
+                                        type: 'artifact',
+                                        meta: {
+                                            sourceType: 'system',
+                                            fileType: 'Outcome',
+                                            isPublic: outcome.isPublic,
+                                            date: outcome.date,
+                                            isArtifactOutcome: true
+                                        }
+                                    });
+                                    setIsResourceDetailModalOpen(true);
+                                }}
                             />
                             {isAddResourcePageOpen && (
                                 <AddResourcePage 
@@ -1535,6 +1573,23 @@ const App: React.FC = () => {
                                             lang={lang}
                                             hideCheckboxes={isReportModeActive || isProChartGenerating || activeAgentAppId === 'well_decline'}
                                             isSmartReport={isReportModeActive && reportConfig?.isSmartReport}
+                                             savedOutcomes={savedOutcomes}
+                                            onDeleteOutcome={(id) => setSavedOutcomes(prev => prev.filter(o => o.id !== id))}
+                                            onSelectOutcome={(outcome) => {
+                                                setSelectedResourceForDetail({
+                                                    id: outcome.id,
+                                                    name: outcome.name,
+                                                    type: 'artifact',
+                                                    meta: {
+                                                        sourceType: 'system',
+                                                        fileType: 'Outcome',
+                                                        isPublic: outcome.isPublic,
+                                                        date: outcome.date,
+                                                        isArtifactOutcome: true
+                                                    }
+                                                });
+                                                setIsResourceDetailModalOpen(true);
+                                            }}
                                         />
                                         )}
                                     </div>
@@ -1971,8 +2026,17 @@ const App: React.FC = () => {
             initialName={outcomeToSave?.name || ''}
             objectScope={constructionObjectScope}
             onConfirm={(data) => {
-              const newOutcome: ResourceNode = {
+              const newOutcomeItem: SavedOutcome = {
                 id: `outcome-${Date.now()}`,
+                name: data.name,
+                date: new Date().toLocaleString('zh-CN', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+                isPublic: data.isPublic
+              };
+
+              setSavedOutcomes(prev => [newOutcomeItem, ...prev]);
+
+              const newOutcomeNode: ResourceNode = {
+                id: newOutcomeItem.id,
                 name: data.name,
                 type: 'artifact',
                 meta: {
@@ -1980,14 +2044,14 @@ const App: React.FC = () => {
                   fileType: 'Outcome',
                   isPublic: data.isPublic,
                   date: new Date().toISOString(),
-                  outcomeType: data.outcomeType,
-                  objectId: data.objectId,
-                  isArtifactOutcome: data.isArtifactOutcome
+                  isArtifactOutcome: true
                 }
               };
-              handleAddResource(data.mbuId, newOutcome);
+              const targetParentId = resourceTree.length > 0 ? resourceTree[0].id : 'root';
+              handleAddResource(targetParentId, newOutcomeNode);
+
               setIsSaveOutcomeModalOpen(false);
-              setAlertMessage(lang === 'zh' ? '成果保存成功！已添加到资源树，并标记为深度分析成果。' : 'Outcome saved successfully! Added to resource tree and marked as deep analysis artifact.');
+              setAlertMessage(lang === 'zh' ? '成果保存成功！已在左侧资源树下方生成成果展示。' : 'Outcome saved successfully! Displayed in outcome list under resource tree.');
             }}
           />
         )}
