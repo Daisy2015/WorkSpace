@@ -82,7 +82,7 @@ export const SaveOutcomeModal: React.FC<SaveOutcomeModalProps> = ({
           <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
             <div className="flex flex-col">
               <span className="text-sm font-bold text-slate-800">{isZh ? '公开设置' : 'Public Setting'}</span>
-              <span className="text-[10px] text-slate-500">{isZh ? '公开后其他团队成员可见' : 'Visible to other team members'}</span>
+              <span className="text-[10px] text-slate-500">{isZh ? '公开后其他成员可见' : 'Visible to other members'}</span>
             </div>
             <button 
               type="button"

@@ -1,14 +1,52 @@
 import React, { useState } from 'react';
 import { ResourceTree } from './ResourceTree';
-import { ResourceNode } from '../types';
+import { ResourceNode, SavedOutcome } from '../types';
 
 interface ProChartRequirementTreeProps {
     lang: 'zh' | 'en';
     onOpenAddResourcePage?: () => void;
+    savedOutcomes?: SavedOutcome[];
+    onDeleteOutcome?: (id: string) => void;
+    onRenameOutcome?: (id: string, newName: string) => void;
+    onShowOriginalChat?: (outcome: SavedOutcome) => void;
+    onSelectOutcome?: (outcome: SavedOutcome) => void;
+    onOpenInterestModal?: () => void;
+    isResourceScopeInitialized?: boolean;
+    interestTags?: string[];
+    objects?: any[];
+    onClearObjects?: () => void;
+    onRemoveObject?: (obj: any) => void;
+    selectedResources?: Set<string>;
+    onToggleResource?: (id: string, node: ResourceNode) => void;
+    onSelectNode?: (node: ResourceNode) => void;
+    onAddResource?: (parentId: string, newResource: ResourceNode) => void;
+    onDeleteResources?: (idsToDelete: string[]) => void;
+    onTogglePublic?: (id: string, node: ResourceNode) => void;
 }
 
-export const ProChartRequirementTree: React.FC<ProChartRequirementTreeProps> = ({ lang, onOpenAddResourcePage }) => {
-    const [selectedResources] = useState<Set<string>>(new Set());
+export const ProChartRequirementTree: React.FC<ProChartRequirementTreeProps> = ({ 
+    lang, 
+    onOpenAddResourcePage,
+    savedOutcomes,
+    onDeleteOutcome,
+    onRenameOutcome,
+    onShowOriginalChat,
+    onSelectOutcome,
+    onOpenInterestModal,
+    isResourceScopeInitialized,
+    interestTags,
+    objects,
+    onClearObjects,
+    onRemoveObject,
+    selectedResources: externalSelectedResources,
+    onToggleResource,
+    onSelectNode,
+    onAddResource,
+    onDeleteResources,
+    onTogglePublic,
+}) => {
+    const [internalSelectedResources] = useState<Set<string>>(new Set());
+    const selectedResources = externalSelectedResources || internalSelectedResources;
 
     const proChartResources: ResourceNode[] = [
         {
@@ -163,15 +201,26 @@ export const ProChartRequirementTree: React.FC<ProChartRequirementTreeProps> = (
         <ResourceTree
             treeData={proChartResources}
             selectedResources={selectedResources}
-            onToggleResource={() => {}}
-            onSelectNode={() => {}}
-            onAddResource={() => {}}
-            onDeleteResources={() => {}}
-            onTogglePublic={() => {}}
+            onToggleResource={onToggleResource || (() => {})}
+            onSelectNode={onSelectNode || (() => {})}
+            onAddResource={onAddResource || (() => {})}
+            onDeleteResources={onDeleteResources || (() => {})}
+            onTogglePublic={onTogglePublic || (() => {})}
             onOpenAddResourcePage={onOpenAddResourcePage || (() => {})}
             lang={lang}
             hideCheckboxes={true}
             isSmartReport={true}
+            savedOutcomes={savedOutcomes}
+            onDeleteOutcome={onDeleteOutcome}
+            onRenameOutcome={onRenameOutcome}
+            onShowOriginalChat={onShowOriginalChat}
+            onSelectOutcome={onSelectOutcome}
+            onOpenInterestModal={onOpenInterestModal}
+            isResourceScopeInitialized={isResourceScopeInitialized}
+            interestTags={interestTags}
+            objects={objects}
+            onClearObjects={onClearObjects}
+            onRemoveObject={onRemoveObject}
         />
     );
 };

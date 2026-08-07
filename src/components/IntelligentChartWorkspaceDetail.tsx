@@ -5,7 +5,7 @@ import { ProChartRequirementTree } from './ProChartRequirementTree';
 import { ProChartGenerationAgent } from './ProChartGenerationAgent';
 import { AssistantSidebar } from './AssistantSidebar';
 import { EvidenceChainPanel } from './EvidenceChainPanel';
-import { Workspace, Message } from '../types';
+import { Workspace, Message, SavedOutcome, ResourceNode } from '../types';
 
 interface IntelligentChartWorkspaceDetailProps {
   lang: 'zh' | 'en';
@@ -23,6 +23,20 @@ interface IntelligentChartWorkspaceDetailProps {
   displayAgents: any[];
   workspaceVersion: 'foundation' | 'professional' | 'enterprise';
   onSaveOutcome: (outcome: any) => void;
+  onSaveChartOutcome?: (name: string) => void;
+  
+  // Saved Outcomes & Tree state
+  savedOutcomes?: SavedOutcome[];
+  onDeleteOutcome?: (id: string) => void;
+  onRenameOutcome?: (id: string, newName: string) => void;
+  onShowOriginalChat?: (outcome: SavedOutcome) => void;
+  onSelectOutcome?: (outcome: SavedOutcome) => void;
+  onOpenInterestModal?: () => void;
+  isResourceScopeInitialized?: boolean;
+  interestTags?: string[];
+  objects?: any[];
+  onClearObjects?: () => void;
+  onRemoveObject?: (obj: any) => void;
   
   // Panel states
   isResourcePanelOpen: boolean;
@@ -45,6 +59,19 @@ export const IntelligentChartWorkspaceDetail: React.FC<IntelligentChartWorkspace
   displayAgents,
   workspaceVersion,
   onSaveOutcome,
+  onSaveChartOutcome,
+  
+  savedOutcomes,
+  onDeleteOutcome,
+  onRenameOutcome,
+  onShowOriginalChat,
+  onSelectOutcome,
+  onOpenInterestModal,
+  isResourceScopeInitialized,
+  interestTags,
+  objects,
+  onClearObjects,
+  onRemoveObject,
   
   isResourcePanelOpen,
   setIsResourcePanelOpen,
@@ -75,7 +102,21 @@ export const IntelligentChartWorkspaceDetail: React.FC<IntelligentChartWorkspace
         <div className={`${isResourcePanelOpen ? 'w-96 border-r' : 'w-0 border-none'} h-full flex-shrink-0 z-20 shadow-lg bg-white border-slate-200 flex flex-col transition-all duration-300 ease-in-out overflow-hidden`}>
           <div className="w-96 flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-hidden relative">
-              <ProChartRequirementTree lang={lang} onOpenAddResourcePage={onOpenAddResourcePage} />
+              <ProChartRequirementTree 
+                lang={lang} 
+                onOpenAddResourcePage={onOpenAddResourcePage}
+                savedOutcomes={savedOutcomes}
+                onDeleteOutcome={onDeleteOutcome}
+                onRenameOutcome={onRenameOutcome}
+                onShowOriginalChat={onShowOriginalChat}
+                onSelectOutcome={onSelectOutcome}
+                onOpenInterestModal={onOpenInterestModal}
+                isResourceScopeInitialized={isResourceScopeInitialized}
+                interestTags={interestTags}
+                objects={objects}
+                onClearObjects={onClearObjects}
+                onRemoveObject={onRemoveObject}
+              />
             </div>
           </div>
         </div>
@@ -103,6 +144,13 @@ export const IntelligentChartWorkspaceDetail: React.FC<IntelligentChartWorkspace
                 key={`pro-chart-intelligent-${refreshKey}`}
                 lang={lang}
                 onComplete={() => {}}
+                onSaveOutcome={(name) => {
+                  if (onSaveChartOutcome) {
+                    onSaveChartOutcome(name);
+                  } else if (onSaveOutcome) {
+                    onSaveOutcome(name);
+                  }
+                }}
               />
             </div>
           </div>

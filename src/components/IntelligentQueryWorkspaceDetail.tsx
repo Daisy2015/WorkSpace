@@ -26,6 +26,13 @@ interface IntelligentQueryWorkspaceDetailProps {
   savedOutcomes?: SavedOutcome[];
   onDeleteOutcome?: (id: string) => void;
   onSelectOutcome?: (outcome: SavedOutcome) => void;
+  onOpenInterestModal?: () => void;
+  isResourceScopeInitialized?: boolean;
+  interestTags?: {
+    businessContent: string[];
+    workTypes: string[];
+    businessObjects: string[];
+  };
   
   // Object scope
   isObjectScopeExpanded: boolean;
@@ -67,6 +74,9 @@ export const IntelligentQueryWorkspaceDetail: React.FC<IntelligentQueryWorkspace
   savedOutcomes,
   onDeleteOutcome,
   onSelectOutcome,
+  onOpenInterestModal,
+  isResourceScopeInitialized,
+  interestTags,
   
   isObjectScopeExpanded,
   setIsObjectScopeExpanded,
@@ -128,70 +138,11 @@ export const IntelligentQueryWorkspaceDetail: React.FC<IntelligentQueryWorkspace
                 savedOutcomes={savedOutcomes}
                 onDeleteOutcome={onDeleteOutcome}
                 onSelectOutcome={onSelectOutcome}
+                onOpenInterestModal={onOpenInterestModal}
+                isResourceScopeInitialized={isResourceScopeInitialized}
+                interestTags={interestTags}
+                objects={activeWorkspaceData?.objects}
               />
-            </div>
-            
-            {/* Object Scope */}
-            <div className={`border-t border-slate-200 flex flex-col bg-white overflow-hidden transition-all duration-300 ${isObjectScopeExpanded ? 'flex-1' : 'h-11'}`}>
-              <div 
-                className="px-4 py-2.5 bg-white flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
-                onClick={() => setIsObjectScopeExpanded(!isObjectScopeExpanded)}
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shadow-[0_2px_4px_rgba(59,130,246,0.3)]">
-                    <i className="fas fa-check text-[10px] text-white"></i>
-                  </div>
-                  <h3 className="text-sm font-bold text-slate-700 tracking-tight">
-                    {lang === 'zh' ? '已选对象范围' : 'Selected Objects'}
-                  </h3>
-                  <span className="ml-1 text-sm font-medium text-slate-500">
-                    ({activeWorkspaceData?.objects?.length || 0})
-                  </span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <i className={`fas fa-chevron-down text-xs text-slate-400 transition-transform duration-300 ${isObjectScopeExpanded ? 'rotate-180' : ''}`}></i>
-                </div>
-              </div>
-              
-              {isObjectScopeExpanded && (
-                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-white">
-                  {activeWorkspaceData?.objects && activeWorkspaceData.objects.length > 0 ? (
-                    <div className="flex flex-col">
-                      {Object.entries(groupedObjects).map(([category, items]: [string, any], idx, arr) => (
-                        <div key={category} className={`${idx !== arr.length - 1 ? 'border-b border-slate-100 mb-4 pb-4' : ''}`}>
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-6 h-6 rounded bg-white flex items-center justify-center text-blue-500 text-sm border border-blue-50">
-                              <i className="fas fa-cubes"></i>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-sm font-bold text-slate-700">{category}</span>
-                              <span className="text-sm font-medium text-slate-400">({items.length})</span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-wrap gap-2 pl-9">
-                            {items.map((obj: any) => (
-                              <div 
-                                key={obj.id}
-                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-100"
-                              >
-                                <span className="text-xs font-medium text-blue-600 truncate max-w-[120px]">{obj.label}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-300 py-12">
-                      <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-4 text-slate-200">
-                        <i className="fas fa-layer-group text-2xl"></i>
-                      </div>
-                      <p className="text-sm font-medium text-slate-400">{lang === 'zh' ? '暂未选择对象' : 'No objects selected'}</p>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>

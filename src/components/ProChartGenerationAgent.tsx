@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 interface Props {
   lang: 'zh' | 'en';
   onComplete?: () => void;
+  onSaveOutcome?: (name: string) => void;
 }
 
 const LayerItem: React.FC<{ name: string; hasChildren?: boolean; isLast?: boolean }> = ({ name, hasChildren, isLast }) => {
@@ -24,9 +25,11 @@ const LayerItem: React.FC<{ name: string; hasChildren?: boolean; isLast?: boolea
     );
 };
 
-export const ProChartGenerationAgent: React.FC<Props> = ({ lang, onComplete }) => {
+export const ProChartGenerationAgent: React.FC<Props> = ({ lang, onComplete, onSaveOutcome }) => {
   const [status, setStatus] = useState<'running' | 'completed'>('running');
   const [isLayerSidebarOpen, setIsLayerSidebarOpen] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -35,6 +38,18 @@ export const ProChartGenerationAgent: React.FC<Props> = ({ lang, onComplete }) =
     }, 3000);
     return () => clearTimeout(timer);
   }, [onComplete]);
+
+  const handleSaveChart = () => {
+    const chartName = lang === 'zh' ? '沉积微相综合柱状图' : 'Sedimentary Microfacies Columnar Chart';
+    if (onSaveOutcome) {
+      onSaveOutcome(chartName);
+    }
+    setIsSaved(true);
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
+  };
 
   return (
     <div className="flex flex-row h-full bg-white relative overflow-hidden">
@@ -48,28 +63,75 @@ export const ProChartGenerationAgent: React.FC<Props> = ({ lang, onComplete }) =
               </div>
           ) : (
               <>
-                  {/* Top Toolbar */}
-                  <div className="w-full flex justify-end">
-                       <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+                  {/* Toast Alert */}
+                  {showToast && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="w-full bg-emerald-500 text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center justify-between text-xs font-semibold"
+                    >
+                      <div className="flex items-center gap-2">
+                        <i className="fas fa-check-circle text-sm"></i>
+                        <span>{lang === 'zh' ? '已成功将生成图件保存至左侧【输出成果】！' : 'Saved chart to Output Artifacts on the left!'}</span>
+                      </div>
+                      <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded">{lang === 'zh' ? '已记录' : 'Recorded'}</span>
+                    </motion.div>
+                  )}
+
+                  {/* Top Toolbar with Save Outcome button */}
+                  <div className="w-full flex justify-between items-center bg-white border border-slate-200 rounded-xl p-2.5 shadow-sm">
+                       <div className="flex items-center gap-2.5 pl-1">
+                          <div className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                            <i className="fas fa-chart-area text-xs"></i>
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-slate-800 block leading-tight">
+                              {lang === 'zh' ? '沉积微相综合柱状图' : 'Sedimentary Microfacies Columnar Chart'}
+                            </span>
+                            <span className="text-[10px] text-emerald-600 font-medium">
+                              {lang === 'zh' ? '智能生成完成' : 'Generated Successfully'}
+                            </span>
+                          </div>
+                       </div>
+
+                       <div className="flex items-center gap-2">
                            <button 
-                             onClick={() => setIsLayerSidebarOpen(!isLayerSidebarOpen)}
-                             title={lang === 'zh' ? '图层设置' : 'Layers'}
-                             className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${isLayerSidebarOpen ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
+                             onClick={handleSaveChart}
+                             title={lang === 'zh' ? '保存生成图件至左侧输出成果' : 'Save generated chart to output artifacts'}
+                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-xs ${
+                               isSaved 
+                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' 
+                                 : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'
+                             }`}
                            >
-                             <i className="fas fa-layer-group text-sm"></i>
+                             <i className={`fas ${isSaved ? 'fa-check text-emerald-600' : 'fa-bookmark'} text-xs`}></i>
+                             <span>{isSaved ? (lang === 'zh' ? '已保存成果' : 'Saved') : (lang === 'zh' ? '保存成果' : 'Save Chart')}</span>
                            </button>
-                           <button 
-                             title={lang === 'zh' ? '全屏' : 'Full Screen'}
-                             className="w-8 h-8 flex items-center justify-center text-slate-500 rounded hover:bg-slate-50 hover:text-slate-700 transition-colors"
-                           >
-                             <i className="fas fa-expand text-sm"></i>
-                           </button>
-                           <button 
-                             title={lang === 'zh' ? '下载' : 'Download'}
-                             className="w-8 h-8 flex items-center justify-center text-slate-500 rounded hover:bg-slate-50 hover:text-slate-700 transition-colors"
-                           >
-                             <i className="fas fa-download text-sm"></i>
-                           </button>
+
+                           <div className="h-4 w-px bg-slate-200 mx-0.5"></div>
+
+                           <div className="flex items-center gap-1 bg-slate-50 border border-slate-200/80 rounded-lg p-0.5">
+                             <button 
+                               onClick={() => setIsLayerSidebarOpen(!isLayerSidebarOpen)}
+                               title={lang === 'zh' ? '图层设置' : 'Layers'}
+                               className={`w-7 h-7 flex items-center justify-center rounded transition-colors ${isLayerSidebarOpen ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-500 hover:bg-white hover:text-slate-700'}`}
+                             >
+                               <i className="fas fa-layer-group text-xs"></i>
+                             </button>
+                             <button 
+                               title={lang === 'zh' ? '全屏' : 'Full Screen'}
+                               className="w-7 h-7 flex items-center justify-center text-slate-500 rounded hover:bg-white hover:text-slate-700 transition-colors"
+                             >
+                               <i className="fas fa-expand text-xs"></i>
+                             </button>
+                             <button 
+                               title={lang === 'zh' ? '下载' : 'Download'}
+                               className="w-7 h-7 flex items-center justify-center text-slate-500 rounded hover:bg-white hover:text-slate-700 transition-colors"
+                             >
+                               <i className="fas fa-download text-xs"></i>
+                             </button>
+                           </div>
                        </div>
                   </div>
                   

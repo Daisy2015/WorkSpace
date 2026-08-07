@@ -54,6 +54,7 @@ interface ReportGenerationAgentProps {
   onCloseAgent: () => void;
   onComplete?: () => void;
   onActiveChapterChange?: (chapterId: string, chapterTitle: string) => void;
+  onSaveOutcome?: (name?: string) => void;
 }
 
 type ChapterStatus = 'completed' | 'running' | 'pending' | 'warning';
@@ -76,11 +77,30 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
   config,
   onCloseAgent,
   onComplete,
-  onActiveChapterChange
+  onActiveChapterChange,
+  onSaveOutcome
 }) => {
   const [currentPhase, setCurrentPhase] = useState<'confirm_outline' | 'writing'>(
     config?.isWeeklyBrief ? 'writing' : (config?.outlineConfirmRequired ? 'confirm_outline' : 'writing')
   );
+
+  const [isSaved, setIsSaved] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+
+  const handleSaveReport = () => {
+    const reportTitleName = config?.isWeeklyBrief 
+      ? (lang === 'zh' ? '本周生产运行简报_20240416' : 'Weekly_Production_Operation_Brief_20240416')
+      : `${objectName}${lang === 'zh' ? ' 钻井地质设计报告' : ' Drilling Geology Design'}`;
+    
+    if (onSaveOutcome) {
+      onSaveOutcome(reportTitleName);
+    }
+    setIsSaved(true);
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
+  };
 
   const [outlineNodes, setOutlineNodes] = useState<any[]>(config?.outline || []);
   const [activeConfigChapterId, setActiveConfigChapterId] = useState<string>('1');
@@ -1075,31 +1095,57 @@ export const ReportGenerationAgent: React.FC<ReportGenerationAgentProps> = ({
              </h1>
           </div>
           
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {!config?.isWeeklyBrief && (
               <button
                 onClick={() => setCurrentPhase('confirm_outline')}
-                className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-all flex items-center gap-1.5 mr-2"
+                className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-all flex items-center gap-1.5"
                 title={lang === 'zh' ? '返回大纲与写作指令配置页面' : 'Return to Outline and Prompts Configuration'}
               >
                 <i className="fas fa-arrow-left text-[9px]"></i>
                 <span>{lang === 'zh' ? '返回大纲编辑' : 'Back to Outline'}</span>
               </button>
             )}
-            <button className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 transition-all" title={lang === 'zh' ? '下载' : 'Download'}>
-              <i className="fas fa-download"></i>
+            <button 
+              onClick={handleSaveReport}
+              title={lang === 'zh' ? '保存生成报告至左侧输出成果' : 'Save generated report to output artifacts'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-xs ${
+                isSaved 
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' 
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'
+              }`}
+            >
+              <i className={`fas ${isSaved ? 'fa-check text-emerald-600' : 'fa-bookmark'} text-xs`}></i>
+              <span>{isSaved ? (lang === 'zh' ? '已保存成果' : 'Saved') : (lang === 'zh' ? '保存成果' : 'Save Report')}</span>
+            </button>
+            <div className="h-4 w-px bg-slate-200 mx-0.5"></div>
+            <button className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 transition-all" title={lang === 'zh' ? '下载' : 'Download'}>
+              <i className="fas fa-download text-xs"></i>
             </button>
             <button 
-              className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 transition-all" 
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 transition-all" 
               title={lang === 'zh' ? '全屏' : 'Fullscreen'}
             >
-              <i className="fas fa-expand"></i>
-            </button>
-            <button className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 transition-all font-bold" title={lang === 'zh' ? '保存' : 'Save'}>
-              <i className="fas fa-floppy-disk"></i>
+              <i className="fas fa-expand text-xs"></i>
             </button>
           </div>
       </div>
+
+      {/* Toast Alert */}
+      {showToast && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="mx-4 mt-2 bg-emerald-500 text-white px-4 py-2 rounded-xl shadow-lg flex items-center justify-between text-xs font-semibold z-30"
+        >
+          <div className="flex items-center gap-2">
+            <i className="fas fa-check-circle text-sm"></i>
+            <span>{lang === 'zh' ? '已成功将生成报告保存至左侧【输出成果】！' : 'Saved report to Output Artifacts on the left!'}</span>
+          </div>
+          <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded">{lang === 'zh' ? '已记录' : 'Recorded'}</span>
+        </motion.div>
+      )}
 
       <div className="flex-1 flex overflow-hidden relative min-h-0">
         {/* Directory Sidebar */}

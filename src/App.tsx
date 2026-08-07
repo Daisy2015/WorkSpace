@@ -42,6 +42,7 @@ import { ReportGenerationAgent } from './components/ReportGenerationAgent';
 import { ProChartRequirementTree } from './components/ProChartRequirementTree';
 import { WellDeclineRequirementTree } from './components/WellDeclineRequirementTree';
 import { ProChartGenerationAgent } from './components/ProChartGenerationAgent';
+import { ResourceInterestModal } from './components/ResourceInterestModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESOURCE_TREE, MOCK_TEMPLATES } from './constants';
@@ -183,6 +184,9 @@ const App: React.FC = () => {
   // Resource Detail Modal State
   const [selectedResourceForDetail, setSelectedResourceForDetail] = useState<ResourceNode | null>(null);
   const [isResourceDetailModalOpen, setIsResourceDetailModalOpen] = useState(false);
+
+  // Resource Interest Recommendation Modal State
+  const [isInterestModalOpen, setIsInterestModalOpen] = useState(false);
 
   const versions = useMemo(() => [
     { id: 'foundation', name: '基础版', enName: 'Foundation', desc: '通用智能助手', icon: 'fa-bolt', tagClass: 'bg-slate-100 text-slate-700' },
@@ -489,7 +493,7 @@ const App: React.FC = () => {
             createdAt: new Date().toISOString().split('T')[0],
             status: WorkspaceStatus.DRAFT,
             owner: '李明',
-            defaultAgent: defaultAgent || '报告生成Agent',
+            defaultAgent: defaultAgent || '智能报告',
             ...extraFields,
         };
         setWorkspaces(prev => [newWorkspace, ...prev]);
@@ -543,6 +547,24 @@ const App: React.FC = () => {
     setIsTracePanelOpen(true);
     setIsResourcePanelOpen(true);
     setEditingDoc(null);
+
+    // Auto trigger resource interest modal when entering a workspace for the first time or creating one if scope is not initialized
+    const targetWs = (id === 'new-demo' && name)
+      ? { isResourceScopeInitialized: false, defaultAgent: defaultAgent || '智能报告' }
+      : workspaces.find(w => w.id === id || w.id === finalId);
+
+    const targetAgent = defaultAgent || (targetWs as any)?.defaultAgent;
+    const allowedAgents = ['智能问数', '智能成图', '智能报告', 'intelligent_query', 'intelligent_chart', 'intelligent_report'];
+    const isAllowedAgent = targetAgent ? (
+      allowedAgents.includes(targetAgent) ||
+      targetAgent.includes('问数') ||
+      targetAgent.includes('成图') ||
+      (targetAgent.includes('报告') && !targetAgent.includes('单井'))
+    ) : false;
+
+    if (targetWs && !targetWs.isResourceScopeInitialized && isAllowedAgent) {
+      setIsInterestModalOpen(true);
+    }
   };
 
   const handleBackToList = () => {
@@ -985,6 +1007,54 @@ const App: React.FC = () => {
     );
   }
 
+  const handleRenameOutcome = (id: string, newName: string) => {
+    setSavedOutcomes(prev => prev.map(o => o.id === id ? { ...o, name: newName } : o));
+  };
+
+  const handleShowOriginalChat = (outcome: SavedOutcome) => {
+    setSelectedResourceForDetail({
+      id: outcome.id,
+      name: outcome.name,
+      type: 'artifact',
+      meta: {
+        sourceType: 'system',
+        fileType: 'Outcome',
+        isPublic: outcome.isPublic,
+        date: outcome.date,
+        isArtifactOutcome: true
+      }
+    });
+    setIsResourceDetailModalOpen(true);
+  };
+
+  const handleSelectOutcome = (outcome: SavedOutcome) => {
+    setSelectedResourceForDetail({
+      id: outcome.id,
+      name: outcome.name,
+      type: 'artifact',
+      meta: {
+        sourceType: 'system',
+        fileType: 'Outcome',
+        isPublic: outcome.isPublic,
+        date: outcome.date,
+        isArtifactOutcome: true
+      }
+    });
+    setIsResourceDetailModalOpen(true);
+  };
+
+  const handleClearObjects = () => {
+    if (activeWorkspaceData) {
+      setWorkspaces(prev => prev.map(w => w.id === activeWorkspaceData.id ? { ...w, objects: [] } : w));
+    }
+  };
+
+  const handleRemoveObject = (id: string) => {
+    if (activeWorkspaceData) {
+      setWorkspaces(prev => prev.map(w => w.id === activeWorkspaceData.id ? { ...w, objects: (w.objects || []).filter((o: any) => o.id !== id && o !== id) } : w));
+    }
+  };
+
   return (
     <div className="h-screen w-screen bg-slate-50 flex overflow-hidden text-slate-900 font-sans">
       
@@ -1335,8 +1405,8 @@ const App: React.FC = () => {
                                 onUpdateWorkspaceName={(name) => activeWorkspaceId && handleUpdateWorkspace(activeWorkspaceId, { name })}
                                 onEditReport={handleEditReport}
                                 displayAgents={displayAgents}
-                                workspaceVersion={workspaceVersion}
-                                 onSaveOutcome={handleOpenSaveOutcome}
+                                 workspaceVersion={workspaceVersion}
+                                onSaveOutcome={handleOpenSaveOutcome}
                                 isResourcePanelOpen={isResourcePanelOpen}
                                 setIsResourcePanelOpen={setIsResourcePanelOpen}
                                 savedOutcomes={savedOutcomes}
@@ -1356,6 +1426,9 @@ const App: React.FC = () => {
                                     });
                                     setIsResourceDetailModalOpen(true);
                                 }}
+                                onOpenInterestModal={() => setIsInterestModalOpen(true)}
+                                isResourceScopeInitialized={activeWorkspaceData?.isResourceScopeInitialized}
+                                interestTags={activeWorkspaceData?.interestTags}
                             />
                             {isAddResourcePageOpen && (
                                 <AddResourcePage 
@@ -1383,9 +1456,62 @@ const App: React.FC = () => {
                                 displayAgents={displayAgents}
                                 workspaceVersion={workspaceVersion}
                                 onSaveOutcome={handleOpenSaveOutcome}
+                                onSaveChartOutcome={(name) => {
+                                    const outcomeName = name || (lang === 'zh' ? '沉积微相综合柱状图' : 'Sedimentary Microfacies Columnar Chart');
+                                    const nowStr = new Date().toLocaleString('zh-CN', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+                                    const newOutcome: SavedOutcome = {
+                                        id: `outcome-${Date.now()}`,
+                                        name: outcomeName,
+                                        date: nowStr,
+                                        isPublic: false
+                                    };
+                                    setSavedOutcomes(prev => [newOutcome, ...prev]);
+
+                                    const newOutcomeNode: ResourceNode = {
+                                        id: newOutcome.id,
+                                        name: newOutcome.name,
+                                        type: 'artifact',
+                                        meta: {
+                                            sourceType: 'system',
+                                            fileType: 'Outcome',
+                                            isPublic: false,
+                                            date: new Date().toISOString(),
+                                            isArtifactOutcome: true
+                                        }
+                                    };
+                                    const targetParentId = resourceTree.length > 0 ? resourceTree[0].id : 'root';
+                                    handleAddResource(targetParentId, newOutcomeNode);
+                                }}
                                 isResourcePanelOpen={isResourcePanelOpen}
                                 setIsResourcePanelOpen={setIsResourcePanelOpen}
                                 onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
+                                savedOutcomes={savedOutcomes}
+                                onDeleteOutcome={(id) => setSavedOutcomes(prev => prev.filter(o => o.id !== id))}
+                                onRenameOutcome={(id, newName) => setSavedOutcomes(prev => prev.map(o => o.id === id ? { ...o, name: newName } : o))}
+                                onShowOriginalChat={(outcome) => {
+                                    setIsHistoryModalOpen(true);
+                                }}
+                                onSelectOutcome={(outcome) => {
+                                    setSelectedResourceForDetail({
+                                        id: outcome.id,
+                                        name: outcome.name,
+                                        type: 'artifact',
+                                        meta: {
+                                            sourceType: 'system',
+                                            fileType: 'Outcome',
+                                            isPublic: outcome.isPublic,
+                                            date: outcome.date,
+                                            isArtifactOutcome: true
+                                        }
+                                    });
+                                    setIsResourceDetailModalOpen(true);
+                                }}
+                                onOpenInterestModal={() => setIsInterestModalOpen(true)}
+                                isResourceScopeInitialized={activeWorkspaceData?.isResourceScopeInitialized}
+                                interestTags={activeWorkspaceData?.interestTags}
+                                objects={activeWorkspaceData?.objects}
+                                onClearObjects={() => handleUpdateWorkspace(activeWorkspaceId, { objects: [] })}
+                                onRemoveObject={(obj) => handleUpdateWorkspace(activeWorkspaceId, { objects: activeWorkspaceData?.objects?.filter(o => o.id !== obj.id) })}
                             />
                             {isAddResourcePageOpen && (
                                 <AddResourcePage 
@@ -1419,6 +1545,10 @@ const App: React.FC = () => {
                                 setIsResourcePanelOpen={setIsResourcePanelOpen}
                                 savedOutcomes={savedOutcomes}
                                 onDeleteOutcome={(id) => setSavedOutcomes(prev => prev.filter(o => o.id !== id))}
+                                onRenameOutcome={(id, newName) => setSavedOutcomes(prev => prev.map(o => o.id === id ? { ...o, name: newName } : o))}
+                                onShowOriginalChat={(outcome) => {
+                                    setIsHistoryModalOpen(true);
+                                }}
                                 onSelectOutcome={(outcome) => {
                                     setSelectedResourceForDetail({
                                         id: outcome.id,
@@ -1433,6 +1563,38 @@ const App: React.FC = () => {
                                         }
                                     });
                                     setIsResourceDetailModalOpen(true);
+                                }}
+                                onOpenInterestModal={() => setIsInterestModalOpen(true)}
+                                isResourceScopeInitialized={activeWorkspaceData?.isResourceScopeInitialized}
+                                interestTags={activeWorkspaceData?.interestTags}
+                                objects={activeWorkspaceData?.objects}
+                                onClearObjects={() => handleUpdateWorkspace(activeWorkspaceId, { objects: [] })}
+                                onRemoveObject={(obj) => handleUpdateWorkspace(activeWorkspaceId, { objects: activeWorkspaceData?.objects?.filter(o => o.id !== obj.id) })}
+                                onSaveReportOutcome={(name) => {
+                                    const outcomeName = name || (lang === 'zh' ? '钻井地质设计报告' : 'Drilling Geology Design');
+                                    const nowStr = new Date().toLocaleString('zh-CN', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+                                    const newOutcome: SavedOutcome = {
+                                        id: `outcome-${Date.now()}`,
+                                        name: outcomeName,
+                                        date: nowStr,
+                                        isPublic: false
+                                    };
+                                    setSavedOutcomes(prev => [newOutcome, ...prev]);
+
+                                    const newOutcomeNode: ResourceNode = {
+                                        id: newOutcome.id,
+                                        name: newOutcome.name,
+                                        type: 'artifact',
+                                        meta: {
+                                            sourceType: 'system',
+                                            fileType: 'Outcome',
+                                            isPublic: false,
+                                            date: new Date().toISOString(),
+                                            isArtifactOutcome: true
+                                        }
+                                    };
+                                    const targetParentId = resourceTree.length > 0 ? resourceTree[0].id : 'root';
+                                    handleAddResource(targetParentId, newOutcomeNode);
                                 }}
                             />
                             {isAddResourcePageOpen && (
@@ -1458,6 +1620,23 @@ const App: React.FC = () => {
                                 isResourcePanelOpen={isResourcePanelOpen}
                                 setIsResourcePanelOpen={setIsResourcePanelOpen}
                                 onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
+                                resourceTree={resourceTree}
+                                selectedResources={selectedResources}
+                                onToggleResource={handleToggleResource}
+                                onSelectResourceForDetail={setSelectedResourceForDetail}
+                                onAddResource={handleAddResource}
+                                onDeleteResources={handleDeleteResources}
+                                onTogglePublic={handleTogglePublic}
+                                savedOutcomes={savedOutcomes}
+                                onDeleteOutcome={(id) => setSavedOutcomes(prev => prev.filter(o => o.id !== id))}
+                                onRenameOutcome={handleRenameOutcome}
+                                onShowOriginalChat={handleShowOriginalChat}
+                                onSelectOutcome={handleSelectOutcome}
+                                onOpenInterestModal={() => setIsInterestModalOpen(true)}
+                                isResourceScopeInitialized={activeWorkspaceData?.isResourceScopeInitialized}
+                                interestTags={activeWorkspaceData?.interestTags}
+                                onClearObjects={handleClearObjects}
+                                onRemoveObject={handleRemoveObject}
                             />
                             {isAddResourcePageOpen && (
                                 <AddResourcePage 
@@ -1554,7 +1733,33 @@ const App: React.FC = () => {
                                         {isProChartGenerating ? (
                                             <ProChartRequirementTree lang={lang} />
                                         ) : activeAgentAppId === 'well_decline' ? (
-                                            <WellDeclineRequirementTree lang={lang} />
+                                            <WellDeclineRequirementTree 
+                                                lang={lang}
+                                                onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
+                                                treeData={resourceTree}
+                                                selectedResources={selectedResources}
+                                                onToggleResource={handleToggleResource}
+                                                onSelectNode={(node) => {
+                                                    if (node.type === 'artifact') {
+                                                        setSelectedResourceForDetail(node);
+                                                        setIsResourceDetailModalOpen(true);
+                                                    }
+                                                }}
+                                                onAddResource={handleAddResource}
+                                                onDeleteResources={handleDeleteResources}
+                                                onTogglePublic={handleTogglePublic}
+                                                savedOutcomes={savedOutcomes}
+                                                onDeleteOutcome={(id) => setSavedOutcomes(prev => prev.filter(o => o.id !== id))}
+                                                onRenameOutcome={(id, newName) => setSavedOutcomes(prev => prev.map(o => o.id === id ? { ...o, name: newName } : o))}
+                                                onShowOriginalChat={handleShowOriginalChat}
+                                                onSelectOutcome={handleSelectOutcome}
+                                                onOpenInterestModal={() => setIsInterestModalOpen(true)}
+                                                isResourceScopeInitialized={activeWorkspaceData?.isResourceScopeInitialized}
+                                                interestTags={activeWorkspaceData?.interestTags}
+                                                objects={activeWorkspaceData?.objects}
+                                                onClearObjects={handleClearObjects}
+                                                onRemoveObject={handleRemoveObject}
+                                            />
                                         ) : (
                                             <ResourceTree 
                                             treeData={resourceTree.filter(node => node.name !== '智能构建过程' && node.name !== '智能构建过程V2')}
@@ -1590,94 +1795,8 @@ const App: React.FC = () => {
                                                 });
                                                 setIsResourceDetailModalOpen(true);
                                             }}
+                                            objects={activeWorkspaceData?.objects}
                                         />
-                                        )}
-                                    </div>
-                                    
-                                    {/* Selected Object Scope Section */}
-                                    <div className={`border-t border-slate-200 flex flex-col bg-white overflow-hidden transition-all duration-300 ${isObjectScopeExpanded ? 'flex-1' : 'h-11'}`}>
-                                        <div 
-                                            className="px-4 py-2.5 bg-white flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
-                                            onClick={() => setIsObjectScopeExpanded(!isObjectScopeExpanded)}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shadow-[0_2px_4px_rgba(59,130,246,0.3)]">
-                                                    <i className="fas fa-check text-[10px] text-white"></i>
-                                                </div>
-                                                <h3 className="text-sm font-bold text-slate-700 tracking-tight">
-                                                    {lang === 'zh' ? '已选对象范围' : 'Selected Objects'}
-                                                </h3>
-                                                <span className="ml-1 text-sm font-medium text-slate-500">
-                                                    ({activeWorkspaceData?.objects?.length || 0})
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-4">
-                                                {isObjectScopeExpanded && activeWorkspaceData?.objects && activeWorkspaceData.objects.length > 0 && (
-                                                    <button 
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            // Logic to clear all objects would go here
-                                                            // For now, we'll keep it as a UI action that could be wired up
-                                                        }}
-                                                        className="flex items-center gap-1.5 text-slate-400 hover:text-red-500 transition-colors group"
-                                                    >
-                                                        <i className="fas fa-trash-alt text-xs"></i>
-                                                        <span className="text-xs font-medium">{lang === 'zh' ? '清空全部' : 'Clear All'}</span>
-                                                    </button>
-                                                )}
-                                                <i className={`fas fa-chevron-down text-xs text-slate-400 transition-transform duration-300 ${isObjectScopeExpanded ? 'rotate-180' : ''}`}></i>
-                                            </div>
-                                        </div>
-                                        
-                                        {isObjectScopeExpanded && (
-                                            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-white animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                                {activeWorkspaceData?.objects && activeWorkspaceData.objects.length > 0 ? (
-                                                    <div className="flex flex-col">
-                                                        {Object.entries(groupedObjects).map(([category, items]: [string, any], idx, arr) => (
-                                                            <div key={category} className={`${idx !== arr.length - 1 ? 'border-b border-slate-100 mb-4 pb-4' : ''}`}>
-                                                                <div 
-                                                                    className="flex items-center gap-3 mb-3"
-                                                                >
-                                                                    <div className="w-6 h-6 rounded bg-white flex items-center justify-center text-blue-500 text-sm border border-blue-50">
-                                                                        <i className="fas fa-cubes"></i>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-1.5">
-                                                                        <span className="text-sm font-bold text-slate-700">{category}</span>
-                                                                        <span className="text-sm font-medium text-slate-400">({items.length})</span>
-                                                                    </div>
-                                                                </div>
-                                                                
-                                                                <div className="flex flex-wrap gap-2 pl-9">
-                                                                    {items.map((obj: any) => (
-                                                                        <div 
-                                                                            key={obj.id}
-                                                                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-100 group transition-all hover:bg-blue-100/50"
-                                                                        >
-                                                                            <span className="text-xs font-medium text-blue-600 truncate max-w-[120px]">{obj.label}</span>
-                                                                            <button 
-                                                                                className="text-blue-400 hover:text-blue-600 transition-colors"
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    // Link individual remove logic here
-                                                                                }}
-                                                                            >
-                                                                                <i className="fas fa-times text-[10px]"></i>
-                                                                            </button>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <div className="h-full flex flex-col items-center justify-center text-slate-300 py-12">
-                                                        <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-4 text-slate-200">
-                                                            <i className="fas fa-layer-group text-2xl"></i>
-                                                        </div>
-                                                        <p className="text-sm font-medium text-slate-400">{lang === 'zh' ? '暂未选择对象' : 'No objects selected'}</p>
-                                                    </div>
-                                                )}
-                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -2016,6 +2135,35 @@ const App: React.FC = () => {
             onClose={() => setIsReportModalOpen(false)}
             lang={lang}
         />
+
+        {/* Resource Interest Recommendation Modal */}
+        {isInterestModalOpen && activeWorkspaceData && (
+          <ResourceInterestModal
+            isOpen={isInterestModalOpen}
+            onClose={() => setIsInterestModalOpen(false)}
+            lang={lang}
+            workspaceData={activeWorkspaceData}
+            onPostpone={() => {
+              setIsInterestModalOpen(false);
+            }}
+            onConfirm={(selectedTags) => {
+              setWorkspaces(prev => prev.map(w => {
+                if (w.id === activeWorkspaceId) {
+                  return {
+                    ...w,
+                    isResourceScopeInitialized: true,
+                    interestTags: selectedTags
+                  };
+                }
+                return w;
+              }));
+              setIsInterestModalOpen(false);
+              setAlertMessage(lang === 'zh' 
+                ? '已根据你的关注内容准备相关业务资源，资源范围已准备完成！' 
+                : 'Resource scope generated successfully!');
+            }}
+          />
+        )}
 
         {isSaveOutcomeModalOpen && (
           <SaveOutcomeModal 

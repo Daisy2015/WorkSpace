@@ -27,7 +27,17 @@ interface IntelligentReportWorkspaceDetailProps {
   onOpenAddResourcePage: () => void;
   savedOutcomes?: SavedOutcome[];
   onDeleteOutcome?: (id: string) => void;
+  onRenameOutcome?: (id: string, newName: string) => void;
+  onShowOriginalChat?: (outcome: SavedOutcome) => void;
   onSelectOutcome?: (outcome: SavedOutcome) => void;
+  onOpenInterestModal?: () => void;
+  isResourceScopeInitialized?: boolean;
+  interestTags?: string[];
+  objects?: any[];
+  onClearObjects?: () => void;
+  onRemoveObject?: (obj: any) => void;
+  onSaveOutcome?: (outcome: any) => void;
+  onSaveReportOutcome?: (name: string) => void;
   
   // Panel states
   isResourcePanelOpen: boolean;
@@ -53,7 +63,17 @@ export const IntelligentReportWorkspaceDetail: React.FC<IntelligentReportWorkspa
   onOpenAddResourcePage,
   savedOutcomes,
   onDeleteOutcome,
+  onRenameOutcome,
+  onShowOriginalChat,
   onSelectOutcome,
+  onOpenInterestModal,
+  isResourceScopeInitialized,
+  interestTags,
+  objects,
+  onClearObjects,
+  onRemoveObject,
+  onSaveOutcome,
+  onSaveReportOutcome,
   
   isResourcePanelOpen,
   setIsResourcePanelOpen,
@@ -113,7 +133,15 @@ export const IntelligentReportWorkspaceDetail: React.FC<IntelligentReportWorkspa
                 isSmartReport={true}
                 savedOutcomes={savedOutcomes}
                 onDeleteOutcome={onDeleteOutcome}
+                onRenameOutcome={onRenameOutcome}
+                onShowOriginalChat={onShowOriginalChat}
                 onSelectOutcome={onSelectOutcome}
+                onOpenInterestModal={onOpenInterestModal}
+                isResourceScopeInitialized={isResourceScopeInitialized}
+                interestTags={interestTags}
+                objects={objects}
+                onClearObjects={onClearObjects}
+                onRemoveObject={onRemoveObject}
               />
             </div>
           </div>
@@ -144,6 +172,13 @@ export const IntelligentReportWorkspaceDetail: React.FC<IntelligentReportWorkspa
                 config={reportConfig}
                 onCloseAgent={() => {}}
                 onComplete={() => {}}
+                onSaveOutcome={(name) => {
+                  if (onSaveReportOutcome) {
+                    onSaveReportOutcome(name);
+                  } else if (onSaveOutcome) {
+                    onSaveOutcome(name);
+                  }
+                }}
               />
             </div>
           </div>

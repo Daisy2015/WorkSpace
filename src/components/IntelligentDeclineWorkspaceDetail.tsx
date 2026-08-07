@@ -5,7 +5,7 @@ import { WellDeclineRequirementTree } from './WellDeclineRequirementTree';
 import { WellDeclineDiagnosis } from './WellDeclineDiagnosis';
 import { AssistantSidebar } from './AssistantSidebar';
 import { EvidenceChainPanel } from './EvidenceChainPanel';
-import { Workspace } from '../types';
+import { Workspace, ResourceNode, SavedOutcome } from '../types';
 
 interface IntelligentDeclineWorkspaceDetailProps {
   lang: 'zh' | 'en';
@@ -20,6 +20,29 @@ interface IntelligentDeclineWorkspaceDetailProps {
   isResourcePanelOpen: boolean;
   setIsResourcePanelOpen: (open: boolean) => void;
   onOpenAddResourcePage?: () => void;
+
+  // Resource Tree Props
+  resourceTree?: ResourceNode[];
+  selectedResources?: Set<string>;
+  onToggleResource?: (id: string, node: ResourceNode) => void;
+  onSelectResourceForDetail?: (node: ResourceNode) => void;
+  onAddResource?: (parentId: string, resource: ResourceNode) => void;
+  onDeleteResources?: (ids: string[]) => void;
+  onTogglePublic?: (id: string, node: ResourceNode) => void;
+  savedOutcomes?: SavedOutcome[];
+  onDeleteOutcome?: (id: string) => void;
+  onRenameOutcome?: (id: string, newName: string) => void;
+  onShowOriginalChat?: (outcome: SavedOutcome) => void;
+  onSelectOutcome?: (outcome: SavedOutcome) => void;
+  onOpenInterestModal?: () => void;
+  isResourceScopeInitialized?: boolean;
+  interestTags?: {
+    businessContent: string[];
+    workTypes: string[];
+    businessObjects: string[];
+  };
+  onClearObjects?: () => void;
+  onRemoveObject?: (id: string) => void;
 }
 
 export const IntelligentDeclineWorkspaceDetail: React.FC<IntelligentDeclineWorkspaceDetailProps> = ({
@@ -34,6 +57,24 @@ export const IntelligentDeclineWorkspaceDetail: React.FC<IntelligentDeclineWorks
   isResourcePanelOpen,
   setIsResourcePanelOpen,
   onOpenAddResourcePage,
+
+  resourceTree,
+  selectedResources,
+  onToggleResource,
+  onSelectResourceForDetail,
+  onAddResource,
+  onDeleteResources,
+  onTogglePublic,
+  savedOutcomes,
+  onDeleteOutcome,
+  onRenameOutcome,
+  onShowOriginalChat,
+  onSelectOutcome,
+  onOpenInterestModal,
+  isResourceScopeInitialized,
+  interestTags,
+  onClearObjects,
+  onRemoveObject,
 }) => {
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -60,7 +101,32 @@ export const IntelligentDeclineWorkspaceDetail: React.FC<IntelligentDeclineWorks
         <div className={`${isResourcePanelOpen ? 'w-96 border-r' : 'w-0 border-none'} h-full flex-shrink-0 z-20 shadow-lg bg-white border-slate-200 flex flex-col transition-all duration-300 ease-in-out overflow-hidden`}>
           <div className="w-96 flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-hidden relative">
-              <WellDeclineRequirementTree lang={lang} onOpenAddResourcePage={onOpenAddResourcePage} />
+              <WellDeclineRequirementTree 
+                lang={lang} 
+                onOpenAddResourcePage={onOpenAddResourcePage}
+                treeData={resourceTree}
+                selectedResources={selectedResources}
+                onToggleResource={onToggleResource}
+                onSelectNode={(node) => {
+                  if (node.type === 'artifact' && onSelectResourceForDetail) {
+                    onSelectResourceForDetail(node);
+                  }
+                }}
+                onAddResource={onAddResource}
+                onDeleteResources={onDeleteResources}
+                onTogglePublic={onTogglePublic}
+                savedOutcomes={savedOutcomes}
+                onDeleteOutcome={onDeleteOutcome}
+                onRenameOutcome={onRenameOutcome}
+                onShowOriginalChat={onShowOriginalChat}
+                onSelectOutcome={onSelectOutcome}
+                onOpenInterestModal={onOpenInterestModal}
+                isResourceScopeInitialized={isResourceScopeInitialized !== undefined ? isResourceScopeInitialized : activeWorkspaceData?.isResourceScopeInitialized}
+                interestTags={interestTags || activeWorkspaceData?.interestTags}
+                objects={activeWorkspaceData?.objects}
+                onClearObjects={onClearObjects}
+                onRemoveObject={onRemoveObject}
+              />
             </div>
           </div>
         </div>

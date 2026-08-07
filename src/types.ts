@@ -33,6 +33,13 @@ export interface Workspace {
   selectedReportObjectInstance?: string;
   memberUserIds?: string[];
   memberPermissions?: Record<string, 'edit' | 'view'>;
+  isResourceScopeInitialized?: boolean;
+  interestTags?: {
+    businessContent: string[];
+    workTypes: string[];
+    businessObjects: string[];
+  };
+  userRole?: string;
 }
 
 export type ResourceType = 'domain' | 'mbu' | 'artifact' | 'folder';
