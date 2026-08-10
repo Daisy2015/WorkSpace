@@ -545,7 +545,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             
             <div className="w-full max-w-md space-y-3">
               <p className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4 text-center">推荐问题</p>
-              {(activeAgent?.tags || ["如何分析该数据？", "请生成相关报告。", "建议下一步优化方案。"]).map((q, i) => (
+              {(activeAgent?.tags || ["如何分析该数据？", "请生成相关报告。", "建议下一步优化方案。"]).slice(0, 3).map((q, i) => (
                 <button 
                   key={i}
                   onClick={() => { setInput(q); }}

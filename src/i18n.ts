@@ -6,7 +6,7 @@ export const translations = {
   zh: {
     appTitle: 'JuraWorkSpace',
     backToWorkspaces: '返回工作空间',
-    workspaceManagement: '工作空间管理',
+    workspaceManagement: '工作空间',
     integrationDemo: '集成演示',
     workspaceSubtitle: '以“最小业务单元”为认知边界的AI 智能工作空间',
     newWorkspace: '新建工作空间',
@@ -103,7 +103,7 @@ export const translations = {
     noMbuSelected: '未选择 MBU',
     selectFilter: '请选择...',
     // Dashboard KPI
-    dashboard: '仪表盘',
+    dashboard: '个人工作台',
     dashboardTitle: '总览仪表盘',
     dashboardSubtitle: 'JuraWorkSpace 智能业务单元分析中心',
     conversionRate: '成果转化率',
@@ -462,7 +462,7 @@ export const translations = {
   en: {
     appTitle: 'JuraWorkSpace',
     backToWorkspaces: 'Back to Workspaces',
-    workspaceManagement: 'Workspace Management',
+    workspaceManagement: 'Workspaces',
     integrationDemo: 'Integration Demo',
     workspaceSubtitle: 'An industrial-grade AI workspace with MBU as the cognitive boundary.',
     newWorkspace: 'New Workspace',
@@ -559,7 +559,7 @@ export const translations = {
     noMbuSelected: 'No MBU Selected',
     selectFilter: 'Select...',
     // Dashboard KPI
-    dashboard: 'Dashboard',
+    dashboard: 'Personal Workbench',
     dashboardTitle: 'Overview Dashboard',
     dashboardSubtitle: 'JuraWorkSpace Intelligent Business Unit Analysis Center',
     conversionRate: 'Conversion Rate',

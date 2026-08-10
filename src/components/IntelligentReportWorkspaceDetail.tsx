@@ -3,9 +3,11 @@ import { motion } from 'motion/react';
 import { IntelligentReportTopBar } from './IntelligentReportTopBar';
 import { ResourceTree } from './ResourceTree';
 import { ReportGenerationAgent } from './ReportGenerationAgent';
+import { ReportCheckAgent } from './ReportCheckAgent';
 import { AssistantSidebar } from './AssistantSidebar';
 import { EvidenceChainPanel } from './EvidenceChainPanel';
 import { Workspace, ResourceNode, SavedOutcome } from '../types';
+import { REPORT_CHECK_RESOURCE_TREE } from '../constants';
 
 interface IntelligentReportWorkspaceDetailProps {
   lang: 'zh' | 'en';
@@ -32,7 +34,11 @@ interface IntelligentReportWorkspaceDetailProps {
   onSelectOutcome?: (outcome: SavedOutcome) => void;
   onOpenInterestModal?: () => void;
   isResourceScopeInitialized?: boolean;
-  interestTags?: string[];
+  interestTags?: {
+    businessContent: string[];
+    workTypes: string[];
+    businessObjects: string[];
+  };
   objects?: any[];
   onClearObjects?: () => void;
   onRemoveObject?: (obj: any) => void;
@@ -80,6 +86,31 @@ export const IntelligentReportWorkspaceDetail: React.FC<IntelligentReportWorkspa
 }) => {
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [assistantLogs, setAssistantLogs] = useState<Array<{ sender: 'user' | 'assistant'; text: string }>>([]);
+
+  const handleAssistantLog = (msg: string) => {
+    setAssistantLogs(prev => [...prev, { sender: 'assistant', text: msg }]);
+    setIsAssistantOpen(true);
+  };
+
+  const isReportCheck = useMemo(() => {
+    const agent = activeWorkspaceData?.defaultAgent || '';
+    const name = activeWorkspaceData?.name || '';
+    return agent.includes('校核') || name.includes('校核');
+  }, [activeWorkspaceData]);
+
+  const effectiveTreeData = useMemo(() => {
+    const filtered = resourceTree.filter(node => node.name !== '智能构建过程' && node.name !== '智能构建过程V2');
+    if (isReportCheck) {
+      const hasReportCheckNodes = filtered.some(node => 
+        node.name.includes('当前校核') || node.name.includes('校核标准') || node.name.includes('关联规则')
+      );
+      if (!hasReportCheckNodes) {
+        return REPORT_CHECK_RESOURCE_TREE;
+      }
+    }
+    return filtered;
+  }, [resourceTree, isReportCheck]);
 
   const reportConfig = useMemo(() => ({
     isSmartReport: true,
@@ -116,7 +147,7 @@ export const IntelligentReportWorkspaceDetail: React.FC<IntelligentReportWorkspa
           <div className="w-96 flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-hidden relative">
               <ResourceTree 
-                treeData={resourceTree.filter(node => node.name !== '智能构建过程' && node.name !== '智能构建过程V2')}
+                treeData={effectiveTreeData}
                 selectedResources={selectedResources} 
                 onToggleResource={onToggleResource} 
                 onSelectNode={(node) => {
@@ -131,6 +162,7 @@ export const IntelligentReportWorkspaceDetail: React.FC<IntelligentReportWorkspa
                 lang={lang}
                 hideCheckboxes={true}
                 isSmartReport={true}
+                isReportCheck={isReportCheck}
                 savedOutcomes={savedOutcomes}
                 onDeleteOutcome={onDeleteOutcome}
                 onRenameOutcome={onRenameOutcome}
@@ -164,22 +196,40 @@ export const IntelligentReportWorkspaceDetail: React.FC<IntelligentReportWorkspa
           transition={{ duration: 0.3, ease: 'easeInOut' }}
         >
           <div className={`flex-1 relative flex flex-row`}>
-            {/* Center Area: Report Generation Agent */}
+            {/* Center Area: Report Generation or Report Check Agent */}
             <div className="flex-1 h-full relative p-3">
-              <ReportGenerationAgent 
-                key={`report-intelligent-${refreshKey}`}
-                lang={lang}
-                config={reportConfig}
-                onCloseAgent={() => {}}
-                onComplete={() => {}}
-                onSaveOutcome={(name) => {
-                  if (onSaveReportOutcome) {
-                    onSaveReportOutcome(name);
-                  } else if (onSaveOutcome) {
-                    onSaveOutcome(name);
-                  }
-                }}
-              />
+              {isReportCheck ? (
+                <ReportCheckAgent 
+                  key={`report-check-${refreshKey}`}
+                  lang={lang}
+                  config={reportConfig}
+                  onCloseAgent={() => {}}
+                  onComplete={() => {}}
+                  onAssistantLog={handleAssistantLog}
+                  onSaveOutcome={(name) => {
+                    if (onSaveReportOutcome) {
+                      onSaveReportOutcome(name);
+                    } else if (onSaveOutcome) {
+                      onSaveOutcome(name);
+                    }
+                  }}
+                />
+              ) : (
+                <ReportGenerationAgent 
+                  key={`report-intelligent-${refreshKey}`}
+                  lang={lang}
+                  config={reportConfig}
+                  onCloseAgent={() => {}}
+                  onComplete={() => {}}
+                  onSaveOutcome={(name) => {
+                    if (onSaveReportOutcome) {
+                      onSaveReportOutcome(name);
+                    } else if (onSaveOutcome) {
+                      onSaveOutcome(name);
+                    }
+                  }}
+                />
+              )}
             </div>
           </div>
         </motion.div>
@@ -189,11 +239,12 @@ export const IntelligentReportWorkspaceDetail: React.FC<IntelligentReportWorkspa
           lang={lang}
           isOpen={isAssistantOpen}
           onClose={() => setIsAssistantOpen(false)}
-          agentName={lang === 'zh' ? '智能报告编制智能体' : 'Smart Report Agent'}
+          agentName={isReportCheck ? (lang === 'zh' ? '钻完井报告校核' : 'Drilling Report Check Agent') : (activeWorkspaceData?.defaultAgent || (lang === 'zh' ? '智能报告编制智能体' : 'Smart Report Agent'))}
           agentStatus="Idle"
           mode="absolute"
           offsetTop="top-0"
           onRefreshAgent={() => setRefreshKey(prev => prev + 1)}
+          externalLogs={assistantLogs}
         />
       </div>
 

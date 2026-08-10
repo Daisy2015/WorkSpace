@@ -99,10 +99,16 @@ export const IntelligentReportTopBar: React.FC<IntelligentReportTopBarProps> = (
           <div className="min-w-0">
             <span className="text-[8px] text-slate-400 font-bold leading-none block uppercase tracking-wider">{lang === 'zh' ? '智能体' : 'Agent'}</span>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <h2 className="text-xs font-bold text-slate-800 leading-none truncate max-w-[120px]">{lang === 'zh' ? '智能报告编制智能体' : 'Smart Report Agent'}</h2>
+              <h2 className="text-xs font-bold text-slate-800 leading-none truncate max-w-[140px]">
+                {activeWorkspaceData?.defaultAgent || (lang === 'zh' ? '智能报告编制智能体' : 'Smart Report Agent')}
+              </h2>
               <div className="flex items-center gap-0.5 px-1 py-0.5 border bg-indigo-50 border-indigo-100 text-indigo-600 rounded-full flex-shrink-0 scale-90 origin-left">
                 <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse"></div>
-                <span className="text-[7px] font-black uppercase tracking-[0.03em] text-indigo-600">{lang === 'zh' ? '报告生成中...' : 'AI WRITING...'}</span>
+                <span className="text-[7px] font-black uppercase tracking-[0.03em] text-indigo-600">
+                  {activeWorkspaceData?.defaultAgent?.includes('校核') 
+                    ? (lang === 'zh' ? '智能校核中...' : 'AI CHECKING...') 
+                    : (lang === 'zh' ? '报告生成中...' : 'AI WRITING...')}
+                </span>
               </div>
             </div>
           </div>

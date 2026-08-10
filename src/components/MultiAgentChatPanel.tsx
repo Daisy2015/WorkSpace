@@ -1137,7 +1137,7 @@ export const MultiAgentChatPanel: React.FC<MultiAgentChatPanelProps> = ({
                 </div>
               )}
               <div className="grid grid-cols-1 gap-2">
-                {(isMiniAssistant ? getRecommendedQuestions() : getRecommendedQuestions()).map((q, i) => (
+                {(isMiniAssistant ? getRecommendedQuestions() : getRecommendedQuestions()).slice(0, 3).map((q, i) => (
                   <button
                     key={i}
                     onClick={() => {

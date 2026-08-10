@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Workspace, WorkspaceStatus, Language, WorkspaceTemplate } from '../types';
 import { ShareWorkspaceModal, ALL_USERS, User } from './ShareWorkspaceModal';
@@ -24,6 +24,8 @@ interface WorkspaceListProps {
   lang: Language;
   initialLaunchAgentName?: string | null;
   onClearInitialLaunchAgent?: () => void;
+  autoOpenCreateDrawer?: boolean;
+  onResetAutoOpenCreateDrawer?: () => void;
 }
 
 const CURRENT_USER = '李明';
@@ -71,6 +73,7 @@ const AGENTS = [
   { id: '智能问数', name: '智能问数', desc: '基于测井、录井等多源异构数据，提供智能数据查询、统计分析和多轮问答服务。' },
   { id: '智能成图', name: '智能成图', desc: '支持自动生成专业版地质图表，包含连井剖面、小层平面及综合图表。' },
   { id: '智能报告', name: '智能报告', desc: '用于一键自动生成或在线辅助编辑标准完井及地质设计报告。' },
+  { id: '报告校核', name: '报告校核', desc: '用于钻完井报告、地质工程设计与施工方案的合规性、格式规范及数据一致性智能校核。' },
   { id: '单井产量诊断', name: '单井产量诊断', desc: '基于生产动态数据及工况参数，智能诊断单井产能发挥及递减主控因素。' },
   { id: '勘探目标评价', name: '勘探目标评价', desc: '用于对单一勘探目标进行精细化的“地质-储量-经济-战略”多维度评价，并支持指标排队与优选池管理。' },
 ];
@@ -83,6 +86,31 @@ const AGENT_CONFIGS: Record<string, {
   options?: { value: string; label: string }[];
   placeholder?: string;
 }[]> = {
+  '报告校核': [
+    {
+      key: 'check_scope',
+      label: '校核维度',
+      type: 'select',
+      defaultValue: 'full',
+      options: [
+        { value: 'full', label: '全量深度校核（数据逻辑+规范强条+格式排版）' },
+        { value: 'data', label: '多源数据工程与地质逻辑一致性校核' },
+        { value: 'compliance', label: 'QHSE与国家/行业强条合规性审查' },
+        { value: 'format', label: '章节排版与专业术语表达规范性' },
+      ]
+    },
+    {
+      key: 'report_category',
+      label: '校核报告类别',
+      type: 'select',
+      defaultValue: 'drilling_completion',
+      options: [
+        { value: 'drilling_completion', label: '钻完井总结与地质工程设计报告' },
+        { value: 'geology_design', label: '油气藏地质与开发调整方案' },
+        { value: 'daily_weekly', label: '生产运行日报与周报汇报材料' },
+      ]
+    }
+  ],
   '智能成图': [
     {
       key: 'chart_class',
@@ -242,6 +270,8 @@ const getAgentDetailText = (id: string) => {
       return '自动生成专业版地质图表，支持多套样式、连井对比剖面和小层平面图，可导出及在线协作编辑。';
     case '智能报告':
       return '智能生成标准钻井、地质设计和完井报告，支持一键生成、智能纠错及大纲结构化定制。';
+    case '报告校核':
+      return '自动校核钻完井报告、地质设计及技术方案中的数据逻辑冲突、格式规范及强制性合规标准。';
     case '单井产量诊断':
       return '自动诊断单井产量递减及产能发挥的主控因素，智能甄别异常并生成诊断与治理建议。';
     case '勘探目标评价':
@@ -302,6 +332,8 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
   lang,
   initialLaunchAgentName,
   onClearInitialLaunchAgent,
+  autoOpenCreateDrawer,
+  onResetAutoOpenCreateDrawer,
 }) => {
   // Classification Tabs: 'all' | 'my' | 'shared' (Default is 'all')
   const [activeTab, setActiveTab] = useState<'all' | 'my' | 'shared'>('all');
@@ -317,6 +349,15 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
 
   // Creation Drawer States
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (autoOpenCreateDrawer) {
+      setIsDrawerOpen(true);
+      if (onResetAutoOpenCreateDrawer) {
+        onResetAutoOpenCreateDrawer();
+      }
+    }
+  }, [autoOpenCreateDrawer, onResetAutoOpenCreateDrawer]);
   const [creationStep, setCreationStep] = useState<'basic' | 'config'>('basic');
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -503,6 +544,8 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
         return '🎨';
       case '智能报告':
         return '✍️';
+      case '报告校核':
+        return '📑';
       case '单井产量诊断':
         return '📈';
       case '勘探目标评价':
@@ -534,6 +577,13 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
           border: 'border-emerald-100/80',
           text: 'text-emerald-600',
           gradient: 'from-emerald-500 to-teal-500'
+        };
+      case '报告校核':
+        return {
+          bg: 'bg-teal-50/50',
+          border: 'border-teal-100/80',
+          text: 'text-teal-600',
+          gradient: 'from-teal-500 to-emerald-500'
         };
       case '单井产量诊断':
         return {

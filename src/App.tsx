@@ -16,7 +16,6 @@ import { LoginPage } from './components/LoginPage';
 import { AssistantSidebar } from './components/AssistantSidebar';
 import { KnowledgeBase } from './components/KnowledgeBase';
 import { DocumentEditor } from './components/DocumentEditor';
-import { WorkspaceTemplates } from './components/WorkspaceTemplates';
 import { AgentSquare } from './components/AgentSquare';
 import { MultiAgentChatPanel } from './components/MultiAgentChatPanel';
 import { AgentsPanel } from './components/AgentsPanel';
@@ -45,11 +44,11 @@ import { ProChartGenerationAgent } from './components/ProChartGenerationAgent';
 import { ResourceInterestModal } from './components/ResourceInterestModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
-import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESOURCE_TREE, MOCK_TEMPLATES } from './constants';
+import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESOURCE_TREE, REPORT_CHECK_RESOURCE_TREE, MOCK_TEMPLATES } from './constants';
 import { Message, ResourceNode, Language, Workspace, KnowledgeItem, WorkspaceStatus, WorkspaceTemplate, Agent, SavedOutcome } from './types';
 import { translations } from './i18n';
 
-type MainTab = 'dashboard' | 'agent-square' | 'workspaces' | 'admin' | 'intelligence' | 'knowledge' | 'templates' | 'construction' | 'construction-v2' | 'construction-completion' | 'profile';
+type MainTab = 'dashboard' | 'agent-square' | 'workspaces' | 'admin' | 'intelligence' | 'knowledge' | 'construction' | 'construction-v2' | 'construction-completion' | 'profile';
 
 const CURRENT_USER = '李明';
 
@@ -118,6 +117,7 @@ const App: React.FC = () => {
   // Shared Workspace State
   const [workspaces, setWorkspaces] = useState<Workspace[]>(MOCK_WORKSPACES);
   const [templates, setTemplates] = useState<WorkspaceTemplate[]>(MOCK_TEMPLATES);
+  const [shouldOpenCreateWorkspace, setShouldOpenCreateWorkspace] = useState(false);
   
   // Detail View Specific State
   const [resourceTree, setResourceTree] = useState<ResourceNode[]>(DRILLING_RESOURCE_TREE);
@@ -187,6 +187,18 @@ const App: React.FC = () => {
 
   // Resource Interest Recommendation Modal State
   const [isInterestModalOpen, setIsInterestModalOpen] = useState(false);
+
+  // Top Toast Notification
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => {
+        setToastMessage(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
 
   const versions = useMemo(() => [
     { id: 'foundation', name: '基础版', enName: 'Foundation', desc: '通用智能助手', icon: 'fa-bolt', tagClass: 'bg-slate-100 text-slate-700' },
@@ -536,6 +548,10 @@ const App: React.FC = () => {
     // Reset state for new workspace
     if (id === 'new-demo') {
         setResourceTree(JSON.parse(JSON.stringify(EMPTY_RESOURCE_TREE)));
+        setMessages([]); // Empty messages to show summary/recommendations
+        setIsAddResourcePageOpen(autoOpenAddResource);
+    } else if (defaultAgent?.includes('校核') || name?.includes('校核') || id.includes('check')) {
+        setResourceTree(JSON.parse(JSON.stringify(REPORT_CHECK_RESOURCE_TREE)));
         setMessages([]); // Empty messages to show summary/recommendations
         setIsAddResourcePageOpen(autoOpenAddResource);
     } else {
@@ -1094,22 +1110,30 @@ const App: React.FC = () => {
                     <i className="fas fa-robot text-lg min-w-[1.25rem] text-center"></i>
                     {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{lang === 'zh' ? '智能体广场' : 'Agent Square'}</span>}
                 </button>
-                <button 
-                  onClick={() => handleTabChange('templates')}
-                  className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'templates' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
-                  title={isSidebarExpanded ? '' : t.templates}
-                >
-                    <i className="fas fa-layer-group text-lg min-w-[1.25rem] text-center"></i>
-                    {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.templates}</span>}
-                </button>
-                <button 
+                <div 
                   onClick={() => handleTabChange('workspaces')}
-                  className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'workspaces' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
+                  className={`w-full h-10 rounded-lg flex items-center justify-between cursor-pointer transition-all group ${currentTab === 'workspaces' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3' : 'justify-center'}`}
                   title={isSidebarExpanded ? '' : t.workspaceManagement}
                 >
-                    <i className="fas fa-project-diagram text-lg min-w-[1.25rem] text-center"></i>
-                    {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.workspaceManagement}</span>}
-                </button>
+                    <div className="flex items-center min-w-0">
+                      <i className="fas fa-project-diagram text-lg min-w-[1.25rem] text-center"></i>
+                      {isSidebarExpanded && <span className="ml-3 text-sm font-medium truncate">{t.workspaceManagement}</span>}
+                    </div>
+                    {isSidebarExpanded && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShouldOpenCreateWorkspace(true);
+                          handleTabChange('workspaces');
+                        }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 rounded-md hover:bg-blue-100 text-gray-400 hover:text-blue-600 flex items-center justify-center cursor-pointer ml-1 flex-shrink-0"
+                        title={lang === 'zh' ? '新建工作空间' : 'Create Workspace'}
+                      >
+                        <i className="fas fa-plus text-xs"></i>
+                      </button>
+                    )}
+                </div>
                 <button 
                   onClick={() => handleTabChange('knowledge')}
                   className={`w-full h-10 rounded-lg flex items-center transition-all ${currentTab === 'knowledge' ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'} ${isSidebarExpanded ? 'px-3 justify-start' : 'justify-center'}`}
@@ -1258,15 +1282,6 @@ const App: React.FC = () => {
                 lang={lang} 
                 workspaces={workspaces}
                 onAddToWorkspace={handleAddToWorkspaceFromKB}
-            />
-        )}
-
-        {/* Scenario 6: Templates View */}
-        {currentTab === 'templates' && (
-            <WorkspaceTemplates 
-                templates={templates}
-                onCreateFromTemplate={handleCreateFromTemplate}
-                lang={lang}
             />
         )}
 
@@ -1489,7 +1504,7 @@ const App: React.FC = () => {
                                 onDeleteOutcome={(id) => setSavedOutcomes(prev => prev.filter(o => o.id !== id))}
                                 onRenameOutcome={(id, newName) => setSavedOutcomes(prev => prev.map(o => o.id === id ? { ...o, name: newName } : o))}
                                 onShowOriginalChat={(outcome) => {
-                                    setIsHistoryModalOpen(true);
+                                    setToastMessage(lang === 'zh' ? '正在载入历史生成会话...' : 'Loading history...');
                                 }}
                                 onSelectOutcome={(outcome) => {
                                     setSelectedResourceForDetail({
@@ -1523,7 +1538,7 @@ const App: React.FC = () => {
                                 />
                             )}
                         </>
-                    ) : activeWorkspaceData?.defaultAgent === '智能报告' ? (
+                    ) : (activeWorkspaceData?.defaultAgent === '智能报告' || activeWorkspaceData?.defaultAgent === '报告校核' || activeWorkspaceData?.name?.includes('报告校核')) ? (
                         <>
                             <IntelligentReportWorkspaceDetail
                                 lang={lang}
@@ -1546,8 +1561,8 @@ const App: React.FC = () => {
                                 savedOutcomes={savedOutcomes}
                                 onDeleteOutcome={(id) => setSavedOutcomes(prev => prev.filter(o => o.id !== id))}
                                 onRenameOutcome={(id, newName) => setSavedOutcomes(prev => prev.map(o => o.id === id ? { ...o, name: newName } : o))}
-                                onShowOriginalChat={(outcome) => {
-                                    setIsHistoryModalOpen(true);
+                                onShowOriginalChat={() => {
+                                    setToastMessage(lang === 'zh' ? '正在载入历史生成会话...' : 'Loading history...');
                                 }}
                                 onSelectOutcome={(outcome) => {
                                     setSelectedResourceForDetail({
@@ -2016,6 +2031,8 @@ const App: React.FC = () => {
                             lang={lang} 
                             initialLaunchAgentName={initialLaunchAgentName}
                             onClearInitialLaunchAgent={() => setInitialLaunchAgentName(null)}
+                            autoOpenCreateDrawer={shouldOpenCreateWorkspace}
+                            onResetAutoOpenCreateDrawer={() => setShouldOpenCreateWorkspace(false)}
                         />
                     </div>
                 )}
@@ -2136,16 +2153,29 @@ const App: React.FC = () => {
             lang={lang}
         />
 
+        {/* Top Toast Banner */}
+        <AnimatePresence>
+          {toastMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              className="fixed top-5 left-1/2 -translate-x-1/2 z-[130] bg-slate-900/90 text-white px-5 py-2.5 rounded-xl shadow-xl flex items-center gap-2.5 text-xs font-semibold backdrop-blur-md border border-slate-700/50"
+            >
+              <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] flex-shrink-0">
+                <i className="fas fa-check"></i>
+              </div>
+              <span>{toastMessage}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Resource Interest Recommendation Modal */}
         {isInterestModalOpen && activeWorkspaceData && (
           <ResourceInterestModal
             isOpen={isInterestModalOpen}
-            onClose={() => setIsInterestModalOpen(false)}
             lang={lang}
             workspaceData={activeWorkspaceData}
-            onPostpone={() => {
-              setIsInterestModalOpen(false);
-            }}
             onConfirm={(selectedTags) => {
               setWorkspaces(prev => prev.map(w => {
                 if (w.id === activeWorkspaceId) {
@@ -2158,9 +2188,9 @@ const App: React.FC = () => {
                 return w;
               }));
               setIsInterestModalOpen(false);
-              setAlertMessage(lang === 'zh' 
-                ? '已根据你的关注内容准备相关业务资源，资源范围已准备完成！' 
-                : 'Resource scope generated successfully!');
+              setToastMessage(lang === 'zh' 
+                ? '工作空间资源已准备完成' 
+                : 'Workspace resources prepared successfully!');
             }}
           />
         )}

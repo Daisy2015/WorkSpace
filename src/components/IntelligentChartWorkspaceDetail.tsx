@@ -33,7 +33,11 @@ interface IntelligentChartWorkspaceDetailProps {
   onSelectOutcome?: (outcome: SavedOutcome) => void;
   onOpenInterestModal?: () => void;
   isResourceScopeInitialized?: boolean;
-  interestTags?: string[];
+  interestTags?: {
+    businessContent: string[];
+    workTypes: string[];
+    businessObjects: string[];
+  };
   objects?: any[];
   onClearObjects?: () => void;
   onRemoveObject?: (obj: any) => void;

@@ -11,6 +11,11 @@ interface AssistantSidebarProps {
   mode?: 'fixed' | 'absolute';
   offsetTop?: string;
   onRefreshAgent?: () => void;
+  externalLogs?: Array<{ 
+    sender: 'user' | 'assistant'; 
+    text: string; 
+    wordReport?: { id: string; title: string; size: string; time: string };
+  }>;
 }
 
 export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({ 
@@ -21,7 +26,8 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
   agentStatus,
   mode = 'fixed',
   offsetTop = 'top-16',
-  onRefreshAgent
+  onRefreshAgent,
+  externalLogs
 }) => {
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<Array<{ 
@@ -33,18 +39,16 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    if (isOpen) {
-      setMessages([]);
-      setChatInput('');
-      setIsTyping(false);
+    if (externalLogs && externalLogs.length > 0) {
+      setMessages(externalLogs);
     }
-  }, [isOpen]);
+  }, [externalLogs]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
   
-  const recommendedQuestions = (agentName.includes('产量') || agentName.includes('Decline') || agentName.includes('well_decline'))
+  const rawRecommendedQuestions = (agentName.includes('产量') || agentName.includes('Decline') || agentName.includes('well_decline'))
     ? (lang === 'zh' 
         ? [
             "依据诊断结果，推荐当前最佳治理措施",
@@ -83,20 +87,74 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
             "Recommend drilling sequence"
           ]
       )
+    : (agentName.includes('校核') || agentName.includes('Check') || agentName.includes('audit') || agentName.includes('审查'))
+    ? (lang === 'zh'
+        ? [
+            "优先检查井身结构和井控章节",
+            "不要使用V3版本数据，切换至最新V4",
+            "仅校核技术参数与工程一致性"
+          ]
+        : [
+            "Prioritize casing structure and well control sections",
+            "Do not use V3 data; switch to latest V4",
+            "Check technical parameters and engineering consistency only"
+          ]
+      )
     : (lang === 'zh'
         ? [
             "生成本周生产运行简报",
             "优化当前钻井方案并补充针对性的技术措施",
-            "请检查当前报告中是否存在地质风险遗漏？",
-            "请总结一下关键地质认识和主要设计建议"
+            "请检查当前报告中是否存在地质风险遗漏？"
           ]
         : [
             "Generate weekly production operation brief",
             "Optimize drilling plan and add technical measures",
-            "Check for missing geological risks in current report",
-            "Summarize key geological insights and design suggestions"
+            "Check for missing geological risks in current report"
           ]
       );
+
+  const recommendedQuestions = rawRecommendedQuestions.slice(0, 3);
+
+  const rawFollowUpQuestions = (agentName.includes('校核') || agentName.includes('Check') || agentName.includes('audit') || agentName.includes('审查'))
+    ? (lang === 'zh'
+        ? [
+            "重新检查第5章井身结构设计",
+            "使用刚上传的附件重新执行相关规则",
+            "把术语类一般问题降为提示"
+          ]
+        : [
+            "Re-check Chapter 5 well structure design",
+            "Re-run rules using recently uploaded attachment",
+            "Downgrade terminology general issues to hints"
+          ]
+      )
+    : (agentName.includes('产量') || agentName.includes('Decline') || agentName.includes('well_decline'))
+    ? (lang === 'zh'
+        ? [
+            "深化单井注采对比分析",
+            "评估递减趋势拟合精度",
+            "预测未来6个月产液量"
+          ]
+        : [
+            "Deepen injection-production analysis",
+            "Assess decline trend fitting accuracy",
+            "Predict liquid production for next 6 months"
+          ]
+      )
+    : (lang === 'zh'
+        ? [
+            "请总结一下关键地质认识和主要设计建议",
+            "针对发现的问题提供优化修正方案",
+            "导出当前智能分析结果报告"
+          ]
+        : [
+            "Summarize key geological insights and design suggestions",
+            "Provide optimization solutions for identified issues",
+            "Export current intelligent analysis report"
+          ]
+      );
+
+  const followUpQuestions = rawFollowUpQuestions.slice(0, 3);
 
   const handleSend = () => {
     if (!chatInput.trim()) return;
@@ -123,7 +181,29 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
           reply = lang === 'zh'
             ? "已在后台为您精简并删除了不必要的冗余图层，使整体柱状图更具可读性。成图结果已重构并自动刷新展示。"
             : "Unnecessary redundant layers have been removed in the background, making the overall columnar chart highly readable. The mapping result has been reconstructed and refreshed.";
+        } else if (agentName.includes('校核') || agentName.includes('Check') || agentName.includes('audit') || agentName.includes('审查')) {
+        if (userText.includes('井身结构') || userText.includes('井控')) {
+          reply = lang === 'zh'
+            ? "已调整校核权重！规则引擎已提升「5.2 井身结构设计」与「7.1 井控设备配置」章节的校验优先级。中间校核工作现场已自动重构刷新！"
+            : "Priority updated! High priority assigned to casing structure and well control sections. The central audit workspace has refreshed!";
+        } else if (userText.includes('V3') || userText.includes('V4')) {
+          reply = lang === 'zh'
+            ? "已切换数据源版本！智能体已将关联的工程参数表由 V3 升级为最新 V4 版本，并重新执行了所有依赖该参数的校核规则。中间结果已自动刷新！"
+            : "Data source version switched to V4! Re-executed dependent rules and refreshed the central audit workspace!";
+        } else if (userText.includes('降为提示') || userText.includes('降级') || userText.includes('术语')) {
+          reply = lang === 'zh'
+            ? "规则判定策略已更新：所有「术语规范类」的一般问题已批量降级为「提示」级别，影响列表已自动重新计算并刷新展示！"
+            : "Strategy updated: Terminology issues downgraded to 'hint' severity. Results recalculated and refreshed!";
+        } else if (userText.includes('重新检查') || userText.includes('第5章')) {
+          reply = lang === 'zh'
+            ? "已针对「第5章 钻井工程设计」启动局部增量重新校核。提取最新参数并比对标准规范后，中间校核现场与问题列表已自动更新。"
+            : "Incremental re-check initiated for Chapter 5. The central workspace and issues list have refreshed!";
         } else {
+          reply = lang === 'zh'
+            ? `收到关于校核指令：“${userText}”。报告校核已按要求更新任务计划与规则引擎参数，中间校核现场已自动刷新！`
+            : `Received audit command: "${userText}". The Report Check Agent updated rules and refreshed the central workspace!`;
+        }
+      } else {
           reply = lang === 'zh'
             ? `收到关于“${userText}”的优化指令。专业成图引擎已完成参数调整与图件重构，中间的智能体成图显示区域已自动刷新！`
             : `Received optimization command for "${userText}". The pro mapping engine has updated parameters and reconstructed the chart. The central rendering area has refreshed automatically!`;
@@ -145,6 +225,28 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
           reply = lang === 'zh'
             ? `收到关于“${userText}”的诊断优化请求。诊断引擎已重新调取测井与生产历史数据进行综合运算，中间诊断仪表盘已自动刷新！`
             : `Received diagnosis optimization request for "${userText}". The engine has re-fetched logging and production histories. The central dashboard has refreshed automatically!`;
+        }
+      } else if (agentName.includes('校核') || agentName.includes('Check') || agentName.includes('audit') || agentName.includes('审查')) {
+        if (userText.includes('井身结构') || userText.includes('井控')) {
+          reply = lang === 'zh'
+            ? "已调整校核权重！规则引擎已提升「5.2 井身结构设计」与「7.1 井控设备配置」章节的校验优先级。中间校核工作现场已自动重构刷新！"
+            : "Priority updated! High priority assigned to casing structure and well control sections. The central audit workspace has refreshed!";
+        } else if (userText.includes('V3') || userText.includes('V4')) {
+          reply = lang === 'zh'
+            ? "已切换数据源版本！智能体已将关联的工程参数表由 V3 升级为最新 V4 版本，并重新执行了所有依赖该参数的校核规则。中间结果已自动刷新！"
+            : "Data source version switched to V4! Re-executed dependent rules and refreshed the central audit workspace!";
+        } else if (userText.includes('降为提示') || userText.includes('降级') || userText.includes('术语')) {
+          reply = lang === 'zh'
+            ? "规则判定策略已更新：所有「术语规范类」的一般问题已批量降级为「提示」级别，影响列表已自动重新计算并刷新展示！"
+            : "Strategy updated: Terminology issues downgraded to 'hint' severity. Results recalculated and refreshed!";
+        } else if (userText.includes('重新检查') || userText.includes('第5章')) {
+          reply = lang === 'zh'
+            ? "已针对「第5章 钻井工程设计」启动局部增量重新校核。提取最新参数并比对标准规范后，中间校核现场与问题列表已自动更新。"
+            : "Incremental re-check initiated for Chapter 5. The central workspace and issues list have refreshed!";
+        } else {
+          reply = lang === 'zh'
+            ? `收到关于校核指令：“${userText}”。报告校核已按要求更新任务计划与规则引擎参数，中间校核现场已自动刷新！`
+            : `Received audit command: "${userText}". The Report Check Agent updated rules and refreshed the central workspace!`;
         }
       } else {
         // Report or Geo-Design Expert or General Mode
@@ -282,7 +384,7 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
                       </div>
                     )}
                     <div className="flex flex-col gap-2 max-w-[80%]">
-                      <div className={`rounded-2xl px-4 py-3 text-sm shadow-sm ${
+                      <div className={`rounded-2xl px-4 py-3 text-sm shadow-sm whitespace-pre-line ${
                         msg.sender === 'user' 
                           ? 'bg-indigo-600 text-white rounded-tr-none' 
                           : 'bg-white text-slate-700 border border-slate-200 rounded-tl-none leading-relaxed'
@@ -334,13 +436,13 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
                 
                 <div ref={messagesEndRef} />
                 
-                {/* Compact Recommended Questions when messages exist */}
+                {/* Compact Follow-up Questions when messages exist */}
                 <div className="pt-6 border-t border-slate-200/60 mt-4 space-y-2">
                   <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block px-1">
-                    {lang === 'zh' ? '继续提问：' : 'Keep asking:'}
+                    {lang === 'zh' ? '继续追问：' : 'Keep asking:'}
                   </span>
                   <div className="flex flex-wrap gap-2">
-                    {recommendedQuestions.map((q, i) => (
+                    {followUpQuestions.slice(0, 3).map((q, i) => (
                       <button 
                         key={i}
                         onClick={() => setChatInput(q)}

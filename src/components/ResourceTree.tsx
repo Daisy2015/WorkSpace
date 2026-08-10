@@ -16,6 +16,7 @@ interface ResourceTreeProps {
   lang: Language;
   hideCheckboxes?: boolean;
   isSmartReport?: boolean;
+  isReportCheck?: boolean;
   savedOutcomes?: SavedOutcome[];
   onDeleteOutcome?: (id: string) => void;
   onRenameOutcome?: (id: string, newName: string) => void;
@@ -208,6 +209,7 @@ export const ResourceTree: React.FC<ResourceTreeProps> = ({
   lang,
   hideCheckboxes = false,
   isSmartReport = false,
+  isReportCheck = false,
   savedOutcomes = [],
   onDeleteOutcome,
   onRenameOutcome,
@@ -235,13 +237,53 @@ export const ResourceTree: React.FC<ResourceTreeProps> = ({
   const [renamingOutcome, setRenamingOutcome] = useState<SavedOutcome | null>(null);
   const [renameInput, setRenameInput] = useState('');
 
+  const isCheckMode = useMemo(() => {
+    return isReportCheck || treeData.some(node => 
+      node.name.includes('当前校核') || node.name.includes('校核标准') || node.name.includes('关联规则')
+    );
+  }, [isReportCheck, treeData]);
+
   // Default internal demo outcomes if none passed from props
   const [localOutcomes, setLocalOutcomes] = useState<SavedOutcome[]>([
     { id: 'outcome-1', name: '钻井工程设计与安全风险评估报告', date: '2026-08-04 14:30', isPublic: true },
     { id: 'outcome-2', name: '油藏动态分析及产能预测图表', date: '2026-08-05 09:15', isPublic: false }
   ]);
 
-  const outcomesList = savedOutcomes !== undefined ? savedOutcomes : localOutcomes;
+  const defaultReportCheckOutcomes: SavedOutcome[] = useMemo(() => [
+    { 
+      id: 'rc-out-1', 
+      name: '校核问题清单', 
+      date: '2026-08-08 10:20', 
+      isPublic: true,
+      meta: { icon: 'fa-list-check' }
+    },
+    { 
+      id: 'rc-out-2', 
+      name: '报告校核报告', 
+      date: '2026-08-08 10:35', 
+      isPublic: true,
+      meta: { icon: 'fa-file-circle-check' }
+    },
+    { 
+      id: 'rc-out-3', 
+      name: '带批注报告', 
+      date: '2026-08-08 10:42', 
+      isPublic: false,
+      meta: { statusText: '生成中 · 68%', progress: 68, icon: 'fa-file-pen' }
+    }
+  ], []);
+
+  const outcomesList = useMemo(() => {
+    if (isCheckMode) {
+      if (savedOutcomes && savedOutcomes.length > 0) {
+        const savedNames = new Set(savedOutcomes.map(s => s.name));
+        const filteredDefaults = defaultReportCheckOutcomes.filter(d => !savedNames.has(d.name));
+        return [...savedOutcomes, ...filteredDefaults];
+      }
+      return defaultReportCheckOutcomes;
+    }
+    return savedOutcomes && savedOutcomes.length > 0 ? savedOutcomes : localOutcomes;
+  }, [isCheckMode, savedOutcomes, localOutcomes, defaultReportCheckOutcomes]);
 
   useEffect(() => {
     if (!activeMenuOutcomeId) return;
@@ -348,6 +390,23 @@ export const ResourceTree: React.FC<ResourceTreeProps> = ({
     return filter(treeData);
   }, [treeData, searchTerm]);
 
+  const totalResourceCount = useMemo(() => {
+    if (isCheckMode) return 12;
+    const countNodes = (nodes: ResourceNode[]): number => {
+      let c = 0;
+      for (const node of nodes) {
+        if (node.children && node.children.length > 0) {
+          c += countNodes(node.children);
+        } else {
+          c += 1;
+        }
+      }
+      return c;
+    };
+    const cnt = countNodes(displayedNodes);
+    return cnt > 0 ? cnt : displayedNodes.length;
+  }, [isCheckMode, displayedNodes]);
+
   const handleUploadClick = (mbuId: string) => {
       setTargetMbuId(mbuId);
       fileInputRef.current?.click();
@@ -389,9 +448,17 @@ export const ResourceTree: React.FC<ResourceTreeProps> = ({
               {lang === 'zh' ? '数据资源' : 'Data Resources'}
             </h3>
             <span className="px-1.5 py-0.2 text-[10px] font-bold bg-indigo-100 text-indigo-800 rounded-full">
-              {displayedNodes.length}
+              {totalResourceCount}
             </span>
           </div>
+          <button 
+            type="button"
+            onClick={onOpenAddResourcePage}
+            className="w-6 h-6 rounded-md hover:bg-indigo-50 text-indigo-600 flex items-center justify-center transition-all cursor-pointer font-bold"
+            title={lang === 'zh' ? '添加数据资源' : 'Add Data Resource'}
+          >
+            <i className="fas fa-plus text-xs"></i>
+          </button>
         </div>
 
         {/* Controls & Banner Area */}
@@ -614,24 +681,33 @@ export const ResourceTree: React.FC<ResourceTreeProps> = ({
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 text-xs flex-shrink-0 shadow-2xs">
-                      <i className="fas fa-award text-[12px]"></i>
+                      <i className={`fas ${item.meta?.icon || (item.name.includes('清单') ? 'fa-list-check' : item.name.includes('批注') ? 'fa-file-pen' : 'fa-file-circle-check')} text-[12px]`}></i>
                     </div>
                     <div className="flex flex-col min-w-0 flex-1">
                       <span className="text-xs font-bold text-slate-800 group-hover:text-amber-700 truncate">
                         {item.name}
                       </span>
-                      <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
-                        <span>{item.date}</span>
-                        {item.isPublic ? (
-                          <span className="px-1 py-0.2 bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded text-[9px] font-medium">
-                            {lang === 'zh' ? '公开' : 'Public'}
+                      {item.meta?.statusText ? (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 font-bold text-[10px] animate-pulse">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            <span>{item.meta.statusText}</span>
                           </span>
-                        ) : (
-                          <span className="px-1 py-0.2 bg-slate-100 text-slate-500 border border-slate-200 rounded text-[9px] font-medium">
-                            {lang === 'zh' ? '私有' : 'Private'}
-                          </span>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                          <span>{item.date}</span>
+                          {item.isPublic ? (
+                            <span className="px-1 py-0.2 bg-emerald-50 text-emerald-600 border border-emerald-200/60 rounded text-[9px] font-medium">
+                              {lang === 'zh' ? '公开' : 'Public'}
+                            </span>
+                          ) : (
+                            <span className="px-1 py-0.2 bg-slate-100 text-slate-500 border border-slate-200 rounded text-[9px] font-medium">
+                              {lang === 'zh' ? '私有' : 'Private'}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 

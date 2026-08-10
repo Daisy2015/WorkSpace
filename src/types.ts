@@ -14,6 +14,10 @@ export interface SavedOutcome {
   name: string;
   date: string;
   isPublic: boolean;
+  meta?: {
+    icon?: string;
+    statusText?: string;
+  };
 }
 
 export interface Workspace {

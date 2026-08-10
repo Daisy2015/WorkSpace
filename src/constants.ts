@@ -690,10 +690,33 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     category: '成果编制',
     icon: 'fa-archive',
     defaultAgent: '智能报告'
+  },
+  {
+    id: 'tpl-rep-7',
+    name: '钻完井报告校核空间',
+    description: '钻完井报告、技术设计与方案规范性智能校核',
+    mbuCount: 5,
+    usageCount: 310,
+    createdAt: '2024-08-15',
+    owner: '李明',
+    tags: ['报告校核', '钻完井', '合规检测'],
+    category: '成果编制',
+    icon: 'fa-check-double',
+    defaultAgent: '报告校核'
   }
 ];
 
 export const MOCK_WORKSPACES: Workspace[] = [
+  {
+    id: 'ws-drilling-report-check',
+    name: '钻完井报告校核',
+    mbuCount: 6,
+    createdAt: '2026-08-08',
+    status: WorkspaceStatus.DRAFT,
+    owner: '李明',
+    description: '专门用于钻完井地质设计、完井报告及施工技术方案的合规性、格式规范与数据逻辑一致性自动校核，绑定“报告校核”。',
+    defaultAgent: '报告校核'
+  },
   {
     id: 'ws-risk-evaluation',
     name: '顺北区块风险勘探目标评价空间',
@@ -843,6 +866,78 @@ export const MOCK_RESOURCE_TREE: ResourceNode[] = [
         children: [
            { id: 'art-4', name: '气相色谱日志', type: 'artifact', meta: { sourceType: 'system', fileType: 'Log' } }
         ]
+      }
+    ]
+  }
+];
+
+// --- Specific Tree for Report Checking Scenario ---
+export const REPORT_CHECK_RESOURCE_TREE: ResourceNode[] = [
+  {
+    id: 'rc-folder-2',
+    name: '校核标准',
+    type: 'folder',
+    children: [
+      {
+        id: 'rc-std-1',
+        name: '钻完井设计报告校核标准',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      },
+      {
+        id: 'rc-std-2',
+        name: '石油天然气钻井工程设计规范 GB/T 24971',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      },
+      {
+        id: 'rc-std-3',
+        name: '井身结构与完井质量验收技术规程',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      },
+      {
+        id: 'rc-std-4',
+        name: '钻井工程强条合规审查细则',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      }
+    ]
+  },
+  {
+    id: 'rc-folder-3',
+    name: '关联规则',
+    type: 'folder',
+    children: [
+      {
+        id: 'rc-rule-1',
+        name: '井身结构设计规则',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      },
+      {
+        id: 'rc-rule-2',
+        name: '钻井液设计规则',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      },
+      {
+        id: 'rc-rule-3',
+        name: '固井套管强度计算规则',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      },
+      {
+        id: 'rc-rule-4',
+        name: '地层压力与气防安全比对规则',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      },
+      {
+        id: 'rc-rule-5',
+        name: '井控安全强条约束规范',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
       }
     ]
   }

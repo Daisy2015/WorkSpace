@@ -39,7 +39,7 @@ const CATEGORIES = [
 
 const MOCK_AGENTS: AgentSquareItem[] = [
   { id: 'g1', name: '报告生成智能体', description: '自动生成业务报告、公文及专业文档，支持模板化输出。', category: '通用智能体', usageCount: 1250, owner: '系统平台', createdAt: '2023-10-01', icon: 'fa-file-alt', techTags: ['NLG', 'DocGen', 'Template'], version: 'v2.1', status: 'active' },
-  { id: 'g2', name: 'PPT生成智能体', description: '根据报告或业务内容自动生成汇报PPT。', category: '通用智能体', usageCount: 890, owner: '系统平台', createdAt: '2023-10-05', icon: 'fa-file-powerpoint', techTags: ['AI-Slides', 'LayoutParse'], version: 'v1.8', status: 'active' },
+  { id: 'g2', name: '报告校核智能体', description: '自动校核钻完井报告、地质设计及技术方案中的数据逻辑、合规强条及格式规范。', category: '通用智能体', usageCount: 890, owner: '系统平台', createdAt: '2023-10-05', icon: 'fa-check-double', techTags: ['ReportCheck', 'RuleEngine', 'DataVerify'], version: 'v2.5', status: 'active' },
   { id: 'g3', name: '专业图件智能体', description: '自动生成各类专业的石油行业图件', category: '通用智能体', usageCount: 750, owner: '系统平台', createdAt: '2023-11-12', icon: 'fa-image', techTags: ['VectorGen', 'CAD-Bridge'], version: 'v1.5', status: 'active' },
   { id: 'g4', name: '智能问数智能体', description: '自然语言查询业务数据，自动完成统计分析及图表展示。', category: '通用智能体', usageCount: 2300, owner: '系统平台', createdAt: '2023-09-20', icon: 'fa-chart-line', techTags: ['Text-to-SQL', 'D3-Viz', 'MCP'], version: 'v3.0', status: 'active' },
 
@@ -61,6 +61,7 @@ const MOCK_AGENTS: AgentSquareItem[] = [
   { id: 'b4_2', name: '钻井风险分析智能体', description: '自动识别井漏、卡钻、地层压力等钻井风险，并提出应对建议。', category: '钻井工程', usageCount: 980, owner: '钻井院', createdAt: '2024-03-05', icon: 'fa-radiation', techTags: ['LostCirculation', 'StuckPipe', 'Alert'], version: 'v2.1', status: 'active' },
   { id: 'b4_3', name: '钻井参数分析智能体', description: '综合分析钻井施工参数，识别异常并提供优化建议。', category: '钻井工程', usageCount: 1050, owner: '钻井院', createdAt: '2024-03-10', icon: 'fa-tachometer-alt', techTags: ['ROP-Optimization', 'WOB', 'RPM'], version: 'v1.7', status: 'active' },
   { id: 'b4_4', name: '钻井施工监控智能体', description: '对钻井施工过程进行实时分析、异常监控及预警。', category: '钻井工程', usageCount: 1320, owner: '钻井院', createdAt: '2024-03-15', icon: 'fa-video', techTags: ['RealtimeStreaming', 'IoT-Sensors'], version: 'v4.0', status: 'active' },
+  { id: 'b4_5', name: '报告校核', description: '自动校核钻完井报告、地质设计及技术方案中的数据逻辑、合规强条及格式规范。', category: '钻井工程', usageCount: 1080, owner: '钻井院', createdAt: '2024-03-20', icon: 'fa-check-double', techTags: ['ReportCheck', 'RuleEngine', 'DataVerify'], version: 'v2.5', status: 'active' },
 
   { id: 'b5_1', name: '压裂设计智能体', description: '基于储层特征辅助生成压裂设计方案。', category: '完井压裂', usageCount: 640, owner: '采油厂', createdAt: '2024-04-02', icon: 'fa-project-diagram', techTags: ['FracDesign', 'StressField'], version: 'v1.5', status: 'active' },
   { id: 'b5_2', name: '压裂效果评价智能体', description: '综合施工及生产数据，对压裂效果进行评价分析。', category: '完井压裂', usageCount: 590, owner: '采油厂', createdAt: '2024-04-06', icon: 'fa-chart-area', techTags: ['FracPerformance', 'Microseismic'], version: 'v1.8', status: 'active' },
