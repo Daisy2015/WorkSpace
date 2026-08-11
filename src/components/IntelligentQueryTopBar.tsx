@@ -56,9 +56,6 @@ export const IntelligentQueryTopBar: React.FC<IntelligentQueryTopBarProps> = ({
                 <i className="fas fa-edit text-xs"></i>
               </button>
             )}
-            <span className="px-1.5 py-0.5 rounded bg-blue-50 text-[10px] font-bold text-blue-600 uppercase tracking-wider border border-blue-100" id="workspace-detail-status-query">
-              {activeWorkspaceData?.status || 'DRAFT'}
-            </span>
           </div>
           {activeWorkspaceData?.description && (
             <span className="text-[10px] text-slate-400 font-medium truncate max-w-[220px]" id="workspace-detail-desc-query" title={activeWorkspaceData.description}>

@@ -423,6 +423,7 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
   const [showMcpPreview, setShowMcpPreview] = useState(false);
   const [filterType, setFilterType] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<ManagedAgent | null>(null);
 
   const MOCK_MCP_SERVICES = [
     { name: 'get_well_production', desc: '查询单井产量', path: '/api/v1/production/well' },
@@ -506,7 +507,10 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
         </div>
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={() => {
+              setEditingAgent(null);
+              setIsCreateModalOpen(true);
+            }}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-100"
           >
             <i className="fas fa-plus"></i>
@@ -629,7 +633,8 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedAgent(agent);
+                              setEditingAgent(agent);
+                              setIsCreateModalOpen(true);
                             }}
                             className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
                             title={lang === 'zh' ? '编辑' : 'Edit'}
@@ -929,33 +934,67 @@ export const AdminAgentManagement: React.FC<AdminAgentManagementProps> = ({ lang
       </div>
       <CreateAgentModal 
         isOpen={isCreateModalOpen} 
-        onClose={() => setIsCreateModalOpen(false)} 
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setEditingAgent(null);
+        }} 
+        editingAgent={editingAgent}
         onSubmit={(newAgentData) => {
-          const newAgent: ManagedAgent = {
-            id: `agent-${String(agents.length + 1).padStart(3, '0')}`,
-            name: newAgentData.name,
-            type: newAgentData.type,
-            version: '专业版',
-            skillsCount: newAgentData.selectedSkills.length,
-            toolsCount: 0,
-            recentCalls: 0,
-            currentVersion: 'v1.0.0',
-            isEnabled: true,
-            updateTime: new Date().toISOString().replace('T', ' ').substring(0, 16),
-            description: newAgentData.description,
-            initPageUrl: newAgentData.initPageUrl,
-            runPageUrl: newAgentData.runPageUrl,
-            mcpAddress: newAgentData.mcpAddress,
-            selectedSkills: newAgentData.selectedSkills,
-            ioSchema: 'JSON',
-            reasoningMode: 'ReAct',
-            tags: ['Custom'],
-            industry: 'General',
-            modifiedBy: '用户',
-            icon: newAgentData.icon,
-            businessCategory: newAgentData.businessCategory,
-          };
-          setAgents(prev => [newAgent, ...prev]);
+          const totalSkills = newAgentData.selectedSkills.length + (newAgentData.uploadedSkills?.length || 0);
+          if (editingAgent) {
+            setAgents(prev => prev.map(a => a.id === editingAgent.id ? {
+              ...a,
+              name: newAgentData.name,
+              description: newAgentData.description,
+              type: newAgentData.type,
+              initPageUrl: newAgentData.initPageUrl,
+              runPageUrl: newAgentData.runPageUrl,
+              mcpAddress: newAgentData.mcpAddress,
+              selectedSkills: [
+                ...newAgentData.selectedSkills,
+                ...(newAgentData.uploadedSkills?.map(s => s.name) || [])
+              ],
+              selectedTools: newAgentData.selectedTools || [],
+              prompt: newAgentData.memoryConfig?.personaPrompt,
+              icon: newAgentData.icon,
+              businessCategory: newAgentData.businessCategory,
+              skillsCount: totalSkills,
+              toolsCount: newAgentData.selectedTools?.length || 0,
+              updateTime: new Date().toISOString().replace('T', ' ').substring(0, 16),
+            } : a));
+          } else {
+            const newAgent: ManagedAgent = {
+              id: `agent-${String(agents.length + 1).padStart(3, '0')}`,
+              name: newAgentData.name,
+              type: newAgentData.type,
+              version: '专业版',
+              skillsCount: totalSkills,
+              toolsCount: newAgentData.selectedTools?.length || 0,
+              recentCalls: 0,
+              currentVersion: 'v1.0.0',
+              isEnabled: true,
+              updateTime: new Date().toISOString().replace('T', ' ').substring(0, 16),
+              description: newAgentData.description,
+              prompt: newAgentData.memoryConfig?.personaPrompt,
+              initPageUrl: newAgentData.initPageUrl,
+              runPageUrl: newAgentData.runPageUrl,
+              mcpAddress: newAgentData.mcpAddress,
+              selectedSkills: [
+                ...newAgentData.selectedSkills,
+                ...(newAgentData.uploadedSkills?.map(s => s.name) || [])
+              ],
+              selectedTools: newAgentData.selectedTools || [],
+              ioSchema: 'JSON',
+              reasoningMode: 'ReAct',
+              tags: ['Custom'],
+              industry: 'General',
+              modifiedBy: '用户',
+              icon: newAgentData.icon,
+              businessCategory: newAgentData.businessCategory,
+            };
+            setAgents(prev => [newAgent, ...prev]);
+          }
+          setEditingAgent(null);
         }}
         lang={lang} 
       />
