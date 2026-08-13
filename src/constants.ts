@@ -703,10 +703,43 @@ export const MOCK_TEMPLATES: WorkspaceTemplate[] = [
     category: '成果编制',
     icon: 'fa-check-double',
     defaultAgent: '报告校核'
+  },
+  {
+    id: 'tpl-rep-8',
+    name: '采购合同校核空间',
+    description: '采购合同、商务标书及履约条款合规性与风险因子智能校核',
+    mbuCount: 6,
+    usageCount: 285,
+    createdAt: '2024-08-16',
+    owner: '李明',
+    tags: ['合同校核', '采购管理', '报告校核'],
+    category: '成果编制',
+    icon: 'fa-file-signature',
+    defaultAgent: '报告校核'
   }
 ];
 
 export const MOCK_WORKSPACES: Workspace[] = [
+  {
+    id: 'ws-procurement-contract-check',
+    name: '采购合同校核空间',
+    mbuCount: 6,
+    createdAt: '2026-08-12',
+    status: WorkspaceStatus.DRAFT,
+    owner: '李明',
+    description: '用于采购合同、商务招投标书及履约条款的合规性、要素完整性、法律与财务风险及一致性自动校核，绑定“报告校核”。',
+    defaultAgent: '报告校核'
+  },
+  {
+    id: 'ws-doc-qa',
+    name: '采购合同文档问答空间',
+    mbuCount: 5,
+    createdAt: '2026-08-11',
+    status: WorkspaceStatus.DRAFT,
+    owner: '李明',
+    description: '面向法务与商务采购的合同文档智能问答及条款合规检索工作台，集成历史采购合同、履约条款规范并绑定“文档问答”。',
+    defaultAgent: '文档问答'
+  },
   {
     id: 'ws-drilling-report-check',
     name: '钻完井报告校核',
@@ -866,6 +899,97 @@ export const MOCK_RESOURCE_TREE: ResourceNode[] = [
         children: [
            { id: 'art-4', name: '气相色谱日志', type: 'artifact', meta: { sourceType: 'system', fileType: 'Log' } }
         ]
+      }
+    ]
+  }
+];
+
+// --- Specific Tree for Contract Checking Scenario ---
+export const CONTRACT_CHECK_RESOURCE_TREE: ResourceNode[] = [
+  {
+    id: 'cc-folder-1',
+    name: '待校核合同文件',
+    type: 'folder',
+    children: [
+      {
+        id: 'cc-doc-1',
+        name: '油气装备年度采购框架合同协议_V3.docx',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      },
+      {
+        id: 'cc-doc-2',
+        name: '钻采设备技术服务采购招标响应文件_招投标标书.pdf',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      }
+    ]
+  },
+  {
+    id: 'cc-folder-2',
+    name: '校核标准与审查强条',
+    type: 'folder',
+    children: [
+      {
+        id: 'cc-std-1',
+        name: '采购合同审查与合规强条标准 V1.0',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      },
+      {
+        id: 'cc-std-2',
+        name: '中华人民共和国民法典（合同编）合规指引',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      },
+      {
+        id: 'cc-std-3',
+        name: '企业采购与招标违约责任及防范规范',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      },
+      {
+        id: 'cc-std-4',
+        name: '国有企业采购与招投标合规审计强条',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      }
+    ]
+  },
+  {
+    id: 'cc-folder-3',
+    name: '合同关联规则库',
+    type: 'folder',
+    children: [
+      {
+        id: 'cc-rule-1',
+        name: '付款条件与履约节点一致性规则',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      },
+      {
+        id: 'cc-rule-2',
+        name: '违约金上限与法律风险提示规则',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      },
+      {
+        id: 'cc-rule-3',
+        name: '供应商资质与主体盖章核验规则',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      },
+      {
+        id: 'cc-rule-4',
+        name: '争议解决管辖地与仲裁条款规则',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
+      },
+      {
+        id: 'cc-rule-5',
+        name: '质保金与验收标准一致性强条',
+        type: 'artifact',
+        meta: { sourceType: 'system', fileType: 'Outcome' }
       }
     ]
   }

@@ -70,6 +70,7 @@ const CHART_TEMPLATES = [
 ];
 
 const AGENTS = [
+  { id: '文档问答', name: '文档问答', desc: '基于知识库与多源技术文档，提供高精度的文档检索、专业问答及内容摘要服务。' },
   { id: '智能问数', name: '智能问数', desc: '基于测井、录井等多源异构数据，提供智能数据查询、统计分析和多轮问答服务。' },
   { id: '智能成图', name: '智能成图', desc: '支持自动生成专业版地质图表，包含连井剖面、小层平面及综合图表。' },
   { id: '智能报告', name: '智能报告', desc: '用于一键自动生成或在线辅助编辑标准完井及地质设计报告。' },
@@ -86,6 +87,30 @@ const AGENT_CONFIGS: Record<string, {
   options?: { value: string; label: string }[];
   placeholder?: string;
 }[]> = {
+  '文档问答': [
+    {
+      key: 'search_mode',
+      label: '检索模式',
+      type: 'select',
+      defaultValue: 'hybrid',
+      options: [
+        { value: 'hybrid', label: '混合检索 (向量+关键词)' },
+        { value: 'semantic', label: '语义检索 (向量模式)' },
+        { value: 'keyword', label: '精准匹配 (关键词模式)' },
+      ]
+    },
+    {
+      key: 'doc_category',
+      label: '检索范围限制',
+      type: 'select',
+      defaultValue: 'all',
+      options: [
+        { value: 'all', label: '全部合同及法务知识库' },
+        { value: 'purchase', label: '仅限设备与材料采购类合同' },
+        { value: 'service', label: '仅限工程与技术服务类合同' },
+      ]
+    }
+  ],
   '报告校核': [
     {
       key: 'check_scope',
@@ -106,6 +131,7 @@ const AGENT_CONFIGS: Record<string, {
       defaultValue: 'drilling_completion',
       options: [
         { value: 'drilling_completion', label: '钻完井总结与地质工程设计报告' },
+        { value: 'contract_procurement', label: '采购合同与商务标书文件' },
         { value: 'geology_design', label: '油气藏地质与开发调整方案' },
         { value: 'daily_weekly', label: '生产运行日报与周报汇报材料' },
       ]
@@ -264,6 +290,8 @@ const SORT_OPTIONS = [
 
 const getAgentDetailText = (id: string) => {
   switch (id) {
+    case '文档问答':
+      return '基于知识库与多源技术文档，提供高精度的文档检索、专业问答及内容摘要服务。';
     case '智能问数':
       return '基于测井、录井及开发生产等多源数据，提供智能数据查询、分析和智能交互问答服务。';
     case '智能成图':

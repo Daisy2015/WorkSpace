@@ -32,7 +32,9 @@ import { ResourceDetailModal } from './components/ResourceDetailModal';
 import { WorkspaceDetailTopBar } from './components/WorkspaceDetailTopBar';
 import { IntelligentQueryWorkspaceDetail } from './components/IntelligentQueryWorkspaceDetail';
 import { IntelligentChartWorkspaceDetail } from './components/IntelligentChartWorkspaceDetail';
+import { IntelligentDocQaWorkspaceDetail } from './components/IntelligentDocQaWorkspaceDetail';
 import { IntelligentReportWorkspaceDetail } from './components/IntelligentReportWorkspaceDetail';
+import { ContractCheckWorkspaceDetail } from './components/ContractCheckWorkspaceDetail';
 import { IntelligentDeclineWorkspaceDetail } from './components/IntelligentDeclineWorkspaceDetail';
 import { IntelligentTargetEvaluationWorkspaceDetail } from './components/IntelligentTargetEvaluationWorkspaceDetail';
 import { HarnessFileExplorer } from './components/HarnessFileExplorer';
@@ -44,7 +46,7 @@ import { ProChartGenerationAgent } from './components/ProChartGenerationAgent';
 import { ResourceInterestModal } from './components/ResourceInterestModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle, ArrowRight } from 'lucide-react';
-import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESOURCE_TREE, REPORT_CHECK_RESOURCE_TREE, MOCK_TEMPLATES } from './constants';
+import { MOCK_RESOURCE_TREE, MOCK_WORKSPACES, EMPTY_RESOURCE_TREE, DRILLING_RESOURCE_TREE, REPORT_CHECK_RESOURCE_TREE, CONTRACT_CHECK_RESOURCE_TREE, MOCK_TEMPLATES } from './constants';
 import { Message, ResourceNode, Language, Workspace, KnowledgeItem, WorkspaceStatus, WorkspaceTemplate, Agent, SavedOutcome } from './types';
 import { translations } from './i18n';
 
@@ -211,7 +213,8 @@ const App: React.FC = () => {
   const [agents, setAgents] = useState<Agent[]>([
     { id: 'agent-1', name: 'Leader', role: '需求理解与任务调度', avatar: '👑', description: '负责理解用户意图，拆解任务并分发给对应的数字专家，最后汇总答案。', isLeader: true, status: 'Idle' },
     { id: 'agent-2', name: '智能问数', role: '数据查询与统计', avatar: '📊', description: '精通SQL和数据分析，能够快速从海量数据中提取关键指标。' },
-    { id: 'agent-3', name: '文档检索专家', role: '知识库问答', avatar: '📚', description: '熟悉各类技术文档和规范，能够准确回答专业问题。' },
+    { id: 'agent-3', name: '文档检索专家', role: '知识库问答', avatar: '📚', description: '熟悉各类技术文档 and 规范，能够准确回答专业问题。' },
+    { id: 'agent-doc-qa', name: '文档问答', role: '技术文档问答', avatar: '📖', description: '基于专属知识库及各专业设计规范文档，提供精准的文本定位与多轮智能检索问答服务。' },
     { id: 'agent-4', name: '智能报告', role: '内容总结与排版', avatar: '📝', description: '擅长将零散的信息整理成结构清晰、格式规范的报告。' },
     { id: 'agent-chart', name: '数据成图', role: '可视化成图', avatar: <i className="fas fa-chart-bar"></i>, description: '擅长将数据转化为直观的图表和可视化看板。' },
     
@@ -268,7 +271,7 @@ const App: React.FC = () => {
 
   const displayAgents = useMemo(() => {
     if (workspaceVersion === 'foundation') {
-      return agents.filter(a => ['agent-1', 'agent-2', 'agent-3', 'agent-4', 'agent-chart'].includes(a.id));
+      return agents.filter(a => ['agent-1', 'agent-2', 'agent-3', 'agent-doc-qa', 'agent-4', 'agent-chart'].includes(a.id));
     }
     if (workspaceVersion === 'professional') {
       return agents.filter(a => ['agent-1', 'agent-pro-1', 'agent-pro-2', 'agent-pro-3', 'agent-pro-4'].includes(a.id));
@@ -491,7 +494,16 @@ const App: React.FC = () => {
       }
   };
 
-  const handleSelectWorkspace = (id: string, name?: string, description?: string, objects?: any[], autoOpenAddResource: boolean = false, defaultAgent?: string, extraFields?: Partial<Workspace>) => {
+  const handleSelectWorkspace = (
+    id: string, 
+    name?: string, 
+    description?: string, 
+    objects?: any[], 
+    autoOpenAddResource: boolean = false, 
+    defaultAgent?: string, 
+    extraFields?: Partial<Workspace>,
+    isNewWorkspace: boolean = false
+  ) => {
     let finalId = id;
     
     if (id === 'new-demo') {
@@ -505,7 +517,8 @@ const App: React.FC = () => {
             createdAt: new Date().toISOString().split('T')[0],
             status: WorkspaceStatus.DRAFT,
             owner: '李明',
-            defaultAgent: defaultAgent || '智能报告',
+            defaultAgent: defaultAgent || '智能问数',
+            isResourceScopeInitialized: false,
             ...extraFields,
         };
         setWorkspaces(prev => [newWorkspace, ...prev]);
@@ -550,6 +563,10 @@ const App: React.FC = () => {
         setResourceTree(JSON.parse(JSON.stringify(EMPTY_RESOURCE_TREE)));
         setMessages([]); // Empty messages to show summary/recommendations
         setIsAddResourcePageOpen(autoOpenAddResource);
+    } else if (id === 'ws-procurement-contract-check' || name?.includes('采购合同校核')) {
+        setResourceTree(JSON.parse(JSON.stringify(CONTRACT_CHECK_RESOURCE_TREE)));
+        setMessages([]); // Empty messages to show summary/recommendations
+        setIsAddResourcePageOpen(autoOpenAddResource);
     } else if (defaultAgent?.includes('校核') || name?.includes('校核') || id.includes('check')) {
         setResourceTree(JSON.parse(JSON.stringify(REPORT_CHECK_RESOURCE_TREE)));
         setMessages([]); // Empty messages to show summary/recommendations
@@ -564,21 +581,22 @@ const App: React.FC = () => {
     setIsResourcePanelOpen(true);
     setEditingDoc(null);
 
-    // Auto trigger resource interest modal when entering a workspace for the first time or creating one if scope is not initialized
+    // Auto trigger resource interest modal ONLY when entering a NEWLY CREATED workspace, and ONLY if bound agent is '智能问数' or '智能成图'
+    const isNewCreation = id === 'new-demo' || isNewWorkspace;
+
     const targetWs = (id === 'new-demo' && name)
-      ? { isResourceScopeInitialized: false, defaultAgent: defaultAgent || '智能报告' }
+      ? { isResourceScopeInitialized: false, defaultAgent: defaultAgent || '智能问数' }
       : workspaces.find(w => w.id === id || w.id === finalId);
 
     const targetAgent = defaultAgent || (targetWs as any)?.defaultAgent;
-    const allowedAgents = ['智能问数', '智能成图', '智能报告', 'intelligent_query', 'intelligent_chart', 'intelligent_report'];
-    const isAllowedAgent = targetAgent ? (
-      allowedAgents.includes(targetAgent) ||
+    const allowedInterestAgents = ['智能问数', '智能成图', 'intelligent_query', 'intelligent_chart'];
+    const isInterestAgent = targetAgent ? (
+      allowedInterestAgents.includes(targetAgent) ||
       targetAgent.includes('问数') ||
-      targetAgent.includes('成图') ||
-      (targetAgent.includes('报告') && !targetAgent.includes('单井'))
+      targetAgent.includes('成图')
     ) : false;
 
-    if (targetWs && !targetWs.isResourceScopeInitialized && isAllowedAgent) {
+    if (isNewCreation && targetWs && !targetWs.isResourceScopeInitialized && isInterestAgent) {
       setIsInterestModalOpen(true);
     }
   };
@@ -724,7 +742,7 @@ const App: React.FC = () => {
 
     const agent = defaultAgent || template.defaultAgent;
     const shouldAutoOpen = agent !== '单井产量诊断' && agent !== '勘探目标评价';
-    handleSelectWorkspace(newWorkspace.id, name, description, objects, shouldAutoOpen, agent);
+    handleSelectWorkspace(newWorkspace.id, name, description, objects, shouldAutoOpen, agent, undefined, true);
   };
 
   // Knowledge Base Integration Handler
@@ -1347,7 +1365,7 @@ const App: React.FC = () => {
                                 };
                                 
                                 setWorkspaces(prev => [newWs, ...prev]);
-                                handleSelectWorkspace(newWsId, newWs.name, newWs.description, flattenedObjects);
+                                handleSelectWorkspace(newWsId, newWs.name, newWs.description, flattenedObjects, false, undefined, undefined, true);
                             }}
                             className="px-6 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-colors flex items-center gap-2"
                         >
@@ -1455,6 +1473,89 @@ const App: React.FC = () => {
                                 />
                             )}
                         </>
+                    ) : activeWorkspaceData?.defaultAgent === '文档问答' ? (
+                        <>
+                            <IntelligentDocQaWorkspaceDetail
+                                lang={lang}
+                                activeWorkspaceId={activeWorkspaceId}
+                                activeWorkspaceData={activeWorkspaceData}
+                                currentUser={CURRENT_USER}
+                                onBackToList={handleBackToList}
+                                onEditCurrentWorkspace={handleEditCurrentWorkspace}
+                                onOpenSettings={() => setIsHarnessExplorerOpen(true)}
+                                multiAgentMessages={multiAgentMessages}
+                                setMessages={setMultiAgentMessages}
+                                onSelectMessage={setSelectedMessage}
+                                displayAgents={displayAgents}
+                                workspaceVersion={workspaceVersion}
+                                onSaveOutcome={handleOpenSaveOutcome}
+                                onSaveChartOutcome={(name) => {
+                                    const outcomeName = name || (lang === 'zh' ? '采购合同合规风险审查报告' : 'Procurement Contract Compliance Risk Review Report');
+                                    const nowStr = new Date().toLocaleString('zh-CN', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+                                    const newOutcome: SavedOutcome = {
+                                        id: `outcome-${Date.now()}`,
+                                        name: outcomeName,
+                                        date: nowStr,
+                                        isPublic: false
+                                    };
+                                    setSavedOutcomes(prev => [newOutcome, ...prev]);
+
+                                    const newOutcomeNode: ResourceNode = {
+                                        id: newOutcome.id,
+                                        name: newOutcome.name,
+                                        type: 'artifact',
+                                        meta: {
+                                            sourceType: 'system',
+                                            fileType: 'Outcome',
+                                            isPublic: false,
+                                            date: new Date().toISOString(),
+                                            isArtifactOutcome: true
+                                        }
+                                    };
+                                    const targetParentId = resourceTree.length > 0 ? resourceTree[0].id : 'root';
+                                    handleAddResource(targetParentId, newOutcomeNode);
+                                }}
+                                isResourcePanelOpen={isResourcePanelOpen}
+                                setIsResourcePanelOpen={setIsResourcePanelOpen}
+                                onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
+                                savedOutcomes={savedOutcomes}
+                                onDeleteOutcome={(id) => setSavedOutcomes(prev => prev.filter(o => o.id !== id))}
+                                onRenameOutcome={(id, newName) => setSavedOutcomes(prev => prev.map(o => o.id === id ? { ...o, name: newName } : o))}
+                                onShowOriginalChat={(outcome) => {
+                                    setToastMessage(lang === 'zh' ? '正在载入历史生成会话...' : 'Loading history...');
+                                }}
+                                onSelectOutcome={(outcome) => {
+                                    setSelectedResourceForDetail({
+                                        id: outcome.id,
+                                        name: outcome.name,
+                                        type: 'artifact',
+                                        meta: {
+                                            sourceType: 'system',
+                                            fileType: 'Outcome',
+                                            isPublic: outcome.isPublic,
+                                            date: outcome.date,
+                                            isArtifactOutcome: true
+                                        }
+                                    });
+                                    setIsResourceDetailModalOpen(true);
+                                }}
+                                onOpenInterestModal={() => setIsInterestModalOpen(true)}
+                                isResourceScopeInitialized={activeWorkspaceData?.isResourceScopeInitialized}
+                                interestTags={activeWorkspaceData?.interestTags}
+                                objects={activeWorkspaceData?.objects}
+                                onClearObjects={() => handleUpdateWorkspace(activeWorkspaceId, { objects: [] })}
+                                onRemoveObject={(obj) => handleUpdateWorkspace(activeWorkspaceId, { objects: activeWorkspaceData?.objects?.filter(o => o.id !== obj.id) })}
+                            />
+                            {isAddResourcePageOpen && (
+                                <AddResourcePage 
+                                    onClose={() => setIsAddResourcePageOpen(false)} 
+                                    onConfirm={handleConfirmAddResource}
+                                    lang={lang}
+                                    initialTree={resourceTree}
+                                    workspaceId={activeWorkspaceId}
+                                />
+                            )}
+                        </>
                     ) : activeWorkspaceData?.defaultAgent === '智能成图' ? (
                         <>
                             <IntelligentChartWorkspaceDetail
@@ -1527,6 +1628,90 @@ const App: React.FC = () => {
                                 objects={activeWorkspaceData?.objects}
                                 onClearObjects={() => handleUpdateWorkspace(activeWorkspaceId, { objects: [] })}
                                 onRemoveObject={(obj) => handleUpdateWorkspace(activeWorkspaceId, { objects: activeWorkspaceData?.objects?.filter(o => o.id !== obj.id) })}
+                            />
+                            {isAddResourcePageOpen && (
+                                <AddResourcePage 
+                                    onClose={() => setIsAddResourcePageOpen(false)} 
+                                    onConfirm={handleConfirmAddResource}
+                                    lang={lang}
+                                    initialTree={resourceTree}
+                                    workspaceId={activeWorkspaceId}
+                                />
+                            )}
+                        </>
+                    ) : (activeWorkspaceId === 'ws-procurement-contract-check' || activeWorkspaceData?.name?.includes('采购合同校核')) ? (
+                        <>
+                            <ContractCheckWorkspaceDetail
+                                lang={lang}
+                                activeWorkspaceId={activeWorkspaceId}
+                                activeWorkspaceData={activeWorkspaceData}
+                                currentUser={CURRENT_USER}
+                                onBackToList={handleBackToList}
+                                onEditCurrentWorkspace={handleEditCurrentWorkspace}
+                                onOpenSettings={() => setIsHarnessExplorerOpen(true)}
+                                resourceTree={resourceTree}
+                                selectedResources={selectedResources}
+                                onToggleResource={handleToggleResource}
+                                onSelectResourceForDetail={setSelectedResourceForDetail}
+                                onAddResource={handleAddResource}
+                                onDeleteResources={handleDeleteResources}
+                                onTogglePublic={handleTogglePublic}
+                                onOpenAddResourcePage={() => setIsAddResourcePageOpen(true)}
+                                isResourcePanelOpen={isResourcePanelOpen}
+                                setIsResourcePanelOpen={setIsResourcePanelOpen}
+                                savedOutcomes={savedOutcomes}
+                                onDeleteOutcome={(id) => setSavedOutcomes(prev => prev.filter(o => o.id !== id))}
+                                onRenameOutcome={(id, newName) => setSavedOutcomes(prev => prev.map(o => o.id === id ? { ...o, name: newName } : o))}
+                                onShowOriginalChat={() => {
+                                    setToastMessage(lang === 'zh' ? '正在载入历史生成会话...' : 'Loading history...');
+                                }}
+                                onSelectOutcome={(outcome) => {
+                                    setSelectedResourceForDetail({
+                                        id: outcome.id,
+                                        name: outcome.name,
+                                        type: 'artifact',
+                                        meta: {
+                                            sourceType: 'system',
+                                            fileType: 'Outcome',
+                                            isPublic: outcome.isPublic,
+                                            date: outcome.date,
+                                            isArtifactOutcome: true
+                                        }
+                                    });
+                                    setIsResourceDetailModalOpen(true);
+                                }}
+                                onOpenInterestModal={() => setIsInterestModalOpen(true)}
+                                isResourceScopeInitialized={activeWorkspaceData?.isResourceScopeInitialized}
+                                interestTags={activeWorkspaceData?.interestTags}
+                                objects={activeWorkspaceData?.objects}
+                                onClearObjects={() => handleUpdateWorkspace(activeWorkspaceId, { objects: [] })}
+                                onRemoveObject={(obj) => handleUpdateWorkspace(activeWorkspaceId, { objects: activeWorkspaceData?.objects?.filter(o => o.id !== obj.id) })}
+                                onSaveReportOutcome={(name) => {
+                                    const outcomeName = name || (lang === 'zh' ? '采购合同合规审查报告' : 'Procurement Contract Audit Report');
+                                    const nowStr = new Date().toLocaleString('zh-CN', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+                                    const newOutcome: SavedOutcome = {
+                                        id: `outcome-${Date.now()}`,
+                                        name: outcomeName,
+                                        date: nowStr,
+                                        isPublic: false
+                                    };
+                                    setSavedOutcomes(prev => [newOutcome, ...prev]);
+
+                                    const newOutcomeNode: ResourceNode = {
+                                        id: newOutcome.id,
+                                        name: newOutcome.name,
+                                        type: 'artifact',
+                                        meta: {
+                                            sourceType: 'system',
+                                            fileType: 'Outcome',
+                                            isPublic: false,
+                                            date: nowStr,
+                                            isArtifactOutcome: true
+                                        }
+                                    };
+                                    setResourceTree(prev => [...prev, newOutcomeNode]);
+                                    setToastMessage(lang === 'zh' ? '成果已保存至资源目录' : 'Outcome saved to resources');
+                                }}
                             />
                             {isAddResourcePageOpen && (
                                 <AddResourcePage 

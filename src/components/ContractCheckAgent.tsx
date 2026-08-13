@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
-interface ReportCheckAgentProps {
+interface ContractCheckAgentProps {
   lang: 'zh' | 'en';
   config: any;
   onCloseAgent?: () => void;
@@ -64,372 +64,271 @@ export interface AuditTask {
   duration?: string;
 }
 
-// Initial Mock Issues
+// Initial Mock Issues for Procurement Contract Audit
 const mockIssuesTask1: AuditIssue[] = [
   {
     id: 'iss-1',
     severity: 'severe',
-    category: '准确性',
-    title: '井身结构关键参数与正式设计数据不一致',
-    description: '报告填写的技术套管下深为3200m，RC1井正式设计数据记录为3250m。',
-    chapter: '5.2 井身结构设计',
-    pageNum: 36,
-    ruleCode: 'DRILL-032',
-    ruleName: '井身结构参数一致性检查',
-    basisText: '报告原文 + 设计数据V4 + 标准规则 DRILL-032',
-    credibility: 94,
-    originalText: '“技术套管设计下深为3200m，二开开钻井深1200m……”',
-    actualDataText: '井身结构设计V4 / Sheet2 / 第18行 (3250m)',
-    recommendation: '建议核实报告采用的数据版本。如以V4为准，将技术套管下深修改为3250m，并补充参数版本说明。',
+    category: '付款条款',
+    title: '首期预付款比例与补充协议资金安排冲突',
+    description: '主合同约定预付款支付比例为30%，而附件补充协议中资金到账安排约定为15%。',
+    chapter: '第三条 付款方式与结算',
+    pageNum: 8,
+    ruleCode: 'CONTRACT-PAY-001',
+    ruleName: '付款条件与进度条款一致性核查',
+    basisText: '采购合同审查与合规强条标准 V1.0 第3.2条',
+    credibility: 96,
+    originalText: '“首期预付款为合同总金额的 30%，货到验收后支付 60%……”',
+    actualDataText: '补充协议二 / 附件3 / 资金到账计划 (预付款 15%)',
+    recommendation: '建议统一主合同与补充协议的预付款支付比例，避免执行阶段资金结算纠纷。',
     status: 'pending',
     timeline: [
-      { time: '14:31:48', text: '从报告第36页提取参数 3200m' },
-      { time: '14:31:51', text: '从井身结构设计V4提取参数 3250m' },
-      { time: '14:31:52', text: 'DRILL-032 判定数值不一致' },
-      { time: '14:32:03', text: '核对报告引用的数据版本' },
-      { time: '14:32:10', text: '排除单位换算和对象混用' },
-      { time: '14:32:12', text: '形成正式问题，可信度 94%' },
+      { time: '14:31:48', text: '从合同第8页提取预付款比例 30%' },
+      { time: '14:31:51', text: '交叉检索补充协议二资金计划 15%' },
+      { time: '14:31:52', text: 'CONTRACT-PAY-001 判定条款表述冲突' },
+      { time: '14:32:12', text: '形成合同审计问题，可信度 96%' },
     ]
   },
   {
     id: 'iss-2',
     severity: 'severe',
-    category: '合规性',
-    title: '防喷器压力等级低于地层套管头预测压力强条',
-    description: '第7.1章配置防喷器额定工作压力35MPa，低于设计最大关井井口压力42MPa要求。',
-    chapter: '7.1 井控设备配置',
-    pageNum: 48,
-    ruleCode: 'WELL-CTRL-005',
-    ruleName: '井控设备额定压力合规强条审查',
-    basisText: '石油天然气钻井工程设计规范 GB/T 24971 第8.2条强条',
+    category: '合规强条',
+    title: '逾期违约金比例无上限且免责声明覆盖范围超标',
+    description: '第七条约定每日违约金按1%计算且未设封顶上限，超出民法典及行业采购合规指引。',
+    chapter: '第七条 违约责任与赔偿',
+    pageNum: 15,
+    ruleCode: 'CONTRACT-LAW-002',
+    ruleName: '违约金上限与法律风险提示规则',
+    basisText: '民法典合同编第585条及国有企业采购审计强条',
     credibility: 98,
-    originalText: '“选用 21-35 环形防喷器及双闸板防喷器组，工作压力 35MPa……”',
-    actualDataText: '高压气层预测地层压力 42MPa (井控标准强条要求 ≥ 70MPa)',
-    recommendation: '强条不合规！请立即升级防喷器组压力等级至70MPa，并重新计算井控安全系数。',
+    originalText: '“乙方逾期交货按每日 1% 支付违约金，累积违约金不设上限……”',
+    actualDataText: '采购合规强条：逾期违约金日率通常≤0.05%，且累积上限不超过合同总价20%~30%',
+    recommendation: '强条不合规！建议修改违约金日利率为0.05%，并增设“累积违约金上限为合同总金额30%”。',
     status: 'pending',
     timeline: [
-      { time: '14:31:55', text: '读取第48页防喷器配置参数 35MPa' },
-      { time: '14:31:58', text: '交叉比对高压气层预测压力 42MPa' },
-      { time: '14:32:00', text: '触发国标GB/T 24971强条合规审查' },
-      { time: '14:32:02', text: '形成严重合规风险预警，可信度 98%' }
+      { time: '14:31:55', text: '读取第15页违约金计算规则 1%/日' },
+      { time: '14:32:00', text: '触发民法典合同编及企业采购审查强条' },
+      { time: '14:32:02', text: '形成严重法律风险预警，可信度 98%' }
     ]
   },
   {
     id: 'iss-3',
     severity: 'severe',
-    category: '数据一致性',
-    title: '全井钻井液密度上限与气层安全压差窗口冲突',
-    description: '第4.2章钻井液密度上限1.45g/cm³，与第6.3章安全坍塌窗口1.52g/cm³不相符。',
-    chapter: '4.2 钻井液体系设计',
-    pageNum: 28,
-    ruleCode: 'MUD-WIN-012',
-    ruleName: '钻井液安全密度窗口逻辑比对',
-    basisText: '钻井液设计规则 + 坍塌压力比对规则',
-    credibility: 91,
-    originalText: '“钻井液体系密度控制在 1.35~1.45 g/cm³ 范围内……”',
-    actualDataText: '第6.3章“三开地层坍塌压力当量密度 1.50 g/cm³”',
-    recommendation: '建议统一两章节的数据表述，将钻井液密度调整至 1.52~1.58 g/cm³，避免井壁失稳风险。',
+    category: '履约一致性',
+    title: '合同交货验收标准与技术规格书执行标准不相符',
+    description: '第五条约定按照企业内控Q/PETRO标准验收，技术规格书要求执行API-5CT国际强条。',
+    chapter: '第五条 质量标准与验收',
+    pageNum: 12,
+    ruleCode: 'CONTRACT-QUAL-003',
+    ruleName: '交付标准与技术协议比对',
+    basisText: '技术规格书 Annex A + API-5CT质量验收标准',
+    credibility: 92,
+    originalText: '“产品检验与质量验收按卖方企业内控标准 Q/PETRO-2024 执行……”',
+    actualDataText: '技术协议第4章：“套管及管材须具备 API-5CT 认证及第三方高压试压报告”',
+    recommendation: '建议在合同第五条增加“且须符合技术规格书所列 API-5CT 标准”条款。',
     status: 'pending',
     timeline: [
-      { time: '14:31:40', text: '提取第28页钻井液密度 1.45g/cm³' },
-      { time: '14:31:44', text: '提取第63页坍塌压力 1.50g/cm³' },
-      { time: '14:31:46', text: '发现钻井液密度低于坍塌压力窗口' }
+      { time: '14:31:40', text: '提取第12页验收标准条款' },
+      { time: '14:31:44', text: '比对技术规格书 Annex A 标准要求' },
+      { time: '14:31:46', text: '发现验收标准降格风险' }
     ]
   },
   {
     id: 'iss-4',
     severity: 'general',
-    category: '规范性',
-    title: '钻头类型专业术语缩写不符合行业标准',
-    description: '报告第32页使用自定义缩写“PDC-X”，行业标准应为“PDC-1955”。',
-    chapter: '5.1 钻头及钻具组合',
-    pageNum: 32,
-    ruleCode: 'NORM-BIT-003',
-    ruleName: '钻头及工具术语规范',
-    basisText: '钻完井设计报告校核标准 V2.1 规范性条款',
-    credibility: 88,
-    originalText: '“二开使用 PDC-X 复合片钻头配螺杆钻进……”',
-    actualDataText: 'SY/T 5358 钻头分类与代码标准',
-    recommendation: '修改为标准代码规范“PDC-1955”或注明标准型号含义。',
+    category: '法律条款',
+    title: '争议解决途径表述模糊（同时约定仲裁与诉讼）',
+    description: '第九条约定“可向买方所在地仲裁委员会申请仲裁或向人民法院起诉”，存在仲裁协议无效风险。',
+    chapter: '第九条 争议解决与管辖',
+    pageNum: 18,
+    ruleCode: 'CONTRACT-JUR-004',
+    ruleName: '争议解决条款明确性检测',
+    basisText: '企业采购合同示范文本与司法解释指南',
+    credibility: 90,
+    originalText: '“双方发生争议可提交北京仲裁委员会仲裁，或向买方所在地法院起诉……”',
+    actualDataText: '司法解释：同时约定仲裁与诉讼会导致仲裁协议无效',
+    recommendation: '修改为明确的二选一管辖条款，如：“向买方所在地有管辖权的人民法院提起诉讼”。',
     status: 'pending',
-    timeline: [{ time: '14:31:30', text: '术语匹配引擎扫描第32页' }]
+    timeline: [{ time: '14:31:30', text: '管辖权条款法律合规性扫描' }]
   },
   {
     id: 'iss-5',
     severity: 'general',
-    category: '完整性',
-    title: '缺少固井水泥浆抗温抗盐试验数据附表',
-    description: '第5.4章提到了高抗盐水泥浆体系，但未附实验室抗耐温试验曲线图表。',
-    chapter: '5.4 固井工程方案',
-    pageNum: 41,
-    ruleCode: 'DOC-ATTACH-008',
-    ruleName: '关键技术方案附表完整性检测',
-    basisText: '钻完井基本设计编写规范 附录B',
-    credibility: 85,
-    originalText: '“固井采用高抗盐抗高温水泥浆体系（详见试验附表）……”',
-    actualDataText: '附录列表中未包含“水泥浆抗温抗盐测试报告”',
-    recommendation: '在报告附录三中补齐水泥浆稠化时间与抗压强度试验数据表。',
+    category: '财务条款',
+    title: '质保金退还期限与质保期起算日逻辑矛盾',
+    description: '第四条约定质保金在交货后12个月退还，而第五条约定质保期自竣工验收合格之日起算24个月。',
+    chapter: '第四条 质保金与保证金',
+    pageNum: 10,
+    ruleCode: 'CONTRACT-FIN-005',
+    ruleName: '质保金退还与质保期关联规则',
+    basisText: '采购合同审查与合规强条标准 V1.0',
+    credibility: 89,
+    originalText: '“5%质保金自到货交付之日起满12个月后无息退还……”',
+    actualDataText: '第5.1条约定：“质保期为安装调试验收合格之日起24个月”',
+    recommendation: '修改质保金退还条件为：“安装调试验收合格且质保期届满后15个工作日内无息退还”。',
     status: 'pending',
-    timeline: [{ time: '14:31:25', text: '附录交叉检索未命中文件' }]
+    timeline: [{ time: '14:31:25', text: '财务与质保期限逻辑比对' }]
   },
   {
     id: 'iss-6',
     severity: 'hint',
-    category: '排版格式',
-    title: '第3章表3-2表格列宽超出边框及页码不连续',
-    description: '表3-2地层分层预测表右侧列被截断，且页脚页码出现跳页（第22页跳至24页）。',
-    chapter: '3.2 地层预测表',
-    pageNum: 23,
-    ruleCode: 'FMT-TBL-001',
-    ruleName: '文档表格排版与页码连续性',
-    basisText: '企业报告通用规范 V1.4',
+    category: '主体核验',
+    title: '乙方签署主体名称与营业执照存在缩写差异',
+    description: '合同落款处乙方名称写为“中油装备制造公司”，营业执照正本为“中国石油天然气集团装备制造有限公司”。',
+    chapter: '落款与签署页',
+    pageNum: 22,
+    ruleCode: 'CONTRACT-AUTH-005',
+    ruleName: '签约主体资质与盖章有效性校验',
+    basisText: '企业法人营业执照核验规则',
     credibility: 95,
-    originalText: '表3-2 邻井地层对比预测表',
-    actualDataText: '页面边距 2.5cm，表格总宽超出 1.8cm',
-    recommendation: '调整表格自适应列宽或更改为横向版面布局，重排页码。',
+    originalText: '乙方：中油装备制造公司（盖章）',
+    actualDataText: '国家企业信用信息公示系统正规名称：中国石油天然气集团装备制造有限公司',
+    recommendation: '要求乙方修正落款名称为企业法人全称，并加盖骑缝章与公章。',
     status: 'pending',
-    timeline: [{ time: '14:31:10', text: 'Word排版引擎解析版面边界' }]
-  },
-  {
-    id: 'iss-7',
-    severity: 'hint',
-    category: '引用规范',
-    title: '邻井RC2井数据引用未标注数据来源出处',
-    description: '第2.1章引用了RC2井邻井复核数据，但未标注测量日期或报告编号。',
-    chapter: '2.1 区域地质背景',
-    pageNum: 14,
-    ruleCode: 'REF-CITE-004',
-    ruleName: '数据出处与参考引文规范',
-    basisText: '企业报告通用规范 V1.4',
-    credibility: 82,
-    originalText: '“根据 RC2 井实测孔隙度 12.4%……”',
-    actualDataText: '缺少引文脚注或参考文献编号',
-    recommendation: '添加脚注：引用自《RC2井完井总结报告（2025年）》。',
-    status: 'pending',
-    timeline: [{ time: '14:31:05', text: '引文归因检测' }]
-  },
-  {
-    id: 'iss-8',
-    severity: 'unexecuted',
-    category: '准确性',
-    title: '地层孔隙压力预测准确性检查（缺少预测数据）',
-    description: '因空间中缺失“RC1井地层压力预测数据”，无法执行该规则比对。',
-    chapter: '4.1 地层压力预测',
-    pageNum: 26,
-    ruleCode: 'PRESS-PRED-001',
-    ruleName: '地层压力比对检测',
-    basisText: '缺少 RC1 井测井地层压力预测源文件',
-    credibility: 0,
-    originalText: '“4.1 地层压力预测计算值”',
-    actualDataText: '未加载测井地层压力数据库',
-    recommendation: '请在空间资源中上传 RC1 井地层压力预测数据表后重新对该规则触发校核。',
-    status: 'pending',
-    timeline: [{ time: '14:31:00', text: '规则执行中断：源数据未就绪' }]
+    timeline: [{ time: '14:31:10', text: '企业工商数据库主体验证' }]
   }
 ];
 
-// Initial Rules List
+// Initial Rules List for Contract Check
 const mockRulesList: RuleItem[] = [
   {
     id: 'r-1',
-    code: 'DRILL-032',
-    name: '套管下深与正式设计一致性检查',
-    category: '参数准确性',
+    code: 'CONTRACT-PAY-001',
+    name: '付款条件与进度条款一致性核查',
+    category: '财务结算',
     status: 'failed',
-    duration: '1.2s',
-    targetChapter: '5.2 井身结构设计',
+    duration: '1.0s',
+    targetChapter: '第三条 付款方式与结算',
     issuesCount: 1,
-    description: '检查报告正文、表格中的套管下深参数是否与RC1井官方设计数据库相符。',
-    inputs: ['报告第36页 5.2节', 'RC1井正式设计参数V4', '校核标准 DRILL-032'],
+    description: '核查合同正文预付款、进度款比例与补充协议、资金计划表的数值一致性。',
+    inputs: ['合同第8页 第三条', '补充协议二资金计划', '采购合规标准 V1.0'],
     steps: [
-      { text: '定位报告第5.2节参数表', done: true },
-      { text: '提取技术套管下深数值: 3200m', done: true },
-      { text: '匹配空间资源 RC1井正式设计V4: 3250m', done: true },
-      { text: '判断数值偏差: 50m (超过阈值0m)', done: true },
-      { text: '生成发现问题记录', done: true }
+      { text: '定位合同第三条预付款比例: 30%', done: true },
+      { text: '提取补充协议二到账计划: 15%', done: true },
+      { text: '计算数值逻辑偏差: 15%', done: true },
+      { text: '生成合同审计风险记录', done: true }
     ],
-    dataSource: 'RC1井井身结构设计V4 · 钻井工程数据库'
+    dataSource: '采购合同审查与合规强条标准 V1.0'
   },
   {
     id: 'r-2',
-    code: 'WELL-CTRL-005',
-    name: '井控防喷器压力等级合规审查',
-    category: '合规性',
+    code: 'CONTRACT-LAW-002',
+    name: '违约金上限与法律风险提示规则',
+    category: '合规强条',
     status: 'failed',
     duration: '0.8s',
-    targetChapter: '7.1 井控设备配置',
+    targetChapter: '第七条 违约责任与赔偿',
     issuesCount: 1,
-    description: '审查防喷器额定工作压力是否满足最高气层地层压力安全包络线。',
-    inputs: ['报告第48页 7.1节', '高压气层预测地层压力 42MPa', 'GB/T 24971强条'],
+    description: '审查逾期违约金计算标准与最高上限是否符合民法典及国有企业采购强条。',
+    inputs: ['合同第15页', '民法典合同编585条', '采购审计强条'],
     steps: [
-      { text: '读取7.1节防喷器参数: 35MPa', done: true },
-      { text: '读取气层地层压力: 42MPa', done: true },
-      { text: '比对国标强条要求: 防喷器 ≥ 70MPa', done: true },
-      { text: '判定合规状态: 不合规', done: true }
+      { text: '提取违约金规则: 按日1%且不封顶', done: true },
+      { text: '比对法律上限: 不得超过30%', done: true },
+      { text: '判定合规状态: 不合规（条款无效风险）', done: true }
     ],
-    dataSource: '石油天然气钻井工程设计规范 GB/T 24971'
+    dataSource: '国有企业采购与招投标合规审计强条'
   },
   {
     id: 'r-3',
-    code: 'MUD-WIN-012',
-    name: '钻井液密度与地层坍塌窗口比对',
-    category: '数据逻辑',
+    code: 'CONTRACT-QUAL-003',
+    name: '交付标准与技术协议比对',
+    category: '履约质量',
     status: 'failed',
-    duration: '1.5s',
-    targetChapter: '4.2 钻井液体系设计',
+    duration: '1.2s',
+    targetChapter: '第五条 质量标准与验收',
     issuesCount: 1,
-    description: '对比钻井液密度设计上限与坍塌压力当量密度，避免井壁坍塌漏失。',
-    inputs: ['报告4.2节', '报告6.3节', '地层坍塌压力窗口数据'],
+    description: '比对合同验收条款与技术规格书交货要求的标准差异。',
+    inputs: ['合同第12页', '技术规格书 Annex A'],
     steps: [
-      { text: '提取4.2节钻井液密度: 1.45g/cm³', done: true },
-      { text: '提取6.3节坍塌压力: 1.50g/cm³', done: true },
-      { text: '计算压差安全窗口', done: true },
-      { text: '判定逻辑冲突: 密度低于坍塌压力', done: true }
+      { text: '提取合同验收标准: Q/PETRO-2024', done: true },
+      { text: '提取技术规格书标准: API-5CT', done: true },
+      { text: '判定标准不匹配风险', done: true }
     ],
-    dataSource: '地层三压力预测报告 V2'
+    dataSource: '采购物资技术规格书与质量标准'
   },
   {
     id: 'r-4',
-    code: 'DOC-STRUCT-001',
-    name: '报告一级与二级大纲目录完整性',
-    category: '结构完整性',
-    status: 'passed',
-    duration: '0.4s',
-    targetChapter: '全文目录',
-    issuesCount: 0,
-    description: '校验报告是否包含规范要求的12个一级必填章节和46个二级子章节。',
-    inputs: ['报告目录树', '钻完井设计报告校核标准大纲模板'],
+    code: 'CONTRACT-JUR-004',
+    name: '争议解决条款明确性检测',
+    category: '法律风险',
+    status: 'failed',
+    duration: '0.6s',
+    targetChapter: '第九条 争议解决',
+    issuesCount: 1,
+    description: '校验管辖法院或仲裁机构约定是否明确排他，防止管辖权争议。',
+    inputs: ['合同第18页', '仲裁法司法解释'],
     steps: [
-      { text: '解析报告目录树', done: true },
-      { text: '与标准大纲做集合映射', done: true },
-      { text: '校验必填章节覆盖率: 100%', done: true }
+      { text: '扫描管辖条款关键字: 仲裁与诉讼并存', done: true },
+      { text: '判定协议有效性: 无效风险', done: true }
     ],
-    dataSource: '钻完井设计报告校核标准 V2.1'
+    dataSource: '民法典合同编合规指引'
   },
   {
     id: 'r-5',
-    code: 'NORM-BIT-003',
-    name: '钻头与下井工具代码术语规范',
-    category: '规范性',
+    code: 'CONTRACT-AUTH-005',
+    name: '签约主体资质与盖章有效性校验',
+    category: '主体核验',
     status: 'failed',
-    duration: '0.6s',
-    targetChapter: '5.1 钻头及钻具组合',
+    duration: '0.9s',
+    targetChapter: '落款与签署页',
     issuesCount: 1,
-    description: '校验钻头分类代码是否使用 SY/T 5358 标准术语。',
-    inputs: ['报告第32页 5.1节', 'SY/T 5358标准'],
+    description: '核验乙方企业全称是否与工商登记完全一致，印章名称是否相符。',
+    inputs: ['合同落款', '工商企查数据库'],
     steps: [
-      { text: '分词扫描钻头名称: PDC-X', done: true },
-      { text: '查询标准代码库: 未匹配', done: true }
+      { text: '提取乙方落款: 中油装备制造公司', done: true },
+      { text: '比对企查数据库正规名称: 中国石油天然气集团装备制造有限公司', done: true },
+      { text: '判定名称简写存在法律漏洞', done: true }
     ],
-    dataSource: 'SY/T 5358 钻头代码标准'
-  },
-  {
-    id: 'r-6',
-    code: 'PRESS-PRED-001',
-    name: '地层孔隙压力预测准确性比对',
-    category: '准确性',
-    status: 'unexecuted',
-    duration: '0.1s',
-    targetChapter: '4.1 地层压力预测',
-    issuesCount: 1,
-    description: '因缺少依赖数据源“RC1井测井地层压力数据”，未能执行。',
-    inputs: ['报告第26页', '缺少 RC1井地层压力数据库'],
-    steps: [
-      { text: '检查依赖数据资源', done: true },
-      { text: '数据资源缺失，判定未执行', done: false }
-    ],
-    dataSource: '未就绪数据源'
+    dataSource: '国家企业信用信息公示系统'
   }
 ];
 
 const INITIAL_MOCK_TASKS: AuditTask[] = [
   {
     id: 'task-1',
-    reportName: 'RC1井钻完井基本设计报告_V3.docx',
+    reportName: '油气装备年度采购框架合同协议_V3.docx',
     reportVersion: 'V3.0',
-    mainObject: 'RC1井',
-    auditStandard: '钻完井设计报告校核标准 V2.1',
+    mainObject: '中石油采购部',
+    auditStandard: '采购合同审查与合规强条标准 V1.0',
     runId: 'RUN-2026-0812-001',
     status: 'completed',
     progress: 100,
     currentView: 'issues',
     issues: mockIssuesTask1,
     createdAt: '2026-08-12 14:31',
-    duration: '42s'
+    duration: '38s'
   },
   {
     id: 'task-2',
-    reportName: '区块A水平井钻井工程设计书_2026.pdf',
+    reportName: '钻采设备技术服务采购招标响应文件_招投标标书.pdf',
     reportVersion: 'V1.2',
-    mainObject: '区块A-H2井',
-    auditStandard: '钻完井设计报告校核标准 V2.1',
+    mainObject: '华东机械制造有限公司',
+    auditStandard: '采购合同审查与合规强条标准 V1.0',
     runId: 'RUN-2026-0811-042',
     status: 'completed',
     progress: 100,
     currentView: 'issues',
     issues: [],
     createdAt: '2026-08-11 09:15',
-    duration: '1min 18s'
+    duration: '1min 05s'
   },
   {
     id: 'task-3',
-    reportName: '平台B探井地质与工程综合设计报告.docx',
-    reportVersion: 'V2.0',
-    mainObject: '平台B-3井',
-    auditStandard: '深水钻井专项校核标准 V1.0',
+    reportName: '管道阀门物资框架采购补充协议_V1.docx',
+    reportVersion: 'V1.0',
+    mainObject: '蓝海物资集团',
+    auditStandard: '国有企业采购与招投标合规审计强条',
     runId: 'RUN-2026-0810-019',
-    status: 'waiting_user',
-    progress: 85,
+    status: 'completed',
+    progress: 100,
     currentView: 'issues',
     issues: [],
     createdAt: '2026-08-10 16:20',
-    duration: '55s'
-  },
-  {
-    id: 'task-4',
-    reportName: '老区改造项目水平井优化设计方案.docx',
-    reportVersion: 'V1.0',
-    mainObject: '老区Block-C',
-    auditStandard: '常规开发井校核标准 V3.0',
-    runId: 'RUN-2026-0809-088',
-    status: 'completed',
-    progress: 100,
-    currentView: 'issues',
-    issues: [],
-    createdAt: '2026-08-09 11:05',
-    duration: '2min 05s'
-  },
-  {
-    id: 'task-5',
-    reportName: '致密油水平井体积压裂与完井设计.pdf',
-    reportVersion: 'V2.1',
-    mainObject: '页岩油区块D',
-    auditStandard: '压裂完井专项校核标准 V1.2',
-    runId: 'RUN-2026-0808-033',
-    status: 'completed',
-    progress: 100,
-    currentView: 'issues',
-    issues: [],
-    createdAt: '2026-08-08 14:40',
-    duration: '1min 02s'
-  },
-  {
-    id: 'task-6',
-    reportName: '高压气井试油测试工程设计方案.docx',
-    reportVersion: 'V1.1',
-    mainObject: '气井X-1',
-    auditStandard: '高压井试油安全标准 V2.0',
-    runId: 'RUN-2026-0807-012',
-    status: 'parsing',
-    progress: 45,
-    currentView: 'parsing',
-    issues: [],
-    createdAt: '2026-08-07 10:22',
-    duration: '35s'
+    duration: '45s'
   }
 ];
 
-export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
+export const ContractCheckAgent: React.FC<ContractCheckAgentProps> = ({
   lang,
   config,
   onCloseAgent,
@@ -470,8 +369,8 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
     id: 'empty-initial',
     reportName: '',
     reportVersion: 'V1',
-    mainObject: 'RC1井',
-    auditStandard: '钻完井设计报告校核标准 V2.1',
+    mainObject: '中石油采购部',
+    auditStandard: '采购合同审查与合规强条标准 V1.0',
     runId: '',
     status: 'empty',
     progress: 0,
@@ -489,9 +388,9 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
   useEffect(() => {
     if (tasks.length === 0 && onAssistantLog) {
       onAssistantLog(
-        `🤖 **钻完井报告校核已就绪**\n` +
-        `请在中间页面上传待校核的钻完井设计报告（如《钻完井基本设计报告 V3.docx》）。\n` +
-        `我将协助您建立校核依据，并在右侧实时展示每一步的识别、拆解与规则比对日志。`
+        `🤖 **采购合同智能校核已就绪**\n` +
+        `请在中间页面上传待校核的采购合同（如《油气装备年度采购框架合同协议_V3.docx》）。\n` +
+        `我将协助您建立条款校核依据，并在右侧实时展示每一步的识别、拆解与合规比对日志。`
       );
     }
   }, []);
@@ -580,10 +479,10 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
   const [uploadProgress, setUploadProgress] = useState(0);
 
   // Task configuration form for State 2
-  const [selectedFileName, setSelectedFileName] = useState<string>('钻完井基本设计报告 V3.docx');
-  const [configTaskName, setConfigTaskName] = useState('钻完井基本设计报告 V3 校核');
-  const [configObject, setConfigObject] = useState('RC1井');
-  const [configStandard, setConfigStandard] = useState('钻完井设计报告校核标准 V2.1');
+  const [selectedFileName, setSelectedFileName] = useState<string>('油气装备年度采购框架合同协议_V3.docx');
+  const [configTaskName, setConfigTaskName] = useState('油气装备年度采购框架合同校核');
+  const [configObject, setConfigObject] = useState('中石油采购部');
+  const [configStandard, setConfigStandard] = useState('采购合同审查与合规强条标准 V1.0');
 
   // Save Outcome Form
   const [saveOutcomeName, setSaveOutcomeName] = useState('');
@@ -627,13 +526,13 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
           setUploadState('success');
 
           const newId = `task-${Date.now()}`;
-          const cleanName = fileName || '钻完井基本设计报告 V3.docx';
+          const cleanName = fileName || '油气装备年度采购框架合同协议_V3.docx';
           const newTask: AuditTask = {
             id: newId,
             reportName: cleanName,
             reportVersion: 'V1',
-            mainObject: 'RC1井',
-            auditStandard: '钻完井设计报告校核标准 V2.1',
+            mainObject: '中石油采购部',
+            auditStandard: '采购合同审查与合规强条标准 V1.0',
             runId: `RUN-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`,
             status: 'config',
             progress: 0,
@@ -648,10 +547,10 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
 
           if (onAssistantLog) {
             onAssistantLog(
-              `📄 **报告上传成功：《${cleanName}》** (8.6MB)\n` +
-              `• 解析状态：文档格式与编码校验通过，全书共 86 页\n` +
-              `• 识别资产：包含 28 张工程表格与 167 个判定参数\n` +
-              `请在中间界面确认【校核对象】与引用的【校核标准】后开启任务。`
+              `📄 **合同文件上传成功：《${cleanName}》** (4.2MB)\n` +
+              `• 解析状态：合同格式与电子签章校验通过，全书共 24 页\n` +
+              `• 识别资产：包含 12 个关键条款章节，86 项判定要素与履约节点\n` +
+              `请在中间界面确认【签约主体】与引用的【合同审查标准】后开启任务。`
             );
           }
 
@@ -664,7 +563,7 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
 
   // Confirm Config & Start Task directly into Live Field
   const handleConfirmCreateTask = () => {
-    const fileToUse = selectedFileName || '钻完井基本设计报告 V3.docx';
+    const fileToUse = selectedFileName || '油气装备年度采购框架合同协议_V3.docx';
     const taskName = configTaskName || `${fileToUse.replace(/\.[^/.]+$/, "")} 校核`;
     
     const newId = `task-${Date.now()}`;
@@ -689,18 +588,18 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
 
     if (onAssistantLog) {
       onAssistantLog(
-        `🚀 **钻完井报告智能校核任务已启动！**\n` +
-        `• 报告文档：《${fileToUse}》\n` +
-        `• 校核对象：${configObject}\n` +
+        `🚀 **采购合同智能校核任务已启动！**\n` +
+        `• 合同文档：《${fileToUse}》\n` +
+        `• 签约主体：${configObject}\n` +
         `• 引用标准：${configStandard}\n` +
-        `正在依次发起：【报告解析】→【校核规划】→【计划执行】→【结果汇总】...`
+        `正在依次发起：【合同解析】→【条款拆解】→【合规强条比对】→【风险汇总】...`
       );
 
       setTimeout(() => {
         onAssistantLog(
-          `📄 **【阶段一：报告解析完成】**\n` +
-          `• 结构识别：7 个大纲章节，36 个二级小节\n` +
-          `• 特征提取：28 张工程技术表格，167 项关键判定参数，全文锚点定位率 100%`
+          `📄 **【阶段一：合同解析完成】**\n` +
+          `• 结构识别：12 个正文主条款章节，4 个附录补充协议\n` +
+          `• 特征提取：86 项履约结算节点与强条约束，全书条款锚点定位率 100%`
         );
       }, 1000);
 
@@ -708,15 +607,15 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
         onAssistantLog(
           `📋 **【阶段二：校核规划完成】**\n` +
           `• 关联规程：《${configStandard}》\n` +
-          `• 规则编排：已生成 5 项子任务，匹配 128 条审查规则（完整性 32 条、准确性 48 条、一致性 36 条、规范性 12 条）`
+          `• 规则编排：已生成 5 项审查任务，匹配 86 条审查规则（付款条件 24 条、违约责任 22 条、质量验收 18 条、主体资质 22 条）`
         );
       }, 2200);
 
       setTimeout(() => {
         onAssistantLog(
           `⚙️ **【阶段三：计划执行完成】**\n` +
-          `• 规则比对：128 条规则全量执行完毕\n` +
-          `• 执行结论：122 条校验通过，6 条存在工程数值与规程不一致或缺少数据`
+          `• 规则比对：86 条规则全量执行完毕\n` +
+          `• 执行结论：80 条校验通过，6 条存在付款冲突或法律与合规强条风险`
         );
       }, 3400);
 
@@ -752,10 +651,10 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
 
     if (onAssistantLog) {
       onAssistantLog(
-        `⚡ **第三步：规则比对引擎已启动**\n` +
-        `正在并行分发 128 条规则...\n` +
-        `• [DRILL-032] 提取第36页套管下深 (3200m) 与 RC1井设计V4 (3250m) 交叉比对...\n` +
-        `• [WELL-CTRL-005] 正在审查防喷器额定工作压力 (35MPa) 与预测地层压力包络线...`
+        `⚡ **第三步：合同审查规则引擎已启动**\n` +
+        `正在并行分发 86 条合规审查规则...\n` +
+        `• [CONTRACT-PAY-001] 提取第8页预付款比例 (30%) 与 补充协议二 (15%) 交叉比对...\n` +
+        `• [CONTRACT-LAW-002] 正在审查违约金条款 (1%/日无上限) 与民法典和国有企业采购强条...`
       );
     }
 
@@ -774,10 +673,10 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
 
         if (onAssistantLog) {
           onAssistantLog(
-            `🎉 **第四步：报告校核全部完成！**\n` +
-            `• 规则比对：128 条规则 100% 校验完成\n` +
-            `• 识别问题：共发现 8 项候选问题（严重问题 2 项，一般问题 4 项，提示 2 项）\n` +
-            `请在中间界面逐项审阅判定问题，或将校核成果归档至空间资源。`
+            `🎉 **第四步：采购合同校核全部完成！**\n` +
+            `• 规则比对：86 条合规与法律规则 100% 校验完成\n` +
+            `• 识别问题：共发现 6 项候选审查问题（严重问题 2 项，一般问题 3 项，提示 1 项）\n` +
+            `请在中间界面逐项审阅判定条款风险，或将校核成果归档至空间资源。`
           );
         }
       } else {
@@ -1128,10 +1027,10 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="text-xs font-bold text-slate-800 truncate">{selectedFileName || '钻完井基本设计报告 V3.docx'}</h4>
+                        <h4 className="text-xs font-bold text-slate-800 truncate">{selectedFileName || '油气装备年度采购框架合同协议_V3.docx'}</h4>
                         <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[10px] font-bold flex-shrink-0">已就绪</span>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5 truncate">8.6 MB · 86 页 · 识别 28 张工程数据表与 167 项关键参数</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5 truncate">4.2 MB · 24 页 · 识别 12 个条款章节与 86 项审查要素</p>
                     </div>
                   </div>
                   <button
@@ -1144,37 +1043,37 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
               ) : (
                 <div
                   onClick={() => {
-                    setSelectedFileName('钻完井基本设计报告 V3.docx');
+                    setSelectedFileName('油气装备年度采购框架合同协议_V3.docx');
                     setUploadState('success');
-                    setConfigTaskName('钻完井基本设计报告 V3 校核');
+                    setConfigTaskName('油气装备年度采购框架合同校核');
                   }}
                   className="border-2 border-dashed border-slate-200 hover:border-teal-400 bg-slate-50/70 hover:bg-teal-50/20 rounded-2xl p-6 text-center transition-all cursor-pointer group space-y-2"
                 >
                   <i className="fas fa-cloud-arrow-up text-2xl text-slate-400 group-hover:text-teal-600 transition-all"></i>
-                  <p className="text-xs font-bold text-slate-700 group-hover:text-teal-800">点击或拖拽上传报告文件</p>
+                  <p className="text-xs font-bold text-slate-700 group-hover:text-teal-800">点击或拖拽上传合同文件</p>
                   <p className="text-[11px] text-slate-400">也可直接选择系统预置文档：</p>
                   <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedFileName('钻完井基本设计报告 V3.docx');
+                        setSelectedFileName('油气装备年度采购框架合同协议_V3.docx');
                         setUploadState('success');
-                        setConfigTaskName('钻完井基本设计报告 V3 校核');
+                        setConfigTaskName('油气装备年度采购框架合同校核');
                       }}
                       className="px-3 py-1 bg-white border border-slate-200 hover:bg-teal-50 hover:border-teal-300 text-slate-700 text-[11px] font-bold rounded-lg transition-all"
                     >
-                      📄 钻完井基本设计报告 V3.docx
+                      📄 油气装备年度采购框架合同协议_V3.docx
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedFileName('井控专项设计报告 V1.docx');
+                        setSelectedFileName('钻采设备技术服务采购招标响应文件_招投标标书.pdf');
                         setUploadState('success');
-                        setConfigTaskName('井控专项设计报告 V1 校核');
+                        setConfigTaskName('钻采设备技术服务采购招标响应文件校核');
                       }}
                       className="px-3 py-1 bg-white border border-slate-200 hover:bg-teal-50 hover:border-teal-300 text-slate-700 text-[11px] font-bold rounded-lg transition-all"
                     >
-                      📄 井控专项设计报告 V1.docx
+                      📄 钻采设备技术服务采购招标响应文件_招投标标书.pdf
                     </button>
                   </div>
                 </div>
@@ -1195,7 +1094,7 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
                     type="text"
                     value={configTaskName}
                     onChange={e => setConfigTaskName(e.target.value)}
-                    placeholder="例如：钻完井基本设计报告 V3 校核"
+                    placeholder="例如：油气装备年度采购框架合同校核"
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-teal-500/30 text-slate-800 font-medium"
                   />
                 </div>
@@ -1207,10 +1106,10 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
                     onChange={e => setConfigStandard(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white text-slate-800 font-medium"
                   >
-                    <option value="钻完井设计报告校核标准 V2.1">钻完井设计报告校核标准 V2.1 (128条规则)</option>
                     <option value="采购合同审查与合规强条标准 V1.0">采购合同审查与合规强条标准 V1.0 (86条规则)</option>
-                    <option value="企业报告通用规范 V1.4">企业报告通用规范 V1.4 (32条规则)</option>
-                    <option value="井控工程设计强条审查规范">井控工程设计强条审查规范 (24条强条)</option>
+                    <option value="国有企业采购与招投标合规审计强条">国有企业采购与招投标合规审计强条 (52条规则)</option>
+                    <option value="中华人民共和国民法典（合同编）合规指引">中华人民共和国民法典（合同编）合规指引 (40条规则)</option>
+                    <option value="企业采购与招标违约责任及防范规范">企业采购与招标违约责任及防范规范 (28条规则)</option>
                   </select>
                 </div>
               </div>
@@ -1222,7 +1121,7 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
               <button
                 onClick={() => {
                   if (!selectedFileName) {
-                    setSelectedFileName('钻完井基本设计报告 V3.docx');
+                    setSelectedFileName('油气装备年度采购框架合同协议_V3.docx');
                   }
                   handleConfirmCreateTask();
                 }}
@@ -1693,31 +1592,31 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
 
                       {openChapterIds.has('ch-4') && (
                         <div className="space-y-2 pt-1 pl-2">
-                          {/* Item 4.1: Passed */}
+                          {/* Item 3.1: Passed */}
                           <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 flex items-center justify-between text-xs gap-3 shadow-2xs">
                             <div className="flex items-center gap-2.5 min-w-0">
                               <i className="fas fa-circle-check text-emerald-500 text-sm flex-shrink-0"></i>
                               <span className="text-slate-400 font-mono text-[11px] flex-shrink-0">[09:36:12]</span>
-                              <span className="font-bold text-slate-800 truncate">4.1 井身结构 · 完整性</span>
+                              <span className="font-bold text-slate-800 truncate">3.1 预付款条款 · 完整性</span>
                             </div>
                             <div className="flex items-center gap-3 flex-shrink-0">
                               <span className="text-emerald-600 font-bold text-[11px]">通过</span>
                               <span className="bg-slate-100 text-slate-500 font-mono text-[10px] px-1.5 py-0.5 rounded">RULE-063</span>
-                              <span className="text-slate-500 text-[11px] hidden sm:inline">井身结构层级完整</span>
+                              <span className="text-slate-500 text-[11px] hidden sm:inline">付款条件要素完整</span>
                             </div>
                           </div>
 
-                          {/* Item 4.2: Failed 1 */}
+                          {/* Item 3.2: Failed 1 */}
                           <div className="p-2.5 bg-white rounded-xl border border-rose-200/80 flex items-center justify-between text-xs gap-3 shadow-2xs bg-rose-50/20">
                             <div className="flex items-center gap-2.5 min-w-0">
                               <i className="fas fa-circle-xmark text-rose-500 text-sm flex-shrink-0"></i>
                               <span className="text-slate-400 font-mono text-[11px] flex-shrink-0">[09:36:18]</span>
-                              <span className="font-bold text-slate-800 truncate">4.2 套管设计 · 准确性</span>
+                              <span className="font-bold text-slate-800 truncate">3.2 付款节点 · 准确性</span>
                             </div>
                             <div className="flex items-center gap-3 flex-shrink-0">
                               <span className="text-rose-600 font-bold text-[11px]">未通过</span>
                               <span className="bg-rose-50 text-rose-700 font-mono text-[10px] px-1.5 py-0.5 rounded border border-rose-200/60">RULE-071</span>
-                              <span className="text-slate-600 text-[11px] hidden md:inline truncate max-w-xs">套管下深3200m与设计数据3250m不一致</span>
+                              <span className="text-slate-600 text-[11px] hidden md:inline truncate max-w-xs">主合同预付款30%与补充协议15%不一致</span>
                               <button 
                                 onClick={() => setCurrentView('issues')}
                                 className="px-2 py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[11px] rounded border border-rose-200 transition-colors"
@@ -1727,17 +1626,17 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
                             </div>
                           </div>
 
-                          {/* Item 4.2: Failed 2 */}
+                          {/* Item 3.2: Failed 2 */}
                           <div className="p-2.5 bg-white rounded-xl border border-rose-200/80 flex items-center justify-between text-xs gap-3 shadow-2xs bg-rose-50/20">
                             <div className="flex items-center gap-2.5 min-w-0">
                               <i className="fas fa-circle-xmark text-rose-500 text-sm flex-shrink-0"></i>
                               <span className="text-slate-400 font-mono text-[11px] flex-shrink-0">[09:36:24]</span>
-                              <span className="font-bold text-slate-800 truncate">4.2 套管设计 · 一致性</span>
+                              <span className="font-bold text-slate-800 truncate">3.2 付款节点 · 一致性</span>
                             </div>
                             <div className="flex items-center gap-3 flex-shrink-0">
                               <span className="text-rose-600 font-bold text-[11px]">未通过</span>
                               <span className="bg-rose-50 text-rose-700 font-mono text-[10px] px-1.5 py-0.5 rounded border border-rose-200/60">RULE-072</span>
-                              <span className="text-slate-600 text-[11px] hidden md:inline truncate max-w-xs">正文参数与附表参数不一致</span>
+                              <span className="text-slate-600 text-[11px] hidden md:inline truncate max-w-xs">质保金比例与尾款支付时间存在表述矛盾</span>
                               <button 
                                 onClick={() => setCurrentView('issues')}
                                 className="px-2 py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[11px] rounded border border-rose-200 transition-colors"
@@ -1747,65 +1646,65 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
                             </div>
                           </div>
 
-                          {/* Item 4.3: Unexecutable */}
+                          {/* Item 3.3: Unexecutable */}
                           <div className="p-2.5 bg-white rounded-xl border border-amber-200/80 flex items-center justify-between text-xs gap-3 shadow-2xs bg-amber-50/20">
                             <div className="flex items-center gap-2.5 min-w-0">
                               <i className="fas fa-triangle-exclamation text-amber-500 text-sm flex-shrink-0"></i>
                               <span className="text-slate-400 font-mono text-[11px] flex-shrink-0">[09:36:31]</span>
-                              <span className="font-bold text-slate-800 truncate">4.3 固井设计 · 完整性</span>
+                              <span className="font-bold text-slate-800 truncate">3.3 结算计税 · 完整性</span>
                             </div>
                             <div className="flex items-center gap-3 flex-shrink-0">
                               <span className="text-amber-700 font-bold text-[11px]">无法执行</span>
                               <span className="bg-amber-50 text-amber-800 font-mono text-[10px] px-1.5 py-0.5 rounded border border-amber-200/60">RULE-078</span>
-                              <span className="text-slate-600 text-[11px] hidden md:inline truncate max-w-xs">缺少固井设计表</span>
+                              <span className="text-slate-600 text-[11px] hidden md:inline truncate max-w-xs">缺少增值税专票开具资质文件</span>
                               <button className="px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-[11px] rounded border border-amber-200 transition-colors">
                                 补充说明
                               </button>
                             </div>
                           </div>
 
-                          {/* Item 4.4: Passed */}
+                          {/* Item 3.4: Passed */}
                           <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 flex items-center justify-between text-xs gap-3 shadow-2xs">
                             <div className="flex items-center gap-2.5 min-w-0">
                               <i className="fas fa-circle-check text-emerald-500 text-sm flex-shrink-0"></i>
                               <span className="text-slate-400 font-mono text-[11px] flex-shrink-0">[09:36:40]</span>
-                              <span className="font-bold text-slate-800 truncate">4.4 钻井液设计 · 规范性</span>
+                              <span className="font-bold text-slate-800 truncate">3.4 履约发票 · 规范性</span>
                             </div>
                             <div className="flex items-center gap-3 flex-shrink-0">
                               <span className="text-emerald-600 font-bold text-[11px]">通过</span>
                               <span className="bg-slate-100 text-slate-500 font-mono text-[10px] px-1.5 py-0.5 rounded">RULE-084</span>
-                              <span className="text-slate-500 text-[11px] hidden sm:inline">关键参数单位及格式规范</span>
+                              <span className="text-slate-500 text-[11px] hidden sm:inline">发票抬头与税率条款规范</span>
                             </div>
                           </div>
                         </div>
                       )}
                     </div>
 
-                    {/* Chapter 5: 5 井控设计 */}
+                    {/* Chapter 5: 7 违约责任与赔偿 */}
                     <div className="p-3.5 hover:bg-slate-50/50 transition-colors">
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
                           <i className="fas fa-check-circle text-emerald-500 text-sm"></i>
-                          <span className="font-bold text-slate-800">5 井控设计</span>
+                          <span className="font-bold text-slate-800">7 违约责任与赔偿</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-500">24/24 条</span>
-                          <span className="text-rose-600 font-bold">· 3项问题</span>
+                          <span className="text-slate-500">22/22 条</span>
+                          <span className="text-rose-600 font-bold">· 2项问题</span>
                           <i className="fas fa-chevron-right text-slate-300 text-[10px] ml-1"></i>
                         </div>
                       </div>
                     </div>
 
-                    {/* Chapter 6: 6 附录与附件 */}
+                    {/* Chapter 6: 9 争议解决与管辖 */}
                     <div className="p-3.5 hover:bg-slate-50/50 transition-colors">
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
                           <i className="fas fa-check-circle text-emerald-500 text-sm"></i>
-                          <span className="font-bold text-slate-800">6 附录与附件</span>
+                          <span className="font-bold text-slate-800">9 争议解决与管辖</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-500">15/15 条</span>
-                          <span className="text-slate-400">· 4条无法执行</span>
+                          <span className="text-slate-500">12/12 条</span>
+                          <span className="text-slate-400">· 1条未执行</span>
                           <i className="fas fa-chevron-right text-slate-300 text-[10px] ml-1"></i>
                         </div>
                       </div>
@@ -1875,17 +1774,19 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
                       <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">86页</span>
                     </div>
                     <div className="flex-1 min-h-0 overflow-y-auto text-xs space-y-1 text-slate-600 custom-scrollbar pr-1">
-                      <div className="p-2 rounded-xl bg-slate-50 font-bold text-slate-800 text-[11px]">5. 钻井工程设计</div>
-                      <div className="pl-3 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer text-slate-600">5.1 钻头及钻具组合</div>
+                      <div className="p-2 rounded-xl bg-slate-50 font-bold text-slate-800 text-[11px]">第三条 付款方式与结算</div>
+                      <div className="pl-3 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer text-slate-600">3.1 预付款支付条件</div>
                       <div className="pl-3 p-1.5 rounded-lg bg-teal-50 text-teal-800 font-bold border border-teal-100/80 flex items-center justify-between">
-                        <span>5.2 井身结构设计</span>
+                        <span>3.2 进度款与结算方式</span>
                         <span className="w-2 h-2 rounded-full bg-rose-500"></span>
                       </div>
-                      <div className="pl-3 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer text-slate-600">5.3 钻井水力学计算</div>
-                      <div className="pl-3 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer text-slate-600">5.4 钻井液工程</div>
-                      <div className="p-2 rounded-xl bg-slate-50 font-bold text-slate-800 text-[11px] mt-2">6. 井控设计</div>
-                      <div className="pl-3 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer text-slate-600">6.1 井控设备配置</div>
-                      <div className="pl-3 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer text-slate-600">6.2 地层压力监测</div>
+                      <div className="pl-3 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer text-slate-600">3.3 发票与税费开具</div>
+                      <div className="p-2 rounded-xl bg-slate-50 font-bold text-slate-800 text-[11px] mt-2">第四条 质保金与保证金</div>
+                      <div className="pl-3 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer text-slate-600">4.1 质保金扣留比例</div>
+                      <div className="pl-3 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer text-slate-600">4.2 质保期退还条件</div>
+                      <div className="p-2 rounded-xl bg-slate-50 font-bold text-slate-800 text-[11px] mt-2">第七条 违约责任与赔偿</div>
+                      <div className="pl-3 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer text-slate-600">7.1 逾期交货违约金</div>
+                      <div className="pl-3 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer text-slate-600">7.2 损害赔偿与免责</div>
                     </div>
                   </div>
 
@@ -1895,7 +1796,7 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
                       <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-3 text-xs font-bold text-slate-600 flex-shrink-0">
                         <span className="flex items-center gap-1.5 text-slate-800">
                           <i className="fas fa-file-invoice text-teal-600"></i>
-                          文档内容 · 第 36 / 86 页
+                          合同正文 · 第 8 / 24 页
                         </span>
                         <div className="flex items-center gap-2 text-teal-700 text-[11px]">
                           <button className="hover:underline flex items-center gap-1 cursor-pointer">
@@ -1910,11 +1811,11 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
 
                       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-3.5 text-xs leading-relaxed text-slate-800 pr-1">
                         <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-1 flex items-center justify-between">
-                          <span>5.2 井身结构设计</span>
-                          <span className="text-[10px] font-normal text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">发现 1 项严重数据不一致</span>
+                          <span>第三条 付款方式与结算</span>
+                          <span className="text-[10px] font-normal text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">发现 1 项条款表述冲突</span>
                         </h2>
                         <p className="text-slate-600">
-                          根据RC1井邻井地层开采特点，井身结构采用三开方案。一开导管下深100m，二开技术套管下至下干沟组顶界。
+                          合同生效后，买方按照项目履约进度安排向卖方支付相应的合同款项。各期付款均须提供合法有效的增值税专用发票。
                         </p>
                         
                         {/* 问题原文高亮框 */}
@@ -1924,21 +1825,21 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
                               <i className="fas fa-location-dot text-rose-600"></i>
                               问题高亮定位
                             </span>
-                            <span className="font-mono text-[10px] bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded font-bold">P.36</span>
+                            <span className="font-mono text-[10px] bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded font-bold">P.8</span>
                           </div>
                           <p className="text-xs leading-relaxed font-medium">
-                            “……技术套管设计下深为 <mark className="bg-rose-200 text-rose-950 font-bold px-1.5 py-0.5 rounded border border-rose-300/80">3200m</mark>，套管外径244.5mm，采用P110钢级全长固井。”
+                            “……首期预付款为合同总金额的 <mark className="bg-rose-200 text-rose-950 font-bold px-1.5 py-0.5 rounded border border-rose-300/80">30%</mark>，货到验收合格后支付 60%，余款10%留作质保金。”
                           </p>
                         </div>
 
                         <p className="text-slate-600">
-                          三开生产套管预计钻至3850m完钻。固井水泥浆体系采用抗高温体系，确保气层封隔质量。全过程需满足《钻完井工程设计规范》强条。
+                          补充协议（附件三）资金到账计划记载预付款支付比例为 15%。全过程须符合《采购合同审查与合规强条标准 V1.0》强条规定。
                         </p>
                       </div>
                     </div>
 
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 flex-shrink-0">
-                      <span>当前展示：钻完井基本设计报告 V3.docx</span>
+                      <span>当前展示：油气装备年度采购框架合同协议_V3.docx</span>
                       <span className="text-teal-700 font-medium">点击右侧问题卡片可准确定位与办理</span>
                     </div>
                   </div>
@@ -2123,7 +2024,7 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
                     type="text"
                     value={saveOutcomeName}
                     onChange={e => setSaveOutcomeName(e.target.value)}
-                    placeholder="钻完井基本设计报告校核报告"
+                    placeholder="采购合同审查与合规校核报告"
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white font-bold"
                   />
                 </div>
@@ -2219,7 +2120,7 @@ export const ReportCheckAgent: React.FC<ReportCheckAgentProps> = ({
                   </span>
                 </div>
                 <p className="text-indigo-950 font-medium leading-relaxed text-[11px] bg-white/90 p-3 rounded-xl border border-indigo-100 shadow-2xs">
-                  {selectedIssue.ruleOriginalText || `【${selectedIssue.ruleCode} · ${selectedIssue.ruleName}】依据《钻完井工程设计规范》及《${selectedIssue.basisText || '相关专业校核标准'}》，需要对对应参数与条款要求进行比对精确定位。`}
+                  {selectedIssue.ruleOriginalText || `【${selectedIssue.ruleCode} · ${selectedIssue.ruleName}】依据《民法典合同编》及《${selectedIssue.basisText || '采购合同审查与合规强条标准'}》，需要对对应条款与风险要素进行精确定位。`}
                 </p>
               </div>
 

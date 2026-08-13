@@ -15,6 +15,7 @@ interface AssistantSidebarProps {
     sender: 'user' | 'assistant'; 
     text: string; 
     wordReport?: { id: string; title: string; size: string; time: string };
+    sourceInfo?: { docName: string; chapter: string };
   }>;
 }
 
@@ -29,26 +30,69 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
   onRefreshAgent,
   externalLogs
 }) => {
+  const isDocQaAgent = agentName.includes('文档') || agentName.includes('问答') || agentName.includes('Doc') || agentName.includes('QA');
+
+  const defaultDocQaMessages: Array<{ 
+    sender: 'user' | 'assistant'; 
+    text: string; 
+    wordReport?: { id: string; title: string; size: string; time: string };
+    sourceInfo?: { docName: string; chapter: string };
+  }> = [
+    {
+      sender: 'user',
+      text: '合同中关于付款条款的具体约定是什么？'
+    },
+    {
+      sender: 'assistant',
+      text: '根据《原油采购合同》第4章“付款条件”的约定，付款相关条款如下：\n\n1. 付款方式：采用电汇方式支付；\n2. 付款期限：买方应在收到卖方提交的符合合同约定的发票后30个工作日内完成付款；\n3. 结算币种：本合同采用美元（USD）结算。',
+      sourceInfo: {
+        docName: '原油采购合同.docx',
+        chapter: '第4章 付款条件'
+      }
+    }
+  ];
+
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<Array<{ 
     sender: 'user' | 'assistant'; 
     text: string; 
     wordReport?: { id: string; title: string; size: string; time: string };
-  }>>([]);
+    sourceInfo?: { docName: string; chapter: string };
+  }>>(() => isDocQaAgent ? defaultDocQaMessages : []);
+
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     if (externalLogs && externalLogs.length > 0) {
       setMessages(externalLogs);
+    } else if (isDocQaAgent && messages.length === 0) {
+      setMessages(defaultDocQaMessages);
     }
-  }, [externalLogs]);
+  }, [externalLogs, isDocQaAgent]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
   
-  const rawRecommendedQuestions = (agentName.includes('产量') || agentName.includes('Decline') || agentName.includes('well_decline'))
+  const rawRecommendedQuestions = isDocQaAgent
+    ? (lang === 'zh'
+        ? [
+            "这份合同的付款方式和期限是什么",
+            "合同中约定的违约责任有哪些？",
+            "供应商的主要义务有哪些？",
+            "合同的结算币种和金额如何约定？",
+            "如何解除或终止本合同？"
+          ]
+        : [
+            "What are the payment terms and deadlines in this contract?",
+            "What liabilities for breach of contract are specified?",
+            "What are the main obligations of the supplier?",
+            "How are settlement currency and amount agreed upon?",
+            "How can this contract be terminated?"
+          ]
+      )
+    : (agentName.includes('产量') || agentName.includes('Decline') || agentName.includes('well_decline'))
     ? (lang === 'zh' 
         ? [
             "依据诊断结果，推荐当前最佳治理措施",
@@ -115,168 +159,69 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
 
   const recommendedQuestions = rawRecommendedQuestions.slice(0, 3);
 
-  const rawFollowUpQuestions = (agentName.includes('校核') || agentName.includes('Check') || agentName.includes('audit') || agentName.includes('审查'))
-    ? (lang === 'zh'
-        ? [
-            "重新检查第5章井身结构设计",
-            "使用刚上传的附件重新执行相关规则",
-            "把术语类一般问题降为提示"
-          ]
-        : [
-            "Re-check Chapter 5 well structure design",
-            "Re-run rules using recently uploaded attachment",
-            "Downgrade terminology general issues to hints"
-          ]
-      )
-    : (agentName.includes('产量') || agentName.includes('Decline') || agentName.includes('well_decline'))
-    ? (lang === 'zh'
-        ? [
-            "深化单井注采对比分析",
-            "评估递减趋势拟合精度",
-            "预测未来6个月产液量"
-          ]
-        : [
-            "Deepen injection-production analysis",
-            "Assess decline trend fitting accuracy",
-            "Predict liquid production for next 6 months"
-          ]
-      )
-    : (lang === 'zh'
-        ? [
-            "请总结一下关键地质认识和主要设计建议",
-            "针对发现的问题提供优化修正方案",
-            "导出当前智能分析结果报告"
-          ]
-        : [
-            "Summarize key geological insights and design suggestions",
-            "Provide optimization solutions for identified issues",
-            "Export current intelligent analysis report"
-          ]
-      );
-
-  const followUpQuestions = rawFollowUpQuestions.slice(0, 3);
-
-  const handleSend = () => {
-    if (!chatInput.trim()) return;
-    const userText = chatInput.trim();
+  const handleSendQuestion = (questionText: string) => {
+    if (!questionText.trim()) return;
+    const userText = questionText.trim();
     setMessages(prev => [...prev, { sender: 'user', text: userText }]);
     setChatInput('');
     setIsTyping(true);
 
-    // Simulate smart analysis and trigger refresh of the middle workspace/agent
     setTimeout(() => {
       let reply = '';
+      let sourceInfo: { docName: string; chapter: string } | undefined = undefined;
       let isWeeklyReport = false;
-      
-      if (agentName.includes('成图') || agentName.includes('Mapping')) {
+
+      if (isDocQaAgent) {
+        if (userText.includes('付款方式') || userText.includes('付款') || userText.includes('期限')) {
+          reply = "根据《原油采购合同》第4章“付款条件”的约定，付款相关条款如下：\n\n1. 付款方式：采用电汇方式支付；\n2. 付款期限：买方应在收到卖方提交的符合合同约定的发票后30个工作日内完成付款；\n3. 结算币种：本合同采用美元（USD）结算。";
+          sourceInfo = { docName: '原油采购合同.docx', chapter: '第4章 付款条件' };
+        } else if (userText.includes('违约责任') || userText.includes('违约')) {
+          reply = "根据《原油采购合同》第7章“违约责任”约定：\n\n1. 逾期交付：卖方若未按时交货，每逾期一日应按迟延部分货款的0.05%支付违约金；\n2. 质量不达标：买方有权拒绝收货并要求卖方在7日内退换或补足；\n3. 累计违约金上限为合同总金额的10%。";
+          sourceInfo = { docName: '原油采购合同.docx', chapter: '第7章 违约责任' };
+        } else if (userText.includes('义务') || userText.includes('供应商')) {
+          reply = "根据《原油采购合同》第3章“卖方义务”约定：\n\n1. 按时完成原油品质化验并提供出厂合格证明；\n2. 配合买方完成海关报关及运输节点对接；\n3. 确保交付原油符合国家标准及合同附件技术规范。";
+          sourceInfo = { docName: '原油采购合同.docx', chapter: '第3章 卖方义务' };
+        } else if (userText.includes('结算币种') || userText.includes('金额')) {
+          reply = "根据《原油采购合同》第4.3条约定：\n\n1. 本合同结算币种为美元（USD）；\n2. 最终发票开具金额按照离岸价（FOB）乘实际到货提单数量计算。";
+          sourceInfo = { docName: '原油采购合同.docx', chapter: '第4章 付款条件 4.3' };
+        } else if (userText.includes('解除') || userText.includes('终止')) {
+          reply = "根据《原油采购合同》第8章“合同变更与解除”约定：\n\n1. 双方协商一致可以书面形式解除合同；\n2. 因不可抗力导致合同目的无法实现超60日的，任何一方均有权解除合同；\n3. 一方严重违约致使合同无法继续履行的，守约方有权单方发出解除通知。";
+          sourceInfo = { docName: '原油采购合同.docx', chapter: '第8章 合同变更与解除' };
+        } else {
+          reply = `针对您提出的“${userText}”，智能问答引擎已检索了当前关联的合同文档，结果如下：\n\n经核查相关章节条款，文中明确规定了对应的业务规范与操作要求，请结合左侧文档原文进行比对确认。`;
+          sourceInfo = { docName: '原油采购合同.docx', chapter: '综合参考条款' };
+        }
+      } else if (agentName.includes('成图') || agentName.includes('Mapping')) {
         if (userText.includes('美化')) {
           reply = lang === 'zh' 
             ? "已成功为您一键美化图件样式！本次优化自动调整了配色方案、增加了曲线平滑度并优化了图道边距。中间的成图区域已自动重新载入刷新，请查看最新效果。"
-            : "Successfully beautified the chart style for you! This optimization automatically adjusted the color scheme, increased curve smoothness, and optimized track margins. The central mapping area has refreshed automatically.";
+            : "Successfully beautified the chart style for you! This optimization automatically adjusted the color scheme, increased curve smoothness, and optimized track margins.";
         } else if (userText.includes('显示') || userText.includes('设置')) {
           reply = lang === 'zh'
             ? "图层显示设置已调整。我们重新优化了各个图层的叠加层次和显示对比度，确保地学特征一目了然。中间的成图区域已自动重新加载刷新。"
-            : "Layer display settings adjusted. We optimized the stack order and contrast of each layer to ensure geological features are perfectly visible. The central mapping area has refreshed.";
-        } else if (userText.includes('删除')) {
-          reply = lang === 'zh'
-            ? "已在后台为您精简并删除了不必要的冗余图层，使整体柱状图更具可读性。成图结果已重构并自动刷新展示。"
-            : "Unnecessary redundant layers have been removed in the background, making the overall columnar chart highly readable. The mapping result has been reconstructed and refreshed.";
-        } else if (agentName.includes('校核') || agentName.includes('Check') || agentName.includes('audit') || agentName.includes('审查')) {
-        if (userText.includes('井身结构') || userText.includes('井控')) {
-          reply = lang === 'zh'
-            ? "已调整校核权重！规则引擎已提升「5.2 井身结构设计」与「7.1 井控设备配置」章节的校验优先级。中间校核工作现场已自动重构刷新！"
-            : "Priority updated! High priority assigned to casing structure and well control sections. The central audit workspace has refreshed!";
-        } else if (userText.includes('V3') || userText.includes('V4')) {
-          reply = lang === 'zh'
-            ? "已切换数据源版本！智能体已将关联的工程参数表由 V3 升级为最新 V4 版本，并重新执行了所有依赖该参数的校核规则。中间结果已自动刷新！"
-            : "Data source version switched to V4! Re-executed dependent rules and refreshed the central audit workspace!";
-        } else if (userText.includes('降为提示') || userText.includes('降级') || userText.includes('术语')) {
-          reply = lang === 'zh'
-            ? "规则判定策略已更新：所有「术语规范类」的一般问题已批量降级为「提示」级别，影响列表已自动重新计算并刷新展示！"
-            : "Strategy updated: Terminology issues downgraded to 'hint' severity. Results recalculated and refreshed!";
-        } else if (userText.includes('重新检查') || userText.includes('第5章')) {
-          reply = lang === 'zh'
-            ? "已针对「第5章 钻井工程设计」启动局部增量重新校核。提取最新参数并比对标准规范后，中间校核现场与问题列表已自动更新。"
-            : "Incremental re-check initiated for Chapter 5. The central workspace and issues list have refreshed!";
+            : "Layer display settings adjusted. We optimized the stack order and contrast of each layer.";
         } else {
           reply = lang === 'zh'
-            ? `收到关于校核指令：“${userText}”。报告校核已按要求更新任务计划与规则引擎参数，中间校核现场已自动刷新！`
-            : `Received audit command: "${userText}". The Report Check Agent updated rules and refreshed the central workspace!`;
+            ? `收到关于“${userText}”的指令。专业成图引擎已完成参数调整与图件重构，中间显示区域已自动刷新！`
+            : `Received command for "${userText}". Chart rendering area refreshed.`;
         }
       } else {
-          reply = lang === 'zh'
-            ? `收到关于“${userText}”的优化指令。专业成图引擎已完成参数调整与图件重构，中间的智能体成图显示区域已自动刷新！`
-            : `Received optimization command for "${userText}". The pro mapping engine has updated parameters and reconstructed the chart. The central rendering area has refreshed automatically!`;
-        }
-      } else if (agentName.includes('产量') || agentName.includes('Decline') || agentName.includes('well_decline')) {
-        if (userText.includes('措施')) {
-          reply = lang === 'zh'
-            ? "根据当前的单井生产及物理诊断结果，推荐优先进行“高能气体压裂+酸化解堵”联合治理措施。预计可提升日产液量15%以上。主诊断与治理流程已完成重新加载刷新！"
-            : "Based on the production and physical diagnosis, we recommend combined 'High-energy Gas Fracturing + Acidizing' measures. Daily production is expected to increase by over 15%. The main diagnosis and treatment workflow has refreshed!";
-        } else if (userText.includes('相似')) {
-          reply = lang === 'zh'
-            ? "已在邻井数据库中成功检索到3口具有相似产量下降特征（层段含水上升、压力衰减）的对比井。治理经验及对比分析模块已为您重新加载刷新！"
-            : "Successfully retrieved 3 offset wells with similar decline patterns (water-cut rise, pressure depletion) in the database. The treatment experience and comparison module has refreshed!";
-        } else if (userText.includes('报告')) {
-          reply = lang === 'zh'
-            ? "已自动为您生成并输出详尽的“单井产量下降诊断与治理优化报告.pdf”。诊断主界面与分析看板已同步更新刷新！"
-            : "Detailed 'Single Well Decline Diagnosis & Treatment Optimization Report.pdf' has been generated. The main dashboard and analysis panels have synchronized and refreshed!";
-        } else {
-          reply = lang === 'zh'
-            ? `收到关于“${userText}”的诊断优化请求。诊断引擎已重新调取测井与生产历史数据进行综合运算，中间诊断仪表盘已自动刷新！`
-            : `Received diagnosis optimization request for "${userText}". The engine has re-fetched logging and production histories. The central dashboard has refreshed automatically!`;
-        }
-      } else if (agentName.includes('校核') || agentName.includes('Check') || agentName.includes('audit') || agentName.includes('审查')) {
-        if (userText.includes('井身结构') || userText.includes('井控')) {
-          reply = lang === 'zh'
-            ? "已调整校核权重！规则引擎已提升「5.2 井身结构设计」与「7.1 井控设备配置」章节的校验优先级。中间校核工作现场已自动重构刷新！"
-            : "Priority updated! High priority assigned to casing structure and well control sections. The central audit workspace has refreshed!";
-        } else if (userText.includes('V3') || userText.includes('V4')) {
-          reply = lang === 'zh'
-            ? "已切换数据源版本！智能体已将关联的工程参数表由 V3 升级为最新 V4 版本，并重新执行了所有依赖该参数的校核规则。中间结果已自动刷新！"
-            : "Data source version switched to V4! Re-executed dependent rules and refreshed the central audit workspace!";
-        } else if (userText.includes('降为提示') || userText.includes('降级') || userText.includes('术语')) {
-          reply = lang === 'zh'
-            ? "规则判定策略已更新：所有「术语规范类」的一般问题已批量降级为「提示」级别，影响列表已自动重新计算并刷新展示！"
-            : "Strategy updated: Terminology issues downgraded to 'hint' severity. Results recalculated and refreshed!";
-        } else if (userText.includes('重新检查') || userText.includes('第5章')) {
-          reply = lang === 'zh'
-            ? "已针对「第5章 钻井工程设计」启动局部增量重新校核。提取最新参数并比对标准规范后，中间校核现场与问题列表已自动更新。"
-            : "Incremental re-check initiated for Chapter 5. The central workspace and issues list have refreshed!";
-        } else {
-          reply = lang === 'zh'
-            ? `收到关于校核指令：“${userText}”。报告校核已按要求更新任务计划与规则引擎参数，中间校核现场已自动刷新！`
-            : `Received audit command: "${userText}". The Report Check Agent updated rules and refreshed the central workspace!`;
-        }
-      } else {
-        // Report or Geo-Design Expert or General Mode
         if (userText.includes('生成本周生产运行简报') || userText.includes('生产运行简报')) {
           reply = lang === 'zh'
             ? "本周（2024年4月10日-4月16日）生产运行简报已生成。全区整体生产稳中有升，日产达成率超计划 2.5%。您可以点击下方卡片进行实时预览和深度编辑。"
-            : "Weekly production operation brief has been generated. The overall production is steady with a 2.5% increase over plan. Click below to preview and edit.";
+            : "Weekly production operation brief has been generated. Click below to preview and edit.";
           isWeeklyReport = true;
-        } else if (userText.includes('方案') || userText.includes('措施')) {
-          reply = lang === 'zh'
-            ? "方案优化建议已成功应用！我们调整了三开井段的钻井液密度安全窗口（1.15g/cm³ - 1.25g/cm³），并增加了断层破碎带随钻防漏失段落。报告文档内容已自动刷新。"
-            : "Optimization advice applied! Adjusted the mud density safety window (1.15-1.25g/cm³) for the 3rd section and added on-the-fly mud loss prevention for fault zones. The report has refreshed.";
-        } else if (userText.includes('风险') || userText.includes('遗漏')) {
-          reply = lang === 'zh'
-            ? "经过全面合规性安全扫描，已为您识别出邻区存在高压水淹层风险。报告的地质设计与安全预案章节已自动补充该条地质风险分析并重构刷新。"
-            : "Safety scan complete. Identified a high-pressure flooded layer risk in the adjacent zone. Geological design and risk mitigation chapters have been updated and refreshed with this analysis.";
-        } else if (userText.includes('总结') || userText.includes('建议')) {
-          reply = lang === 'zh'
-            ? "已将最新的关键地质认识（分层界线微调、储层含油性复核）与主要设计建议（一开套管加深至210m）深度融合进报告的结论与建议章节。报告已自动刷新。"
-            : "Fused the latest geo-cognition (formation boundary micro-tuning, oil saturation check) and casing advice (1st stage casing deepened to 210m) into the conclusions. The report has refreshed.";
         } else {
           reply = lang === 'zh'
-            ? `收到关于“${userText}”的修改指令。钻井地质设计专家Agent已在后台重构了对应段落，中间报告编辑/预览页面已自动刷新！`
-            : `Received editing command for "${userText}". The expert agent has rewritten the corresponding sections in the background, and the report preview has refreshed automatically!`;
+            ? `已处理您的请求：“${userText}”。相关流程参数已按要求更新，中间界面已自动同步刷新。`
+            : `Processed request for "${userText}". Central workspace has been updated.`;
         }
       }
 
       setMessages(prev => [...prev, { 
         sender: 'assistant', 
         text: reply,
+        sourceInfo,
         wordReport: isWeeklyReport ? {
           id: 'report-weekly-001',
           title: lang === 'zh' ? '本周生产运行简报_20240416.docx' : 'Weekly_Production_Operation_Brief_20240416.docx',
@@ -286,11 +231,14 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
       }]);
       setIsTyping(false);
 
-      // Trigger the refresh of the central agent running area!
       if (onRefreshAgent) {
         onRefreshAgent();
       }
-    }, 1500);
+    }, 1200);
+  };
+
+  const handleSend = () => {
+    handleSendQuestion(chatInput);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -339,8 +287,43 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
           </div>
           
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 custom-scrollbar">
-            {messages.length === 0 ? (
+          <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50 custom-scrollbar space-y-4">
+            
+            {/* Top Recommended Questions block for Doc QA Agent */}
+            {isDocQaAgent && (
+              <div className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-2xs space-y-2.5">
+                <div className="flex items-center justify-between text-xs text-slate-700 font-bold px-0.5">
+                  <div className="flex items-center gap-1.5 text-blue-700">
+                    <Lightbulb className="w-4 h-4 text-blue-600" />
+                    <span>推荐问题</span>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      if (onRefreshAgent) onRefreshAgent();
+                    }}
+                    title="刷新推荐问题"
+                    className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                  >
+                    <i className="fas fa-redo-alt text-xs"></i>
+                  </button>
+                </div>
+                
+                <div className="space-y-2">
+                  {recommendedQuestions.map((q, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleSendQuestion(q)}
+                      className="w-full text-left bg-[#EEF4FF] hover:bg-[#E2EDFF] text-[#1E3A8A] border border-[#D0E2FF] rounded-2xl px-3.5 py-2 text-xs font-medium cursor-pointer transition-all flex items-center justify-between group shadow-2xs hover:shadow-xs"
+                    >
+                      <span className="line-clamp-1">{q}</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-600 shrink-0 ml-1.5" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {messages.length === 0 && !isDocQaAgent ? (
               <div className="h-full flex flex-col justify-center items-center py-4 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 mb-4 animate-bounce">
                   <Bot className="w-8 h-8" />
@@ -365,7 +348,7 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
                   {recommendedQuestions.map((q, i) => (
                     <button 
                       key={i}
-                      onClick={() => setChatInput(q)}
+                      onClick={() => handleSendQuestion(q)}
                       className="w-full text-left p-4 bg-white border border-slate-200 hover:border-indigo-300 rounded-xl flex items-center justify-between hover:shadow-sm transition-all group"
                     >
                       <span className="text-xs text-slate-700 font-medium line-clamp-2">{q}</span>
@@ -375,22 +358,39 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {messages.map((msg, i) => (
-                  <div key={i} className={`flex gap-3 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    {msg.sender !== 'user' && (
-                      <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500 shrink-0">
-                        <Bot className="w-4 h-4" />
-                      </div>
-                    )}
-                    <div className="flex flex-col gap-2 max-w-[80%]">
-                      <div className={`rounded-2xl px-4 py-3 text-sm shadow-sm whitespace-pre-line ${
+                  <div key={i} className={`flex gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className="flex flex-col gap-1.5 max-w-[85%]">
+                      <div className={`rounded-2xl px-4 py-3 text-xs shadow-2xs whitespace-pre-line leading-relaxed ${
                         msg.sender === 'user' 
-                          ? 'bg-indigo-600 text-white rounded-tr-none' 
-                          : 'bg-white text-slate-700 border border-slate-200 rounded-tl-none leading-relaxed'
+                          ? 'bg-[#DCE8FF] text-slate-800 border border-blue-200/60 font-medium' 
+                          : 'bg-[#F4F8FF] text-slate-800 border border-[#D5E3FC]'
                       }`}>
                         {msg.text}
+
+                        {/* Source document citation card */}
+                        {msg.sourceInfo && (
+                          <div className="mt-3 pt-2.5 border-t border-[#D5E3FC] flex flex-col gap-1.5">
+                            <div className="text-[11px] font-bold text-slate-600">来源：</div>
+                            <div className="flex items-center justify-between gap-2 bg-white p-2 rounded-xl border border-blue-100 shadow-2xs">
+                              <div className="flex items-center gap-1.5 text-slate-700 font-medium truncate text-[11px]">
+                                <i className="far fa-file-alt text-blue-500 text-xs flex-shrink-0"></i>
+                                <span className="truncate">《{msg.sourceInfo.docName}》{msg.sourceInfo.chapter}</span>
+                              </div>
+                              <button 
+                                onClick={() => {
+                                  window.dispatchEvent(new CustomEvent('highlight-contract-source', { detail: msg.sourceInfo }));
+                                }}
+                                className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-full text-[10px] font-bold transition-all flex-shrink-0 shadow-2xs border border-blue-200/60 cursor-pointer"
+                              >
+                                查看原文
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
+
                       {msg.wordReport && (
                         <div 
                           className="mt-1 p-3 bg-white border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/25 rounded-xl flex items-center gap-3 transition-all cursor-pointer group shadow-sm"
@@ -419,40 +419,19 @@ export const AssistantSidebar: React.FC<AssistantSidebarProps> = ({
                 ))}
 
                 {isTyping && (
-                  <div className="flex gap-3 justify-start">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500 shrink-0">
-                      <Bot className="w-4 h-4" />
-                    </div>
-                    <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-none px-4 py-3 text-sm text-slate-500 flex items-center gap-1 shadow-sm">
+                  <div className="flex gap-2.5 justify-start">
+                    <div className="bg-[#F4F8FF] border border-[#D5E3FC] rounded-2xl px-4 py-3 text-xs text-slate-500 flex items-center gap-1 shadow-2xs">
                       <span className="animate-bounce">●</span>
                       <span className="animate-bounce [animation-delay:0.2s]">●</span>
                       <span className="animate-bounce [animation-delay:0.4s]">●</span>
-                      <span className="text-xs ml-2 text-slate-400">
-                        {lang === 'zh' ? '正在处理并更新中间运行区域...' : 'Processing and refreshing middle area...'}
+                      <span className="text-[11px] ml-2 text-slate-400">
+                        正在检索相关合同条款...
                       </span>
                     </div>
                   </div>
                 )}
                 
                 <div ref={messagesEndRef} />
-                
-                {/* Compact Follow-up Questions when messages exist */}
-                <div className="pt-6 border-t border-slate-200/60 mt-4 space-y-2">
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block px-1">
-                    {lang === 'zh' ? '继续追问：' : 'Keep asking:'}
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {followUpQuestions.slice(0, 3).map((q, i) => (
-                      <button 
-                        key={i}
-                        onClick={() => setChatInput(q)}
-                        className="text-xs px-3 py-1.5 bg-white border border-slate-200 hover:border-indigo-300 rounded-full text-slate-600 hover:text-indigo-600 transition-all text-left truncate max-w-full"
-                      >
-                        {q}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
             )}
           </div>
