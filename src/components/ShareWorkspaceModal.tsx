@@ -338,7 +338,8 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
   onSave,
 }) => {
   const [filterTab, setFilterTab] = useState<'department' | 'role'>('department');
-  const [selectedFilter, setSelectedFilter] = useState<{ id: string; type: string } | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<{ id: string; type: string } | null>({ id: DEPARTMENT_TREE[0].id, type: 'department' });
+  const [leftSearchQuery, setLeftSearchQuery] = useState('');
   
   // Expanded node IDs for trees
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(
@@ -358,8 +359,10 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
     if (isOpen) {
       setSelectedUserIds(initialSelectedUserIds ? new Set(initialSelectedUserIds) : new Set());
       setUserPermissions(initialUserPermissions || {});
-      setSelectedFilter(null);
+      setSelectedFilter({ id: DEPARTMENT_TREE[0].id, type: 'department' });
       setSearchQuery('');
+      setLeftSearchQuery('');
+      setFilterTab('department');
     }
   }, [isOpen, initialSelectedUserIds, initialUserPermissions]);
 
@@ -376,23 +379,63 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
     });
   };
 
+  const filteredDepartmentTree = useMemo(() => {
+    const query = leftSearchQuery.trim().toLowerCase();
+    if (!query) return DEPARTMENT_TREE;
+    return DEPARTMENT_TREE.map(dept => {
+      const deptMatches = dept.name.toLowerCase().includes(query);
+      const filteredSubDepts = dept.children.map(sub => {
+        const subMatches = sub.name.toLowerCase().includes(query);
+        const filteredPositions = sub.children.filter(pos => pos.name.toLowerCase().includes(query));
+        if (subMatches || filteredPositions.length > 0) {
+          return {
+            ...sub,
+            children: subMatches ? sub.children : filteredPositions
+          };
+        }
+        return null;
+      }).filter(Boolean) as SubDepartmentNode[];
+
+      if (deptMatches || filteredSubDepts.length > 0) {
+        return {
+          ...dept,
+          children: deptMatches ? dept.children : filteredSubDepts
+        };
+      }
+      return null;
+    }).filter(Boolean) as DepartmentNode[];
+  }, [leftSearchQuery]);
+
+  const filteredRoleTree = useMemo(() => {
+    const query = leftSearchQuery.trim().toLowerCase();
+    if (!query) return ROLE_TREE;
+    return ROLE_TREE.map(group => {
+      const groupMatches = group.name.toLowerCase().includes(query);
+      const filteredRoles = group.children.filter(role => role.name.toLowerCase().includes(query));
+      if (groupMatches || filteredRoles.length > 0) {
+        return {
+          ...group,
+          children: groupMatches ? group.children : filteredRoles
+        };
+      }
+      return null;
+    }).filter(Boolean) as RoleGroupNode[];
+  }, [leftSearchQuery]);
+
   // Filtered Users based on left side selection & search query
   const filteredUsers = useMemo(() => {
     return ALL_USERS.filter(user => {
-      // 1. Text Search Filter
+      // 1. Text Search Filter (Right side: Name search only)
       const query = searchQuery.trim().toLowerCase();
       if (query) {
         const matchesName = user.name.toLowerCase().includes(query);
-        const matchesPosition = user.positionName?.toLowerCase().includes(query);
-        const matchesRole = user.roleName?.toLowerCase().includes(query);
-        const matchesDept = user.deptPath?.toLowerCase().includes(query);
-        if (!matchesName && !matchesPosition && !matchesRole && !matchesDept) {
+        if (!matchesName) {
           return false;
         }
       }
 
       // 2. Tab & Tree Selection Filter
-      if (!selectedFilter || selectedFilter.id === 'all') {
+      if (!selectedFilter) {
         return true;
       }
 
@@ -551,7 +594,8 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
                     type="button"
                     onClick={() => {
                       setFilterTab('department');
-                      setSelectedFilter(null);
+                      setSelectedFilter({ id: DEPARTMENT_TREE[0].id, type: 'department' });
+                      setLeftSearchQuery('');
                     }}
                     className={`flex-1 py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                       filterTab === 'department'
@@ -567,7 +611,8 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
                     type="button"
                     onClick={() => {
                       setFilterTab('role');
-                      setSelectedFilter(null);
+                      setSelectedFilter({ id: ROLE_TREE[0].id, type: 'role' });
+                      setLeftSearchQuery('');
                     }}
                     className={`flex-1 py-2 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                       filterTab === 'role'
@@ -578,6 +623,26 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
                     <i className="fas fa-user-shield text-[11px]"></i>
                     <span>{lang === 'zh' ? '按角色筛选' : 'By Role'}</span>
                   </button>
+                </div>
+
+                {/* Left Search Input for Departments/Roles */}
+                <div className="relative mb-2.5">
+                  <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[11px]"></i>
+                  <input 
+                    type="text"
+                    placeholder={filterTab === 'department' ? (lang === 'zh' ? '搜索部门、科室或岗位...' : 'Search dept or position...') : (lang === 'zh' ? '搜索角色组或角色...' : 'Search role group or role...')}
+                    value={leftSearchQuery}
+                    onChange={e => setLeftSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-gray-200/80 rounded-xl text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                  />
+                  {leftSearchQuery && (
+                    <button 
+                      onClick={() => setLeftSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-[11px]"
+                    >
+                      <i className="fas fa-times-circle"></i>
+                    </button>
+                  )}
                 </div>
 
                 {/* Subtitle Indicator */}
@@ -595,31 +660,10 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
                 {/* Tree View Container */}
                 <div className="flex-1 space-y-1 overflow-y-auto custom-scrollbar pr-1">
                   
-                  {/* Option: ALL */}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedFilter(null)}
-                    className={`w-full text-left px-3 py-2 rounded-xl transition-all flex items-center justify-between ${
-                      !selectedFilter || selectedFilter.id === 'all'
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 font-bold'
-                        : 'text-gray-700 hover:bg-white hover:shadow-2xs'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <i className="fas fa-layer-group text-xs"></i>
-                      <span className="text-xs">{lang === 'zh' ? '全部成员' : 'All Members'}</span>
-                    </div>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                      !selectedFilter || selectedFilter.id === 'all' ? 'bg-blue-700 text-white' : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {ALL_USERS.length}
-                    </span>
-                  </button>
-
                   {/* DEPARTMENT TREE MODE */}
                   {filterTab === 'department' && (
                     <div className="space-y-1 mt-1">
-                      {DEPARTMENT_TREE.map(dept => {
+                      {filteredDepartmentTree.map(dept => {
                         const isDeptExpanded = expandedNodes.has(dept.id);
                         const isDeptSelected = selectedFilter?.id === dept.id && selectedFilter?.type === 'department';
                         const deptCount = getDeptNodeCount(dept.id, 'department');
@@ -739,7 +783,7 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
                   {/* ROLE TREE MODE */}
                   {filterTab === 'role' && (
                     <div className="space-y-1 mt-1">
-                      {ROLE_TREE.map(group => {
+                      {filteredRoleTree.map(group => {
                         const isGroupExpanded = expandedNodes.has(group.id);
                         const isGroupSelected = selectedFilter?.id === group.id && selectedFilter?.type === 'role_group';
                         const groupCount = getRoleNodeCount(group.id, 'role_group');
@@ -821,12 +865,12 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
                 
                 {/* Search & Select All Top Bar */}
                 <div className="p-4 border-b border-gray-100 space-y-3 bg-white">
-                  {/* Search Input */}
+                  {/* Search Input (Name search only) */}
                   <div className="relative">
                     <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
                     <input 
                       type="text"
-                      placeholder={lang === 'zh' ? "搜索姓名、岗位、具体角色或部门..." : "Search name, position, role or department..."}
+                      placeholder={lang === 'zh' ? "搜索姓名..." : "Search name..."}
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
                       className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200/80 rounded-xl text-xs focus:ring-2 focus:ring-blue-500/20 focus:bg-white focus:border-blue-500 outline-none transition-all"
@@ -875,7 +919,7 @@ export const ShareWorkspaceModal: React.FC<ShareWorkspaceModalProps> = ({
                         {isAllFilteredSelected && <i className="fas fa-check text-[10px]"></i>}
                         {isSomeFilteredSelected && <i className="fas fa-minus text-[10px]"></i>}
                       </div>
-                      <span>{lang === 'zh' ? '全选本页人员' : 'Select All Filtered'}</span>
+                      <span>{lang === 'zh' ? '全选' : 'Select All'}</span>
                       {filteredUsers.length > 0 && (
                         <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                           isAllFilteredSelected ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-500'
